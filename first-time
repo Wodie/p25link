@@ -1,0 +1,151 @@
+#!/bin/bash
+# first-time
+##################################################################
+#	*** P25NX v2.0.19 ***
+#	Released: May 27, 2020. Created September 04, 2019.
+#	Created by: Juan Carlos Pérez De Castro (Wodie) KM4NNO, XE1F.
+#	www.wodielite.com
+#	wodielite at mac.com
+##################################################################
+
+# See LICENSE file for copyright and license details
+# Based on ASL modification by mod4whip N8THN
+
+CONFIGS=/opt/p25nx2
+CONFIGPATH=$CONFIGS/config.ini
+
+
+
+do_check_if_firsttime() {
+  if [ -e $CONFIGS/firsttime ]; then
+    return
+  else
+    exit 0
+  fi
+}
+
+#################################################################################
+# root/sudo test ################################################################
+#################################################################################
+check_if_root() {
+  echo "check_if_root" >> $logfile
+  if [ `whoami` != root ]; then
+    whiptail --msgbox "This script must be run as root or with sudo" 20 60 2
+    exit 1
+  fi
+}
+
+#################################################################################
+# Functions #####################################################################
+#################################################################################
+do_config() {
+  do_mode_menu
+# Review data to be saved
+  if (whiptail --yesno "So we have:\n
+  Mode :              $MODE
+  Priority TG :       $PRIORITYTG
+  Mute TG Timeout :   $MUTETGTIMEOUT
+  Use Voice Prompts : $USEVOICEPROMPTS
+  Callsign :          $CALLSIGN
+  Radio ID :          $RADIOID
+  Verbose :           $VERBOSE
+  \nSelect yes to continue or no to start over." 30 80); then
+    # yes, write it
+    do_static_write
+    whiptail --msgbox "Saved new configuration." 20 80 2
+  else
+    # no, re-enter
+    do_config
+    whiptail --msgbox "Re-enter data." 20 80 2
+  fi
+}
+
+do_mode_menu() {
+  FUNA=$(whiptail --title "Physical Connection Mode" --menu "Select hardware for connection" 20 80 5 --cancel-button Back --ok-button Select \
+    "0 Serial" "Set if using serial board for v.24" \
+    "1 TCP" "Set if using Cisco router for v.24" \
+    3>&1 1>&2 2>&3)
+  RESA=$?
+  if [ $RESA -eq 1 ]; then
+    return
+  elif [ $RESA -eq 0 ]; then
+    case "$FUNA" in
+      0\ *) MODE=0 ;;
+      1\ *) MODE=1 ;;
+      *) whiptail --msgbox "Whoooops, script error: unrecognized option" 20 60 1 ;;
+    esac || whiptail --msgbox "There was an error running option $FUNM" 20 60 1
+  fi
+# Use Voice Prompts
+  FUNA=$(whiptail --title "Voice Prompts" --menu "Do you want to enable P25NX Voice Prompts?" 20 80 5 --cancel-button Back --ok-button Select \
+    "0 " "Voice Prompts Disabled" \
+    "1 " "Voice Prompts Enabled" \
+    3>&1 1>&2 2>&3)
+  RESA=$?
+  if [ $RESA -eq 1 ]; then
+    return
+  elif [ $RESA -eq 0 ]; then
+    case "$FUNA" in
+      0\ *) USEVOICEPROMPTS=0 ;;
+      1\ *) USEVOICEPROMPTS=1 ;;
+      *) whiptail --msgbox "Whoooops, script error: unrecognized option" 20 60 1 ;;
+    esac || whiptail --msgbox "There was an error running option $FUNM" 20 60 1
+  fi
+# Data
+  PRIORITYTG=$(whiptail --inputbox "Enter the Priority Talk Group number\n" 8 78 3>&1 1>&2 2>&3)
+  MUTETGTIMEOUT=$(whiptail --inputbox "Enter the Mute Timeout in seconds\n" 8 78 3>&1 1>&2 2>&3)
+  CALLSIGN=$(whiptail --inputbox "Enter the callsign for this repeater\n" 8 78 3>&1 1>&2 2>&3)
+  RADIOID=$(whiptail --inputbox "Enter the RadioID for this repeater\n" 8 78 3>&1 1>&2 2>&3)
+# Verbose
+  FUNA=$(whiptail --title "Verbose" --menu "Do you want to enable Verbose?" 20 80 5 --cancel-button Back --ok-button Select \
+    "0 " "Verbose Disabled" \
+    "1 " "Verbose Enabled" \
+    3>&1 1>&2 2>&3)
+  RESA=$?
+  if [ $RESA -eq 1 ]; then
+    return
+  elif [ $RESA -eq 0 ]; then
+    case "$FUNA" in
+      0\ *) VERBOSE=0 ;;
+      1\ *) VERBOSE=1 ;;
+      *) whiptail --msgbox "Whoooops, script error: unrecognized option" 20 60 1 ;;
+    esac || whiptail --msgbox "There was an error running option $FUNM" 20 60 1
+  fi
+  return
+}
+
+
+
+do_static_write() {
+  # write config.ini
+  cp -r $CONFIGS/config.ini $CONFIGS/config.ini.orig
+  sed -i 's/Mode.*/Mode = '$MODE'/' $CONFIGS/config.ini
+  sed -i 's/PriorityTG.*/PriorityTG = '$PRIORITYTG'/' $CONFIGS/config.ini
+  sed -i 's/MuteTGTimeout.*/MuteTGTimeout = '$MUTETGTIMEOUT'/' $CONFIGS/config.ini
+  sed -i 's/UseVoicePrompts.*/UseVoicePrompts = '$USEVOICEPROMPTS'/' $CONFIGS/config.ini
+  sed -i 's/Verbose.*/Verbose = '$VERBOSE'/' $CONFIGS/config.ini
+#  sed -i 's/Enabled.*/Enabled = '$ENABLED'/' $CONFIGS/config.ini
+  sed -i 's/Callsign.*/Callsign = '$CALLSIGN'/' $CONFIGS/config.ini
+  sed -i 's/RadioID.*/RadioID = '$RADIOID'/' $CONFIGS/config.ini
+#  sed -i 's/Enabled.*/Enabled = '$ENABLED'/' $CONFIGS/config.ini
+  whiptail --msgbox "Finished writing settings file\nChanges will take effect after restarting P25NX2 app" 10 78
+}
+
+
+#################################################################################
+# Main body here ################################################################
+#################################################################################
+do_check_if_firsttime
+check_if_root
+if (whiptail --title "First time setup" --yesno "First time setup.\n\nDo you want to do this now?" --defaultno 15 78) then
+  ANSWER=$?
+else
+  ANSWER=$?
+fi
+
+if [ $ANSWER = 1 ]
+then
+  whiptail --msgbox "You can run this setup at any time later" 8 78
+  exit 0
+else
+  do_config
+fi

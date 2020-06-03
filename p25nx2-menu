@@ -1,0 +1,491 @@
+#!/bin/bash
+# P25NX-MENU
+##################################################################
+#	*** P25NX v2.0.19 ***
+#	Released: May 27, 2020. Created September 04, 2019.
+#	Created by: Juan Carlos Pérez De Castro (Wodie) KM4NNO, XE1F.
+#	www.wodielite.com
+#	wodielite at mac.com
+##################################################################
+
+# See LICENSE file for copyright and license details
+clear
+
+# define variables
+rm -f /tmp/p25nx2-menu.log
+logfile=/tmp/p25nx2-menu.log
+#logfile=/dev/null
+## all other variables defined in get_node_info
+INTERACTIVE=True
+ASK_TO_REBOOT=0
+#CONFIG=/opt/config.txt
+
+
+#################################################################################
+# root/sudo test ################################################################
+#################################################################################
+# Everything else needs to be run as root
+#if [ $(id -u) -ne 0 ]; then
+#  printf "Script must be run as root. Try 'sudo p25nx2-menu'\n"
+#  exit 1
+#fi
+
+#if [ -n "${OPT_MEMORY_SPLIT:-}" ]; then
+#  set -e # Fail when a command errors
+#  set_memory_split "${OPT_MEMORY_SPLIT}"
+#  exit 0
+#fi
+
+check_if_root() {
+echo "check_if_root" >> $logfile
+if [ `whoami` != root ]; then
+        whiptail --msgbox "This script must be run as root or with sudo" 20 60 2
+        exit 1
+fi
+}
+
+#################################################################################
+# GUI ###########################################################################
+#################################################################################
+calc_wt_size() {
+echo "doing calc_wt_size" >> $logfile
+  WT_HEIGHT=22
+  WT_WIDTH=$(tput cols)
+
+  if [ -z "$WT_WIDTH" ] || [ "$WT_WIDTH" -lt 60 ]; then
+    WT_WIDTH=80
+  fi
+  if [ "$WT_WIDTH" -gt 178 ]; then
+    WT_WIDTH=120
+  fi
+  WT_MENU_HEIGHT=$(($WT_HEIGHT-7))
+}
+
+
+#################################################################################
+# Functions #####################################################################
+#################################################################################
+get_node_info() {
+echo "get_node_info" >> $logfile
+CONFIGS=/opt/p25nx2
+WEBROOT=/var/www/html/pnx
+TMP=/tmp
+
+
+#APTGET=$(which apt-get)
+#PING=$(which ping)
+#USERADD=$(which useradd)
+#USERDEL=$(which userdel)
+#DPKG_QUERY=$(which dpkg-query)
+#ERVICE=$(which service)
+#IPTABLES=$(which iptables)
+#IPTABLES_RESTORE=$(which iptables-restore)
+#IFCONFIG=$(which ifconfig)
+#LSMOD=$(which lsmod)
+#UPDATE_RCD=$(which update-rc.d)
+#GLOBALIP=$(ip a | grep "scope global" | grep -Po '(?<=inet )[\d.]+')
+
+#ASTERISK=/usr/sbin/asterisk
+#ASTRES=/usr/local/sbin/astres.sh
+#ASTUP=/usr/local/sbin/astup.sh
+#ASTDN=/usr/local/sbin/astdn.sh
+#SAVENODE=/usr/local/sbin/save-node
+#RESTORENODE=/usr/local/sbin/restore-node
+#FIRSTTIME=/usr/local/sbin/first-time
+
+#MONTHDAY=$(date +%Y-%m-%d)
+#DATEEXT=$(date +%Y-%m-%d.%H:%M)
+#FILEDATENAME=$(date +%Y%m%d%H%M)
+
+REBOOT_NEEDED=0
+P25NX2_RESTART=0
+
+#HTTPPORT=80
+#HTTPSPORT=443
+RADIOID=$(grep -o '^\[[0-9]*\]' $CONFIGS/config.ini | sed 's/.*\[\([^]]*\)\].*/\1/g')
+CALLSIGN=$(grep '^idrecording =' $CONFIGS/config.ini | awk -F'=' '{print $2}' | sed 's/|\i//' | sed -e 's/^\(.\{9\}\).*/\1/')
+SSHPORT=$(grep 'Port ' /etc/ssh/sshd_config | awk -F" " '{print $2}')
+
+}
+
+#################################################################################
+# Main menu functions ################################################################
+#################################################################################
+do_run_firsttime() {
+  echo "do_run_firsttime" >> $logfile
+  touch $CONFIGS/firsttime
+  $CONFIGS/first-time
+  rm -f $CONFIGS/firsttime
+  do_build_exe
+}
+
+do_start() {
+  echo "do_start" >> $logfile
+  cp $CONFIGS/p25nx2.service /lib/systemd/system/p25nx2.service &&
+  systemctl enable p25nx2 &&
+  systemctl start p25nx2 &&
+  P25NX2_RESTART=0
+  whiptail --msgbox "P25NX v2 service has been started" 20 60 2
+}
+
+do_restart() {
+  echo "do_restart" >> $logfile
+  systemctl restart p25nx2 &&
+  P25NX2_RESTART=0
+  whiptail --msgbox "P25NX v2 service has been restarted" 20 60 2
+}
+
+do_stop() {
+  echo "do_stop" >> $logfile
+  systemctl stop p25nx2 &&
+  systemctl disable p25nx2 &&
+  P25NX2_RESTART=0
+  whiptail --msgbox "P25NX v2 service has been stoped" 20 60 2
+}
+
+do_about() {
+  whiptail --msgbox "\
+Created by Juan Carlos Perez KM4NNO / XE1F.
+
+This tool provides a straight-forward way of doing initial
+configuration for P25NX v2 on Raspberry Pi. Although it can be run
+at any time, some of the options may have difficulties if
+you have heavily customised your installation.\
+" 20 70 1
+}
+
+#################################################################################
+# Network menu functions ########################################################
+#################################################################################
+get_hostname() {
+    cat /etc/hostname | tr -d " \t\n\r"
+}
+
+do_hostname() {
+echo "do_hostname" >> $logfile
+  if [ "$INTERACTIVE" = True ]; then
+    whiptail --msgbox "\
+Please note: RFCs mandate that a hostname's labels \
+may contain only the ASCII letters 'a' through 'z' (case-insensitive), 
+the digits '0' through '9', and the hyphen.
+Hostname labels cannot begin or end with a hyphen. 
+No other symbols, punctuation characters, or blank spaces are permitted.\
+" 20 70 1
+  fi
+  CURRENT_HOSTNAME=`cat /etc/hostname | tr -d " \t\n\r"`
+  if [ "$INTERACTIVE" = True ]; then
+    NEW_HOSTNAME=$(whiptail --inputbox "Please enter a hostname" 20 60 "$CURRENT_HOSTNAME" 3>&1 1>&2 2>&3)
+  else
+    NEW_HOSTNAME=$1
+    true
+  fi
+  if [ $? -eq 0 ]; then
+    echo $NEW_HOSTNAME > /etc/hostname
+    sed -i "s/127.0.1.1.*$CURRENT_HOSTNAME/127.0.1.1\t$NEW_HOSTNAME/g" /etc/hosts
+    ASK_TO_REBOOT=1
+  fi
+}
+
+do_net_setup() {
+  echo "do_net_setup" >> $logfile
+  if [ -x /opt/p25nx2/net-setup ]; then
+    whiptail --msgbox "You can now set up the networking for the system to use\neither static or DHCP (dynamic) addressing.\nIf you choose static addressing, you will need to have 5 key IP\naddresses handy:  IP ADDRESS, NETMASK, DEFAULT GATEWAY,\nPRIMARY DNS, and SECONDARY DNS." 20 80 2
+    $CONFIGS/net-setup
+  fi
+}
+
+get_ssh() {
+  if service ssh status | grep -q inactive; then
+    echo 1
+  else
+    echo 0
+  fi
+}
+
+do_ssh() {
+  echo "do_ssh" >> $logfile
+  if [ -e /var/log/regen_ssh_keys.log ] && ! grep -q "^finished" /var/log/regen_ssh_keys.log; then
+    whiptail --msgbox "Initial ssh key generation still running. Please wait and try again." 20 60 2
+    return 1
+  fi
+  DEFAULT=--defaultno
+  if [ $(get_ssh) -eq 0 ]; then
+    DEFAULT=
+  fi
+  if [ "$INTERACTIVE" = True ]; then
+    whiptail --yesno "Would you like the SSH server to be enabled?" $DEFAULT 20 60 2
+    RET=$?
+  else
+    RET=$1
+  fi
+  if [ $RET -eq 0 ]; then
+    update-rc.d ssh enable &&
+    invoke-rc.d ssh start &&
+    STATUS=enabled
+  elif [ $RET -eq 1 ]; then
+    update-rc.d ssh disable &&
+    invoke-rc.d ssh stop &&
+    STATUS=disabled
+  else
+    return $RET
+  fi
+  if [ "$INTERACTIVE" = True ]; then
+    whiptail --msgbox "The SSH server is $STATUS" 20 60 1
+  fi
+}
+
+do_ssh_port() {
+  echo "do_ssh_port" >> $logfile
+  NEWSSHPORT=$(whiptail --inputbox "Current SSH port is $SSHPORT \nEnter new SSH port to use" 8 78 "$SSHPORT" --title "SSH Port" 3>&1 1>&2 2>&3)
+  #sed -i "s/^Port $SSHPORT/Port $NEWSSHPORT/" /etc/ssh/sshd_config
+  sed -i "/Port $SSHPORT/c\Port $NEWSSHPORT" /etc/ssh/sshd_config
+  $SERVICE ssh restart
+  whiptail --msgbox "SSH port set to $NEWSSHPORT\nUpdate firewall and port forwarding." 20 60 2
+}
+
+
+#################################################################################
+# Settings menu functions #######################################################
+#################################################################################
+do_set_root_passwd() {
+ANSWER=1
+        if (whiptail --title "First-time" --yesno "Welcome to P25NX v2 first-time setup. \
+        \nThis script will walk you through a few of the basic system setup options. \
+        \nThe root login is disabled for SSH and CONSOLE login. \
+        \nBy setting the root password you will allow root to login on the console. \
+        \nWould you like to set the root password?" --defaultno 20 80) then
+         ANSWER=$?
+        fi
+        if [ "$ANSWER" = "0" ]; then    # answered yes
+# no options to pretty up the display for this part
+                while ! passwd root
+                do
+                        whiptail --msgbox "ERROR: A valid password must be assigned to continue" 20 80 2
+                done
+        fi
+}
+
+do_set_my_passwd() {
+ANSWER=1
+REALID=$(who am i | awk '{print $1}')
+if (whiptail --title "$REALID password" --yesno "Would you like to change your password?\nUser: $REALID" 20 80 2) then
+ANSWER=$?
+fi
+if [ "$ANSWER" = "0" ]; then
+        while ! passwd $REALID
+        do
+                whiptail --msgbox "ERROR: " 20 80 2
+        done
+fi
+}
+
+
+
+do_apt_get_update() {
+echo "do_apt_get_update" >> $logfile
+whiptail --msgbox "Grab a cup of coffee if you have not run this in a while\nUpdating repository information" 20 60 2
+apt-get update &&
+apt-get install raspi-config &&
+printf "Sleeping 5 seconds before reloading raspi-config\n" &&
+sleep 5 &&
+exec p25nx2-menu
+whiptail --msgbox "Done running apt-get update" 20 60 2
+}
+
+do_apt_get_upgrade() {
+echo "do_apt_get_upgrade" >> $logfile
+whiptail --msgbox "Might be a good time for lunch this could take a while" 20 60 2
+$APTGET -y upgrade
+whiptail --msgbox "Done running apt-get upgrade" 20 60 2
+}
+
+do_install_cpan() {
+echo "do_install_cpan" >> $logfile
+whiptail --msgbox "Grab a cup of coffee if you have not run this in a while\nUpdating repository information" 20 60 2
+cpan install Switch &&
+cpan install Config::IniFiles &&
+cpan install Digest::CRC &&
+cpan install Device::SerialPort &&
+cpan install IO::Socket::Timeout &&
+cpan install IO::Socket::Multicast &&
+cpan install Term::ReadKey &&
+# Used to make Exe files:
+#cpan -i PAR::Packer &&
+apt install libpar-packer-perl
+whiptail --msgbox "Done running CPAN mod installations" 20 60 2
+}
+
+do_build_exe() {
+chmod +x $CONFIGS/p25nx_v2.0.14.pl &&
+pp -o $CONFIGS/p25nx2.exe $CONFIGS/p25nx_v2.0.14.pl &&
+whiptail --msgbox "Done building Exe file" 20 60 2
+}
+
+do_use_p25nx2_menu() {
+  echo "do_p25nx2_menu" >> $logfile
+  # use p25nx2-menu on login for user account
+  ANSWER=1
+  REALID=$(who am i | awk '{print $1}')
+  if (whiptail --title "p25nx2-menu at login" --yesno "Would you like to start the p25nx2-menu script\nat login by default for user: $REALID?" --defaultno 20 80 2 3>&1 1>&2 2>&3) then
+  ANSWER=$?
+  fi
+  if [ "$ANSWER" = "0" ]; then
+        cat /home/$REALID/.bashrc |grep p25nx2-menu > /dev/null
+        if [ $? = "1" ]; then
+        echo "sudo $CONFIGS/p25nx2-menu" >> /home/$REALID/.bashrc
+        whiptail --msgbox "p25nx2-menu will start at login for user $REALID" 20 60 2
+        else
+        whiptail --msgbox "p25nx2-menu already starts for user $REALID at login." 20 60 2
+        fi
+  else
+        sed -i '/p25nx2-menu/c\' /home/$REALID/.bashrc
+        whiptail --msgbox "the p25nx2-menu autostart at login has been disabled\nYou may run the p25nx2-menu script by typing sudo $CONFIGS/p25nx2-menu" 20 60 2
+  fi
+}
+
+#################################################################################
+# Other menu functions ##########################################################
+#################################################################################
+
+do_exit() {
+echo "do_exit" >> $logfile
+        if (whiptail --title "Exit Yes or No" --yesno "Exit Yes or No" 8 78) then
+            do_finish
+        else
+            do_main_menu
+        fi
+}
+
+do_finish() {
+echo "do_finish" >> $logfile
+        if [ $P25NX2_RESTART -eq 1 ]; then
+                whiptail --title "P25NX restart required" --yesno "P25NX reload is required for changes to take effect restart P25NX now?" 8 78
+                if [ $? -eq 0 ]; then #yes
+                $P25NXRES
+                whiptail --msgbox "P25NX has been restarted" 20 60 2
+                else
+                whiptail --msgbox "Please restart P25NX at your convenience" 20 60 2
+                fi
+        fi
+        # check if reboot needed.
+        if [ $REBOOT_NEEDED -eq 1 ]; then
+        whiptail --title "Reboot is required" --yesno "Reboot required for changes to take effect Reboot now?" 8 78
+                if [ $? -eq 0 ]; then # yes
+                sync
+                reboot -t 30
+                else
+                whiptail --msgbox "You may reboot the machine at your convenience" 20 60 2
+                fi
+        fi
+       exit 0
+}
+
+do_nothing() {
+  echo "do_nothing" >> $logfile
+  # place to land the menu options that aren't done yet
+  whiptail --msgbox "Option not configured yet" 20 60 2
+}
+
+
+
+#################################################################################
+# Menus #########################################################################
+#################################################################################
+
+do_utilities_menu() {
+  FUN=$(whiptail --title "P25NX v2 Utilities menu" --menu "Utilities" $WT_HEIGHT $WT_WIDTH $WT_MENU_HEIGHT --cancel-button Back --ok-button Select \
+    "U1 " "Change Root password" \
+    "U2 " "Change User password for the current user" \
+    "U3 " "Run apt-get update" \
+    "U4 " "Run apt-get upgrade" \
+    "U5 " "Install Perl CPAN modules" \
+    "U6 " "Build p25nx2.exe" \
+    "U7 " "Run p25nx2-menu at login" \
+    3>&1 1>&2 2>&3)
+  RET=$?
+  if [ $RET -eq 1 ]; then
+    return 0
+  elif [ $RET -eq 0 ]; then
+    case "$FUN" in
+      U1\ *) do_set_root_passwd ;;
+      U2\ *) do_set_my_passwd ;;
+      U3\ *) do_apt_get_update ;;
+      U4\ *) do_apt_get_upgrade ;;
+      U5\ *) do_install_cpan ;;
+      U6\ *) do_build_exe ;;
+      U7\ *) do_use_p25nx2_menu ;;
+      *) whiptail --msgbox "Programmer error: unrecognized option" 20 60 1 ;;
+    esac || whiptail --msgbox "There was an error running option $FUN" 20 60 1
+  fi
+}
+
+do_network_menu() {
+  FUN=$(whiptail --title "P25NX v2 Network menu" --menu "Network" $WT_HEIGHT $WT_WIDTH $WT_MENU_HEIGHT --cancel-button Back --ok-button Select \
+    "N1 " "Set the Hostname for this Pi on a network" \
+    "N2 " "Network configuration" \
+    "N3 " "Enable/Disable remote access using SSH" \
+    "N4 " "Change SSH port number used" \
+    3>&1 1>&2 2>&3)
+  RET=$?
+  if [ $RET -eq 1 ]; then
+    return 0
+  elif [ $RET -eq 0 ]; then
+    case "$FUN" in
+      N1\ *) do_hostname ;;
+      N2\ *) do_net_setup ;;
+      N3\ *) do_ssh ;;
+      N4\ *) do_ssh_port ;;
+      *) whiptail --msgbox "Programmer error: unrecognized option" 20 60 1 ;;
+    esac || whiptail --msgbox "There was an error running option $FUN" 20 60 1
+  fi
+}
+
+
+do_main_menu() {
+echo "do_main_menu" >> $logfile
+RET=0
+  while true; do
+    calc_wt_size
+      FUN=$(whiptail --title "P25NX v2 Configuration main menu" --backtitle "$(cat /proc/device-tree/model)" --menu "Setup Options" $WT_HEIGHT $WT_WIDTH $WT_MENU_HEIGHT --cancel-button Finish --ok-button Select \
+        "1 Initialize" "Run first-time menu" \
+        "2 Network" "Network configuration menu options" \
+        "3 Utilities" "Utilities and misc options" \
+        "4 config.ini" "Edit config.ini file with your settings" \
+        "5 hosts.txt" "Edit hosts.txt file with your settings" \
+        "6 Auto Start App" "Start P25NX v2 software" \
+        "7 Restart App" "Restart P25NX v2 software" \
+        "8 Stop App" "Stop P25NX v2 software" \
+        "9 About p25nx2-menu" "Information about this configuration tool" \
+        3>&1 1>&2 2>&3)
+      RET=$?
+      if [ $RET -eq 1 ]; then
+        do_exit
+      elif [ $RET -eq 0 ]; then
+        case "$FUN" in
+          1\ *) do_run_firsttime ;;
+          2\ *) do_network_menu ;;
+          3\ *) do_utilities_menu ;;
+          4\ *) nano $CONFIGS/config.ini ;;
+          5\ *) nano $CONFIGS/hosts.txt ;;
+          6\ *) do_start ;;
+          7\ *) do_restart ;;
+          8\ *) do_stop ;;
+          9\ *) do_about ;;
+          *) whiptail --msgbox "Programmer error: unrecognized option" 20 60 1 ;;
+        esac || whiptail --msgbox "There was an error running option $FUN" 20 60 1
+      else
+        exit 1
+      fi
+  done
+}
+
+
+
+#################################################################################
+# Main body here ################################################################
+#################################################################################
+check_if_root
+get_node_info
+do_main_menu
+clear
+exit 0

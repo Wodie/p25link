@@ -1,0 +1,20 @@
+[Unit]
+Description=P25NX2 Service
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+ExecStart=/opt/p25nx2/p25nx2.exe
+StandardOutput=null
+User=pi
+WorkingDirectory=/opt/p25nx2
+
+# safe_asterisk emulation
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
+Alias=p25nx2.service
+
+
