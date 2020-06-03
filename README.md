@@ -2,7 +2,7 @@
 
 To use the p25nx_v2.x.x program copy files to your Raspberry path /opt/p25nx2.
 
-TO run the configuration menu:
+To run the configuration menu:
 
 cd /opt/p25nx2
 sudo chmod 755 p25nx2-menu
