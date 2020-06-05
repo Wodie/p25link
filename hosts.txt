@@ -1,6 +1,9 @@
 # P25Hosts.txt
 #
-# The format of this file is the number of the Talk Group followed by the host name or address and port
+# The format of this file is the number of the Talk Group followed by the host name
+# or address, port number and at last the "scan" index, which 0 = no scan, > 0 enables 
+# scan with different priorities, the greater the number, the higher priority it haves.
+# By default local QSO priority is = 100, so it is recommended to use values < 100.
 #
 
 # RF_TG	PNX_TG	MMDVM_TG	MMDVM_URL				MMDVM_Port	Scan
@@ -73,7 +76,7 @@
 10202	10202	10202	44.98.254.131					41003	0
 
 # 10203 North America TAC 3 (Bridged to the P25NX Network).
-10203	10203	10203	44.98.254.131					41004	3
+10203	10203	10203	44.98.254.131					41004	0
 
 # P25 France
 10208	0		10208	m55.evxonline.net				41000	0
