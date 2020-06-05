@@ -1,4 +1,4 @@
-# P25Hosts.txt
+# Hosts.txt
 #
 # The format of this file is the number of the Talk Group followed by the host name
 # or address, port number and at last the "scan" index, which 0 = no scan, > 0 enables 
