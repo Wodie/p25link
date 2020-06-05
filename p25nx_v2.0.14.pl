@@ -29,7 +29,7 @@ my $StartTime = time();
 # About Message.
 print "\n##################################################################\n";
 print "	*** P25NX v2.0.14 ***\n";
-print "	Released: May 27, 2020. Created October 17, 2019.\n";
+print "	Released: June 05, 2020. Created October 17, 2019.\n";
 print "	Created by:\n";
 print "	Juan Carlos Pérez De Castro (Wodie) KM4NNO / XE1F\n";
 print "	Bryan Fields W9CR.\n";
@@ -369,7 +369,7 @@ foreach my $key (keys %TG) {
 	}
 }
 if ($PriorityTG > 10 and !$TG{$PriorityTG}{'Scan'}) {
-	$TG{$PriorityTG}{'Scan'} = 10;
+	$TG{$PriorityTG}{'Scan'} = 100;
 	AddLinkTG($PriorityTG);
 }
 print "----------------------------------------------------------------------\n";
@@ -413,7 +413,7 @@ my $STUN_ClientIP;
 my $STUN_fh;
 
 $STUN_ServerSocket = IO::Socket::INET->new (
-    LocalHost => '172.31.7.162',
+#    LocalHost => '172.31.7.162',
     LocalPort => $STUN_Port,
     Proto => 'tcp',
     Listen => SOMAXCONN,
@@ -488,11 +488,9 @@ foreach my $key (keys %TG){ # Close Socket connections:
 	}
 	if ($TG{$key}{'P25NX_Connected'}) {
 		P25NX_Disconnect($TG{$key}{'P25NX_TalkGroup'});
-		$TG{$key}{'Sock'}->close();
 	}
 	if ($TG{$key}{'P25Link_Connected'}) {
 		P25Link_Disconnect($TG{$key}{'P25Link_TalkGroup'});
-		$TG{$key}{'Sock'}->close();
 	}
 }
 print "Good bye cruel World.\n";
@@ -1394,6 +1392,9 @@ sub P25NX_Rx{
 
 sub P25NX_Tx{ # This function expect to Rx a formed Cisco STUN Packet.
 	my ($Buffer) = @_;
+	if ($TG{$LinkedTalkGroup}{'P25NX_Connected'} != 1) {
+		return;
+	}
 	# Tx to the Network.
 	if ($P25NX_Verbose >= 2) {print "P25NX_Tx Message " . StrToHex($Buffer) . "\n";}
 	my $MulticastAddress = makeMulticastAddress($LinkedTalkGroup);
@@ -1565,7 +1566,11 @@ sub AddLinkTG{
 		and ($TalkGroup > 10 and $TalkGroup < 10100) # MMDVM.
 		or (!$P25NX_Enabled and ($TalkGroup >= 10100 and $TalkGroup < 10600)) # MMDVM P25NX Ref. 
 		or ($TalkGroup >= 10600 and $TalkGroup < 65535)) { # MMDVM.
-
+		# Search if reflector exist
+		if (exists($TG{$TalkGroup}{'MMDVM_URL'}) != 1) {
+			if ($Verbose) {print "This is a local only TG.\n";}
+			return;
+		}
 		# Connect to TG.
 		if ($Verbose) {print "  MMDVM Connecting to TG " . $TG{$TalkGroup}{'MMDVM_TalkGroup'} .
 			" IP " . $TG{$TalkGroup}{'MMDVM_URL'} .
@@ -1581,9 +1586,7 @@ sub AddLinkTG{
 			PeerPort => $TG{$TalkGroup}{'MMDVM_Port'}
 		) or die "Can not Bind MMDVM : $@\n";
 		$TG{$TalkGroup}{'Sel'} = IO::Select->new($TG{$TalkGroup}{'Sock'});
-print "gagaga " . $TalkGroup ."\n";
 		WritePoll($TG{$TalkGroup}{'MMDVM_TalkGroup'});
-
 		WritePoll($TG{$TalkGroup}{'MMDVM_TalkGroup'});
 		WritePoll($TG{$TalkGroup}{'MMDVM_TalkGroup'});
 	}
@@ -1592,7 +1595,7 @@ print "gagaga " . $TalkGroup ."\n";
 		if ($Verbose) {print "  P25NX Connecting to " . $TalkGroup .
 			" Multicast Addr. " . $MulticastAddress . "\n";
 		}
-			$TG{$TalkGroup}{Sock} = IO::Socket::Multicast->new(
+			$TG{$TalkGroup}{'Sock'} = IO::Socket::Multicast->new(
 			LocalHost => $MulticastAddress,
 			LocalPort => $P25NX_Port,
 			Proto => 'udp',
