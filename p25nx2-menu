@@ -24,18 +24,6 @@ ASK_TO_REBOOT=0
 #################################################################################
 # root/sudo test ################################################################
 #################################################################################
-# Everything else needs to be run as root
-#if [ $(id -u) -ne 0 ]; then
-#  printf "Script must be run as root. Try 'sudo p25nx2-menu'\n"
-#  exit 1
-#fi
-
-#if [ -n "${OPT_MEMORY_SPLIT:-}" ]; then
-#  set -e # Fail when a command errors
-#  set_memory_split "${OPT_MEMORY_SPLIT}"
-#  exit 0
-#fi
-
 check_if_root() {
 echo "check_if_root" >> $logfile
 if [ `whoami` != root ]; then
@@ -71,32 +59,6 @@ CONFIGS=/opt/p25nx2
 WEBROOT=/var/www/html/pnx
 TMP=/tmp
 
-
-#APTGET=$(which apt-get)
-#PING=$(which ping)
-#USERADD=$(which useradd)
-#USERDEL=$(which userdel)
-#DPKG_QUERY=$(which dpkg-query)
-#ERVICE=$(which service)
-#IPTABLES=$(which iptables)
-#IPTABLES_RESTORE=$(which iptables-restore)
-#IFCONFIG=$(which ifconfig)
-#LSMOD=$(which lsmod)
-#UPDATE_RCD=$(which update-rc.d)
-#GLOBALIP=$(ip a | grep "scope global" | grep -Po '(?<=inet )[\d.]+')
-
-#ASTERISK=/usr/sbin/asterisk
-#ASTRES=/usr/local/sbin/astres.sh
-#ASTUP=/usr/local/sbin/astup.sh
-#ASTDN=/usr/local/sbin/astdn.sh
-#SAVENODE=/usr/local/sbin/save-node
-#RESTORENODE=/usr/local/sbin/restore-node
-#FIRSTTIME=/usr/local/sbin/first-time
-
-#MONTHDAY=$(date +%Y-%m-%d)
-#DATEEXT=$(date +%Y-%m-%d.%H:%M)
-#FILEDATENAME=$(date +%Y%m%d%H%M)
-
 REBOOT_NEEDED=0
 P25NX2_RESTART=0
 
@@ -105,6 +67,8 @@ P25NX2_RESTART=0
 RADIOID=$(grep -o '^\[[0-9]*\]' $CONFIGS/config.ini | sed 's/.*\[\([^]]*\)\].*/\1/g')
 CALLSIGN=$(grep '^idrecording =' $CONFIGS/config.ini | awk -F'=' '{print $2}' | sed 's/|\i//' | sed -e 's/^\(.\{9\}\).*/\1/')
 SSHPORT=$(grep 'Port ' /etc/ssh/sshd_config | awk -F" " '{print $2}')
+ETH0IP=$(ip addr show eth0 | grep "inet\b" | awk '{print $2}' | cut -d/ -f1)
+HOSTNAME=$(cat /etc/hostname | tr -d " \t\n\r")
 
 }
 
@@ -343,6 +307,28 @@ do_use_p25nx2_menu() {
   fi
 }
 
+do_system_restart() {
+  ANSWER=1
+  REALID=$(who am i | awk '{print $1}')
+  if (whiptail --title "System Restart" --yesno "Would you like to restart your system?" --defaultno 20 80 2 3>&1 1>&2 2>&3) then
+  ANSWER=$?
+  fi
+  if [ "$ANSWER" = "0" ]; then
+    reboot
+  fi
+}
+
+do_system_halt() {
+  ANSWER=1
+  REALID=$(who am i | awk '{print $1}')
+  if (whiptail --title "System Shutdown" --yesno "Would you like to shutdown your system?" --defaultno 20 80 2 3>&1 1>&2 2>&3) then
+  ANSWER=$?
+  fi
+  if [ "$ANSWER" = "0" ]; then
+    halt
+  fi
+}
+
 #################################################################################
 # Other menu functions ##########################################################
 #################################################################################
@@ -401,6 +387,8 @@ do_utilities_menu() {
     "U5 " "Install Perl CPAN modules" \
     "U6 " "Build p25nx2.exe" \
     "U7 " "Run p25nx2-menu at login" \
+    "U8 " "Restart system (Raspberry Pi)" \
+    "U9 " "Shutdown system" \
     3>&1 1>&2 2>&3)
   RET=$?
   if [ $RET -eq 1 ]; then
@@ -414,6 +402,8 @@ do_utilities_menu() {
       U5\ *) do_install_cpan ;;
       U6\ *) do_build_exe ;;
       U7\ *) do_use_p25nx2_menu ;;
+      U8\ *) do_system_restart ;;
+      U9\ *) do_system_halt ;;
       *) whiptail --msgbox "Programmer error: unrecognized option" 20 60 1 ;;
     esac || whiptail --msgbox "There was an error running option $FUN" 20 60 1
   fi
@@ -446,7 +436,7 @@ echo "do_main_menu" >> $logfile
 RET=0
   while true; do
     calc_wt_size
-      FUN=$(whiptail --title "P25NX v2 Configuration main menu" --backtitle "$(cat /proc/device-tree/model)" --menu "Setup Options" $WT_HEIGHT $WT_WIDTH $WT_MENU_HEIGHT --cancel-button Finish --ok-button Select \
+      FUN=$(whiptail --title "P25NX v2 Main Menu $HOSTNAME $ETH0IP:$SSHPORT" --backtitle "$(cat /proc/device-tree/model)" --menu "Setup Options" $WT_HEIGHT $WT_WIDTH $WT_MENU_HEIGHT --cancel-button Finish --ok-button Select \
         "1 Initialize" "Run first-time menu" \
         "2 Network" "Network configuration menu options" \
         "3 Utilities" "Utilities and misc options" \
