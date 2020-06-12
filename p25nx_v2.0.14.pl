@@ -29,7 +29,7 @@ my $StartTime = time();
 # About Message.
 print "\n##################################################################\n";
 print "	*** P25NX v2.0.14 ***\n";
-print "	Released: June 05, 2020. Created October 17, 2019.\n";
+print "	Released: June 11, 2020. Created October 17, 2019.\n";
 print "	Created by:\n";
 print "	Juan Carlos Pérez De Castro (Wodie) KM4NNO / XE1F\n";
 print "	Bryan Fields W9CR.\n";
@@ -190,6 +190,7 @@ foreach (my $i = 0; $i < 1; $i++ ) {
 	$Quant{$i}{'Explicit'} = 0;
 	$Quant{$i}{'IndividualCall'} = 0;
 	$Quant{$i}{'ManufacturerID'} = 0;
+	$Quant{$i}{'ManufacturerName'} = "";
 	$Quant{$i}{'Emergency'} = 0;
 	$Quant{$i}{'Protected'} = 0;
 	$Quant{$i}{'FullDuplex'} = 0;
@@ -209,6 +210,7 @@ foreach (my $i = 0; $i < 1; $i++ ) {
 	$Quant{$i}{'EncryptionIII'} = 0;
 	$Quant{$i}{'EncryptionIV'} = 0;
 	$Quant{$i}{'Algorythm'} = 0;
+	$Quant{$i}{'AlgoName'} = "";
 	$Quant{$i}{'KeyID'} = 0;
 	$Quant{$i}{'Speech'} = "";
 	$Quant{$i}{'Raw0x62'} = "";
@@ -671,7 +673,6 @@ sub HDLC_Rx{
 							if ($HDLC_Verbose) {
 								print ", HDLC ICW Start";
 							}
-							Tx_to_Network($Message);
 						}
 						case 0x0D {
 							if ($HDLC_Verbose) {
@@ -684,18 +685,35 @@ sub HDLC_Rx{
 								print ", HDLC ICW Terminate";
 							}
 							$Quant{$Index}{'LocalRx'} = 0;
-							Tx_to_Network($Message);
 						}
 					}
 					switch ($OpArg) {
 						case 0x00 { # AVoice
 							 if ($HDLC_Verbose) {print ", Analog Voice";}
 						}
+						case 0x06 { # TMS Data Payload
+							 if ($HDLC_Verbose) {print ", TMS Data Payload";}
+							Tx_to_Network($Message);
+						}
 						case 0x0B { # DVoice
 							 if ($HDLC_Verbose) {print ", Digital Voice";}
+							Tx_to_Network($Message);
+						}
+						case 0x0C { # TMS
+							 if ($HDLC_Verbose) {print ", TMS";}
+							Tx_to_Network($Message);
+						}
+						case 0x0D { # From Comparator Start
+							 if ($HDLC_Verbose) {print ", From Comparator Start";}
+#							Tx_to_Network($Message);
+						}
+						case 0x0E { # From Comprator Stop
+							 if ($HDLC_Verbose) {print ", From Comparator Stop";}
+#							Tx_to_Network($Message);
 						}
 						case 0x0F { # Page
 							 if ($HDLC_Verbose) {print ", Page";}
+							Tx_to_Network($Message);
 						}
 					}
 					if ($HDLC_Verbose) {
@@ -728,12 +746,18 @@ sub HDLC_Rx{
 					switch (ord(substr($Message, 6, 1))) {
 						case 0x00 { # AVoice
 							if ($HDLC_Verbose) {print ", Analog Voice";}
+							$Quant{$Index}{'IsDigitalVoice'} = 0;
+							$Quant{$Index}{'IsPage'} = 0;
 						}
 						case 0x0B { # DVoice
 							if ($HDLC_Verbose) {print ", Digital Voice";}
+							$Quant{$Index}{'IsDigitalVoice'} = 1;
+							$Quant{$Index}{'IsPage'} = 0;
 						}
 						case 0x0F { # Page
 							if ($HDLC_Verbose) {print ", Page";}
+							$Quant{$Index}{'IsDigitalVoice'} = 0;
+							$Quant{$Index}{'IsPage'} = 1;
 						}
 					}
 					$SiteID = ord(substr($Message,7 ,1));
@@ -757,6 +781,10 @@ sub HDLC_Rx{
 						$Quant{$Index}{'RSSI_Is_Valid'} = 0;
 						if ($HDLC_Verbose) {print ".\n";}
 					}
+					if ( ($Quant{$Index}{'IsDigitalVoice'} == 1) or ($Quant{$Index}{'IsPage'} == 1) ) {
+						Tx_to_Network($Message);
+					}
+
 				}
 				case 0x61 {
 					if ($HDLC_Verbose) {
@@ -767,6 +795,9 @@ sub HDLC_Rx{
 					}
 					#my $TGID = 256 * ord(substr($Message, 4, 1)) + ord(substr($Message, 3, 1));;
 					#print "Not true TalkGroup ID = " . $TGID . "\n";
+					if ( ($Quant{$Index}{'IsDigitalVoice'} == 1) or ($Quant{$Index}{'IsPage'} == 1) ) {
+						Tx_to_Network($Message);
+					}
 
 				}
 				case 0x62 { # dBm, RSSI, BER.
@@ -865,9 +896,69 @@ sub HDLC_Rx{
 						case 0x0F { # Call termination/cancellation.
 							print "Call termination/cancellation.\n";
 						}
-
+						case 0x10 {
+							print "Group Affiliation Query\n";
+						}
+						case 0x11 {
+							print "Unit Registration Command\n";
+						}
+						case 0x12 {
+							print "Unit Authentication Command\n";
+						}
+						case 0x13 {
+							print "Status Query\n";
+						}
+						case 0x14{ 
+							print "Status Update\n";
+						}
+						case 0x15 {
+							print "Message Update\n";
+						}
+						case 0x16 {
+							print "Call Alert\n";
+						}
+						case 0x17 {
+							print "Extended Function Command\n";
+						}
+						case 0x18 {
+							print "Channel Identifier Update\n";
+						}
+						case 0x19 {
+							print "Channel Identifier Update ñ Explicit (LCCIUX)\n";
+						}
+						case 0x20 {
+							print "System Service Broadcast\n";
+						}
+						case 0x21 {
+							print "Secondary Control Channel Broadcast\n";
+						}
+						case 0x22 {
+							print "Adjacent Site Status Broadcast\n";
+						}
+						case 0x23 {
+							print "RFSS Status Broadcast\n";
+						}
+						case 0x24 {
+							print "Network Status Broadcast\n";
+						}
+						case 0x25 {
+							print "Protection Parameter Broadcast\n";
+						}
+						case 0x26 {
+							print "Secondary Control Channel Broadcast - Explicit (LCSCBX)\n";
+						}
+						case 0x27 {
+							print "Adjacent Site Status Broadcast ñ Explicit (LCASBX)\n";
+						}
+						case 0x28 {
+							print "RFSS Status Broadcast ñ Explicit (LCRSBX)\n";
+						}
+						case 0x29 {
+							print "Network Status Broadcast ñ Explicit (LCNSBX)\n";
+						}
 					}
 					$Quant{$Index}{'ManufacturerID'} = ord(substr($Message, 4, 1));
+					ManufacturerName ($Quant{$Index}{'ManufacturerID'});
 					if (ord(substr($Message, 5, 1)) and 0x80) {
 						$Quant{$Index}{'Emergency'} = 1;
 					} else {
@@ -889,6 +980,14 @@ sub HDLC_Rx{
 						$Quant{$Index}{'PacketMode'} = 0;
 					}
 					$Quant{$Index}{'Priority'} = ord(substr($Message, 5, 1));
+					#switch (ord(substr($Message, 6, 1))) {
+					#	case Implicit_MFID {
+					#
+					#	}
+					#	case Explicit_MFID {
+					#
+					#	}
+					#}
 					$Quant{$Index}{'Speech'} = ord(substr($Message, 7, 11));
 					$Quant{$Index}{'SuperFrame'} = $Quant{$Index}{'SuperFrame'} . $Message;
 					$Quant{$Index}{'Raw0x64'} = $Message;
@@ -1059,6 +1158,7 @@ sub HDLC_Rx{
 				case 0x70 { # Algorithm.
 					if ($HDLC_Verbose) {print "UI 0x70 IMBE Voice part 15 + encryption sync.\n";}
 					$Quant{$Index}{'Algorythm'} = ord(substr($Message, 3,1));
+					AlgoName ($Quant{$Index}{'Algorythm'});
 					$Quant{$Index}{'KeyID'} = ord(substr($Message, 4,2));
 					$Quant{$Index}{'Speech'} = ord(substr($Message, 7, 11));
 					$Quant{$Index}{'Raw0x70'} = $Message;
@@ -1113,8 +1213,62 @@ sub HDLC_Rx{
 					Bytes_2_HexString($Message);
 				}
 				case 0xA1 { # Page affliate request.
-					print "UI 0xA1.\n";
+					print "UI 0xA1 Page call.\n";
 					Bytes_2_HexString($Message);
+
+					my $MMSB = ord(substr($Message, 15, 1));
+					my $MSB = ord(substr($Message, 16, 1));
+					my $LSB = ord(substr($Message, 17, 1));
+					$Quant{$Index}{'DestinationRadioID'} = ($MMSB << 16) | ($MSB << 8) | $LSB;
+
+					# Leave previous line empty.
+					my $MMSB = ord(substr($Message, 18, 1));
+					my $MSB = ord(substr($Message, 19, 1));
+					my $LSB = ord(substr($Message, 20, 1));
+					$Quant{$Index}{'SourceRadioID'} = ($MMSB << 16) | ($MSB << 8) | $LSB;
+
+					# Leave previous line empty.
+					my $Flag = ord(substr($Message, 11, 1));
+					switch ($Flag) {
+						case 0x98 { # STS
+							print "Quantar_Mod UI 0xA1 Flag = STS." . "\n";
+							#$StatusIndex = ord(substr(Message, 13, 1));
+						}
+						case 0x9F { # Page
+							print "Quantar_Mod HDLC_Rx 0xA1 Page Rx Source " . $Quant{$Index}{'SourceRadioID'} .
+								" Dest " & $Quant{$Index}{'DestinationRadioID'} . "\n";
+						}
+						case 0xA0 { # Page Ack.
+							print "Quantar_Mod UI 0xA1 Flag = Page Ack\n"
+							#if ($Quant{$Index}{'DestinationRadioID'} == $MasterRadioID) {Then
+							#	PageAck_Tx $Quant{$Index}{'SourceRadioID'}, $Quant{$Index}{'DestinationRadioID'}, 1;
+							#}
+						}
+						case 0xA7 {
+							print "Quantar_Mod UI 0XA1 Flag = EMERGENCY.\n"
+						}
+					}
+					switch (ord(substr($Message, 12, 1))) {
+						case 0x00 { # Individual Page
+							print "Individual Page\n";
+						}
+						case 0x90 { #Group Page
+							print "Group Page\n";
+						}
+					}
+					switch (ord(substr($Message, 13, 1))) {
+						case &H0 { # Individual Page
+							print "Individual Page.\n";
+						}
+						case &H80 { # Group Page
+							print "Group Page.\n";
+						}
+						case &H9F { # Individual Page Ack
+							print "Individual Page Ack.\n";
+						}
+					}
+					Tx_to_Network($Message);
+
 				} else {
 					print "UI else 0x" . ord(substr($Message, 2, 1)) . "\n";
 					Bytes_2_HexString($Message);
@@ -1170,8 +1324,7 @@ sub HDLC_Tx{
 	my $CRC;
 	my $MSB;
 	my $LSB;
-	# Serial mode = 0;
-	if ($Mode == 0) {
+	if ($Mode == 0) { # Serial mode = 0;
 		if ($HDLC_Verbose) {print "HDLC_Tx.\n";}
 		if ($HDLC_Verbose > 1) {Bytes_2_HexString($Data);}
 		$CRC = CRC_CCITT_Gen($Data);
@@ -1187,8 +1340,7 @@ sub HDLC_Tx{
 		nanosleep($SerialWait * 1000000000);
 		if ($HDLC_Verbose) {print "Serial nanosleep = $SerialWait\n";}
 	}
-	# STUN mode = 1;
-	if ($Mode == 1) {
+	if ($Mode == 1) { # STUN mode = 1;
 		STUN_Tx($Data);
 	}
 	if ($HDLC_Verbose) {print "HDLC_Tx Done.\n";}
@@ -1226,6 +1378,27 @@ sub HDLC_Tx_RR{
 	HDLC_Tx ($Data);
 }
 
+sub Page_Tx {
+	my ($DestinationRadioID, $SourceRadioID, $Indeividual, $Emergency) = @_;
+
+
+	my $Address = 0x07;
+
+
+}
+
+sub Page_Ack_Tx {
+	my ($DestinationRadioID, $SourceRadioID, $Indeividual) = @_;
+
+
+}
+
+sub TMS_Tx {
+	my ($DestinationRadioID, $Message) = @_;
+
+
+}
+
 sub Bytes_2_HexString{
 	my ($Buffer) = @_;
 	# Display Rx Hex String.
@@ -1247,6 +1420,181 @@ sub CRC_CCITT_Gen{
 	my $LSB = $digest - $MSB * 256;
 	$digest = 256 * $LSB + $MSB;
 	return $digest;
+}
+
+sub ManufacturerName {
+	my ($ManID) = @_;
+	my $ManufacturerName = "Not Registered";
+	switch ($ManID) {
+		case 0x00 {
+			$ManufacturerName = "Default Value";
+		}
+		case 0x01 {
+			$ManufacturerName = "Another Default Value";
+		}
+		case 0x09 {
+			$ManufacturerName = "Aselan Inc";
+		}
+		case 0x10 {
+			$ManufacturerName = "Relm/BK Radio";
+		}
+		case 0x18 {
+			$ManufacturerName = "Airbus";
+		}
+		case 0x20 {
+			$ManufacturerName = "Cyccomm";
+		}
+		case 0x28 {
+			$ManufacturerName = "Efratom";
+		}
+		case 0x30 {
+			$ManufacturerName = "Com-Net Ericsson";
+		}
+		case 0x34 {
+			$ManufacturerName = "Etherstack";
+		}
+		case 0x38 {
+			$ManufacturerName = "Datron";
+		}
+		case 0x40 {
+			$ManufacturerName = "Icom";
+		}
+		case 0x48 {
+			$ManufacturerName = "Garmin";
+		}
+		case 0x50 {
+			$ManufacturerName = "GTE";
+		}
+		case 0x55 {
+			$ManufacturerName = "IFR Systems";
+		}
+		case 0x5A {
+			$ManufacturerName = "INIT Innovations";
+		}
+		case 0x60 {
+			$ManufacturerName = "GEC-Marconi";
+		}
+		case 0x64 {
+			$ManufacturerName = "Harris Corp (inactive)";
+		}
+		case 0x68 {
+			$ManufacturerName = "Kenwood";
+		}
+		case 0x70 {
+			$ManufacturerName = "Glenayre Electronics";
+		}
+		case 0x74 {
+			$ManufacturerName = "Japan Radio Co.";
+		}
+		case 0x78 {
+			$ManufacturerName = "Kokusai";
+		}
+		case 0x7C {
+			$ManufacturerName = "Maxon";
+		}
+		case 0x80 {
+			$ManufacturerName = "Midland";
+		}
+		case 0x86 {
+			$ManufacturerName = "Daniels Electronics";
+		}
+		case 0x90 {
+			$ManufacturerName = "Motorola";
+		}
+		case 0xA0 {
+			$ManufacturerName = "Thales";
+		}
+		case 0xA4 {
+			$ManufacturerName = "Harris Corporation";
+		}
+		case 0xAA {
+			$ManufacturerName = "NRPC";
+		}
+		case 0xB0 {
+			$ManufacturerName = "Raytheon";
+		}
+		case 0xC0 {
+			$ManufacturerName = "SEA";
+		}
+		case 0xC8 {
+			$ManufacturerName = "Securicor";
+		}
+		case 0xD0 {
+			$ManufacturerName = "ADI";
+		}
+		case 0xD8 {
+			$ManufacturerName = "Tait Electronics";
+		}
+		case 0xE0 {
+			$ManufacturerName = "Teletec";
+		}
+		case 0xF0 {
+			$ManufacturerName = "Transcrypt International";
+		}
+		case 0xF8 {
+			$ManufacturerName = "Vertex Standard";
+		}
+		case 0xFC {
+			$ManufacturerName = "Zetron Inc";
+		}
+	}
+	print "Manufacturer Name = " . $ManufacturerName . "\n";
+}
+
+sub AlgoName {
+	my ($AlgoID) = @_;
+	my $AlgoName = "Unknown Algo";
+	switch ($AlgoID) {
+		case 0x0 {
+			$AlgoName = "Accordian 1.3";
+		}
+		case 0x1 {
+			$AlgoName = "Baton (Auto/Even)";
+		}
+		case 0x2 {
+			$AlgoName = "FireFly Type 1";
+		}
+		case 0x3 {
+			$AlgoName = "MayFly Type 1";
+		}
+		case 0x4 {
+			$AlgoName = "FASCINATOR/Saville";
+		}
+		case 0x41 {
+			$AlgoName = "Baton (Auto/Odd)";
+		}
+		case 0x80 {
+			$AlgoName = "Unencrypted";
+		}
+		case 0x81 {
+			$AlgoName = "DES";
+		}
+		case 0x83 {
+			$AlgoName = "Triple DES";
+		}
+		case 0x84 {
+			$AlgoName = "AES 256";
+		}
+		case 0x85 {
+			$AlgoName = "AES 128 GCM";
+		}
+		case 0x88 {
+			$AlgoName = "AES CBC";
+		}
+		case 0x9F {
+			$AlgoName = "DES-XL";
+		}
+		case 0xA0 {
+			$AlgoName = "DVI-XL";
+		}
+		case 0xA1 {
+			$AlgoName = "DVP-XL";
+		}
+		case 0xAA {
+			$AlgoName = "ADP";
+		}
+	}
+	print "Algo Name = " . $AlgoName . "\n";
 }
 
 
@@ -1395,6 +1743,7 @@ sub P25NX_Tx{ # This function expect to Rx a formed Cisco STUN Packet.
 	if ($TG{$LinkedTalkGroup}{'P25NX_Connected'} != 1) {
 		return;
 	}
+	print "linkedTG*** " . $LinkedTalkGroup . "\n";
 	# Tx to the Network.
 	if ($P25NX_Verbose >= 2) {print "P25NX_Tx Message " . StrToHex($Buffer) . "\n";}
 	my $MulticastAddress = makeMulticastAddress($LinkedTalkGroup);
@@ -1557,10 +1906,20 @@ sub P25NX_to_HDLC{ # P25NX packet contains Cisco STUN and Quantar packet.
 sub AddLinkTG{
 	my ($TalkGroup) = @_;	
 	if ($TG{$TalkGroup}{'Linked'} == 1 ) {
+		if ($TalkGroup != $LinkedTalkGroup) {
+			if ($UseVoicePrompts) {
+				$VA_Message = $TalkGroup; # Linked TalkGroup.
+				$Pending_VA = 1;
+			}
+		}
+		$LinkedTalkGroup = $TalkGroup;
+		Start_TG_Mute();
+		if ($TG{$TalkGroup}{'Scan'} == 0) {
+			$TG{$TalkGroup}{'Timer'} = time();
+		}
+		print "  System Already Linked to TG " . $TalkGroup . "\n";
 		return;
 	}
-	print "AddLinkTG " . $TalkGroup . "\n";
-
 	# Now connect to a network.
 	if ( $MMDVM_Enabled
 		and ($TalkGroup > 10 and $TalkGroup < 10100) # MMDVM.
