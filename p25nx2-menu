@@ -280,8 +280,8 @@ whiptail --msgbox "Done running CPAN mod installations" 20 60 2
 }
 
 do_build_exe() {
-chmod +x $CONFIGS/p25nx_v2.0.14.pl &&
-pp -o $CONFIGS/p25nx2.exe $CONFIGS/p25nx_v2.0.14.pl &&
+chmod +x $CONFIGS/p25nx2.pl &&
+pp -o $CONFIGS/p25nx2.exe $CONFIGS/p25nx2.pl &&
 whiptail --msgbox "Done building Exe file" 20 60 2
 }
 
