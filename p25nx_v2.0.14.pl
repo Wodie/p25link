@@ -1,5 +1,15 @@
 #!/usr/bin/perl
 #
+# License
+# This software and hardware is licenced under the GPL v3. If you are using it, please let me know, I will be glad to know it.
+#
+# Credits
+# This project is based on the work and information from:
+# David Kraus NX4Y
+# Byan Fields W9CR
+# Jonathan Naylor G4KLX
+# Juan Carlos Pérez KM4NNO / XE1F
+#
 #
 # Strict and warnings recommended.
 use strict;
