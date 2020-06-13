@@ -1,6 +1,10 @@
 # P25NX_v2 Software
 
-To use the p25nx_v2.x.x program copy files to your Raspberry path /opt/p25nx2.
+This project is based on the work and information from:
+David Kraus NX4Y
+Byan Fields W9CR
+
+To use the p25nx_v2 program copy files to your Raspberry path /opt/p25nx2.
 
 To run the configuration menu:
 
