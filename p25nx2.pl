@@ -1,15 +1,5 @@
 #!/usr/bin/perl
 #
-# License
-# This software and hardware is licenced under the GPL v3. If you are using it, please let me know, I will be glad to know it.
-#
-# Credits
-# This project is based on the work and information from:
-# David Kraus NX4Y
-# Byan Fields W9CR
-# Jonathan Naylor G4KLX
-# Juan Carlos Pérez KM4NNO / XE1F
-#
 #
 # Strict and warnings recommended.
 use strict;
@@ -38,13 +28,21 @@ my $StartTime = time();
 
 # About Message.
 print "\n##################################################################\n";
-print "	*** P25NX v2.0.14 ***\n";
-print "	Released: June 11, 2020. Created October 17, 2019.\n";
+print "	*** P25NX v2.0.15 ***\n";
+print "	Released: June 17, 2020. Created October 17, 2019.\n";
 print "	Created by:\n";
 print "	Juan Carlos Pérez De Castro (Wodie) KM4NNO / XE1F\n";
 print "	Bryan Fields W9CR.\n";
 print "	www.wodielite.com\n";
 print "	wodielite at mac.com\n\n";
+print "	License\n";
+print "	This software is licenced under the GPL v3.\n";
+print "	If you are using it, please let me know, I will be glad to know it.\n\n";
+print "	This project is based on the work and information from:\n";
+print "	David Kraus NX4Y\n";
+print "	Byan Fields W9CR\n";
+print "	Jonathan Naylor G4KLX\n";
+print "	Juan Carlos Pérez KM4NNO / XE1F\n\n";
 print "##################################################################\n\n";
 
 # Load Settings ini file.
@@ -95,23 +93,20 @@ if (!open($fh, "<", $TalkGroupsFile)) {
 		next if $Line =~ /^\#/ || $Line =~ /^\s*$/ || $Line =~ /^\+/;
 		#split each line into array
 		my @Line = split(/\s+/, $Line);
-		$TG{$Line[0]}{'RF_TalkGroup'} = $Line[0];
-		$TG{$Line[0]}{'P25NX_TalkGroup'} = $Line[1];
-		$TG{$Line[0]}{'MMDVM_TalkGroup'} = $Line[2];
-		$TG{$Line[0]}{'MMDVM_URL'} = $Line[3];
-		$TG{$Line[0]}{'MMDVM_Port'} = $Line[4];
-		$TG{$Line[0]}{'Scan'} = $Line[5];
-		$TG{$Line[0]}{'Linked'} = 0;
-		$TG{$Line[0]}{'MMDVM_Connected'} = 0;
-		$TG{$Line[0]}{'P25NX_Connected'} = 0;
-		$TG{$Line[0]}{'P25Link_Connected'} = 0;
+		my $TalkGroup = $Line[0];
+		$TG{$TalkGroup}{'TalkGroup'} = $Line[0];
+		$TG{$TalkGroup}{'MMDVM_URL'} = $Line[1];
+		$TG{$TalkGroup}{'MMDVM_Port'} = $Line[2];
+		$TG{$TalkGroup}{'Scan'} = $Line[3];
+		$TG{$TalkGroup}{'Linked'} = 0;
+		$TG{$TalkGroup}{'MMDVM_Connected'} = 0;
+		$TG{$TalkGroup}{'P25NX_Connected'} = 0;
+		$TG{$TalkGroup}{'P25Link_Connected'} = 0;
 		if ($TG_Verbose) {
-			print "  RF TG " . $TG{$Line[0]}{'RF_TalkGroup'};
-			print ", PNX " . $TG{$Line[0]}{'P25NX_TalkGroup'};
-			print ", MMDVM " . $TG{$Line[0]}{'MMDVM_TalkGroup'};
-			print ", URL " . $TG{$Line[0]}{'MMDVM_URL'};
-			print ", Port " . $TG{$Line[0]}{'MMDVM_Port'};
-			print ", Scan " . $TG{$Line[0]}{'Scan'} . "\n";
+			print "  TG Index " . $TalkGroup;
+			print ", URL " . $TG{$TalkGroup}{'MMDVM_URL'};
+			print ", Port " . $TG{$TalkGroup}{'MMDVM_Port'};
+			print ", Scan " . $TG{$TalkGroup}{'Scan'} . "\n";
 		}
 	}
 	close $fh;
@@ -495,14 +490,14 @@ if ($Mode == 0) { # Close Serial Port:
 }
 foreach my $key (keys %TG){ # Close Socket connections:
 	if ($TG{$key}{'MMDVM_Connected'}) {
-		WriteUnlink($TG{$key}{'MMDVM_TalkGroup'});
+		WriteUnlink($key);
 		$TG{$key}{'Sock'}->close();
 	}
 	if ($TG{$key}{'P25NX_Connected'}) {
-		P25NX_Disconnect($TG{$key}{'P25NX_TalkGroup'});
+		P25NX_Disconnect($key);
 	}
 	if ($TG{$key}{'P25Link_Connected'}) {
-		P25Link_Disconnect($TG{$key}{'P25Link_TalkGroup'});
+		P25Link_Disconnect($key);
 	}
 }
 print "Good bye cruel World.\n";
@@ -518,7 +513,7 @@ sub PrintMenu {
 	print "  H/h = HDLC  show/hide verbose.   \n";
 	print "  J/j = JSON  show/hide verbose.   M/m = MMDVM   show/hide verbose.\n";
 	print "  P/p = P25NX show/hide verbose.   L/l = P25Link show/hide verbose.\n";
-	print "  t = Test.               \n\n";
+	print "  S/s = STUN  show/hide verbose.   t   = Test.                   \n\n";
 
 }
 
@@ -550,7 +545,7 @@ sub Read_Serial{ # Read the serial port, look for 0x7E characters and extract da
 ##################################################################
 # HDLC ###########################################################
 ##################################################################
-sub HDLC_Rx{
+sub HDLC_Rx {
 	my ($Buffer, $Index, $RemoteHostIP) = @_;
 	my $RTRTOn;
 	my $OpCode;
@@ -659,6 +654,7 @@ sub HDLC_Rx{
 					if ($HDLC_Verbose) {
 						print "UI 0x00 NID Start/Stop";
 					}
+					if (ord(substr($Message, 3, 1)) != 0x02) {print "Debug this with the XML.\n";}
 					if (ord(substr($Message, 4, 1)) == $C_RTRT_Enabled) {
 						$RTRTOn = 1;
 						if ($HDLC_Verbose) {
@@ -677,6 +673,9 @@ sub HDLC_Rx{
 						case 0x06 { # ChannelChange
 							$IsChannelChange = 1;
 							$Channel = $OpArg;
+							#if ($HDLC_Verbose) {
+								print ", HDLC Channel change to $Channel\n";
+							#}
 						}
 						case 0x0C { # StartTx
 							$IsStart = 1;
@@ -686,7 +685,7 @@ sub HDLC_Rx{
 						}
 						case 0x0D {
 							if ($HDLC_Verbose) {
-								print ", DIU Monitor";
+								print ", HDLC DIU Monitor";
 							}
 						}
 						case 0x25 { # StopTx
@@ -699,37 +698,39 @@ sub HDLC_Rx{
 					}
 					switch ($OpArg) {
 						case 0x00 { # AVoice
-							 if ($HDLC_Verbose) {print ", Analog Voice";}
+							if ($HDLC_Verbose) {print ", Analog Voice";}
 						}
 						case 0x06 { # TMS Data Payload
-							 if ($HDLC_Verbose) {print ", TMS Data Payload";}
+							if ($HDLC_Verbose) {print ", TMS Data Payload";}
 							Tx_to_Network($Message);
+							LogDebug($Message);
 						}
 						case 0x0B { # DVoice
-							 if ($HDLC_Verbose) {print ", Digital Voice";}
+							if ($HDLC_Verbose) {print ", Digital Voice";}
 							Tx_to_Network($Message);
 						}
 						case 0x0C { # TMS
-							 if ($HDLC_Verbose) {print ", TMS";}
+							if ($HDLC_Verbose) {print ", TMS";}
 							Tx_to_Network($Message);
+							LogDebug($Message);
 						}
 						case 0x0D { # From Comparator Start
-							 if ($HDLC_Verbose) {print ", From Comparator Start";}
+							if ($HDLC_Verbose) {print ", From Comparator Start";}
 #							Tx_to_Network($Message);
+							LogDebug($Message);
 						}
 						case 0x0E { # From Comprator Stop
-							 if ($HDLC_Verbose) {print ", From Comparator Stop";}
+							if ($HDLC_Verbose) {print ", From Comparator Stop";}
 #							Tx_to_Network($Message);
+							LogDebug($Message);
 						}
 						case 0x0F { # Page
-							 if ($HDLC_Verbose) {print ", Page";}
+							if ($HDLC_Verbose) {print ", Page";}
 							Tx_to_Network($Message);
 						}
 					}
 					if ($HDLC_Verbose) {
 						print ", Linked Talk Group " . $LinkedTalkGroup . ".\n";
-						#print "MMDVM_Connected " . $MMDVM_Connected . 
-						#"\nP25NX_Connected " . $P25NX_Connected;
 						print "\n";
 					}
 				}
@@ -794,8 +795,9 @@ sub HDLC_Rx{
 					if ( ($Quant{$Index}{'IsDigitalVoice'} == 1) or ($Quant{$Index}{'IsPage'} == 1) ) {
 						Tx_to_Network($Message);
 					}
-
+					LogDebug($Message);
 				}
+
 				case 0x61 {
 					if ($HDLC_Verbose) {
 						print "UI 0x61 Voice Header part 2.\n";
@@ -808,8 +810,9 @@ sub HDLC_Rx{
 					if ( ($Quant{$Index}{'IsDigitalVoice'} == 1) or ($Quant{$Index}{'IsPage'} == 1) ) {
 						Tx_to_Network($Message);
 					}
-
+					LogDebug($Message);
 				}
+
 				case 0x62 { # dBm, RSSI, BER.
 					if ($HDLC_Verbose) {print "UI 0x62 IMBE Voice part 1.\n";}
 					switch (ord(substr($Message, 4, 1))) {
@@ -1200,88 +1203,87 @@ sub HDLC_Rx{
 				}
 				case 0x80 {
 					print "UI 0x80.\n";
-					Bytes_2_HexString($Message);
+					LogDebug($Message);
 				}
 				case 0x85 {
 					print "UI 0x85.\n";
-					Bytes_2_HexString($Message);
+					LogDebug($Message);
 				}
 				case 0x87 {
 					print "UI 0x87.\n";
-					Bytes_2_HexString($Message);
+					LogDebug($Message);
 				}
 				case 0x88 {
 					print "UI 0x88.\n";
-					Bytes_2_HexString($Message);
+					LogDebug($Message);
 				}
 				case 0x8D {
 					print "UI 0x8D.\n";
-					Bytes_2_HexString($Message);
+					LogDebug($Message);
 				}
 				case 0x8F {
 					print "UI 0x8F.\n";
-					Bytes_2_HexString($Message);
+					LogDebug($Message);
 				}
 				case 0xA1 { # Page affliate request.
 					print "UI 0xA1 Page call.\n";
-					Bytes_2_HexString($Message);
-
 					my $MMSB = ord(substr($Message, 15, 1));
 					my $MSB = ord(substr($Message, 16, 1));
 					my $LSB = ord(substr($Message, 17, 1));
 					$Quant{$Index}{'DestinationRadioID'} = ($MMSB << 16) | ($MSB << 8) | $LSB;
 
 					# Leave previous line empty.
-					my $MMSB = ord(substr($Message, 18, 1));
-					my $MSB = ord(substr($Message, 19, 1));
-					my $LSB = ord(substr($Message, 20, 1));
+					$MMSB = ord(substr($Message, 18, 1));
+					$MSB = ord(substr($Message, 19, 1));
+					$LSB = ord(substr($Message, 20, 1));
 					$Quant{$Index}{'SourceRadioID'} = ($MMSB << 16) | ($MSB << 8) | $LSB;
 
 					# Leave previous line empty.
+					print "  Source " . $Quant{$Index}{'SourceRadioID'} .
+						", Dest " . $Quant{$Index}{'DestinationRadioID'};
 					my $Flag = ord(substr($Message, 11, 1));
 					switch ($Flag) {
 						case 0x98 { # STS
-							print "Quantar_Mod UI 0xA1 Flag = STS." . "\n";
+							print " Flag = STS\n";
 							#$StatusIndex = ord(substr(Message, 13, 1));
 						}
 						case 0x9F { # Page
-							print "Quantar_Mod HDLC_Rx 0xA1 Page Rx Source " . $Quant{$Index}{'SourceRadioID'} .
-								" Dest " & $Quant{$Index}{'DestinationRadioID'} . "\n";
+							print " Flag = Page\n";
 						}
 						case 0xA0 { # Page Ack.
-							print "Quantar_Mod UI 0xA1 Flag = Page Ack\n"
+							print " Flag = Page Ack\n";
 							#if ($Quant{$Index}{'DestinationRadioID'} == $MasterRadioID) {Then
 							#	PageAck_Tx $Quant{$Index}{'SourceRadioID'}, $Quant{$Index}{'DestinationRadioID'}, 1;
 							#}
 						}
 						case 0xA7 {
-							print "Quantar_Mod UI 0XA1 Flag = EMERGENCY.\n"
+							print " Flag = EMERGENCY\n";
 						}
 					}
 					switch (ord(substr($Message, 12, 1))) {
 						case 0x00 { # Individual Page
-							print "Individual Page\n";
+							print "  Individual Page 12\n";
 						}
 						case 0x90 { #Group Page
-							print "Group Page\n";
+							print "  Group Page 12\n";
 						}
 					}
 					switch (ord(substr($Message, 13, 1))) {
-						case &H0 { # Individual Page
-							print "Individual Page.\n";
+						case 0x00 { # Individual Page
+							print "  Individual Page 13.\n";
 						}
-						case &H80 { # Group Page
-							print "Group Page.\n";
+						case 0x80 { # Group Page
+							print "  Group Page 13.\n";
 						}
-						case &H9F { # Individual Page Ack
-							print "Individual Page Ack.\n";
+						case 0x9F { # Individual Page Ack
+							print "  Individual Page Ack 13.\n";
 						}
 					}
 					Tx_to_Network($Message);
 
 				} else {
 					print "UI else 0x" . ord(substr($Message, 2, 1)) . "\n";
-					Bytes_2_HexString($Message);
+					LogDebug($Message);
 				}
 			}
 		}
@@ -1329,7 +1331,7 @@ sub HDLC_Rx{
 }
 
 
-sub HDLC_Tx{
+sub HDLC_Tx {
 	my ($Data) = @_;
 	my $CRC;
 	my $MSB;
@@ -1356,7 +1358,7 @@ sub HDLC_Tx{
 	if ($HDLC_Verbose) {print "HDLC_Tx Done.\n";}
 }
 
-sub HDLC_Tx_Reset{
+sub HDLC_Tx_Reset {
 	if ($Mode == 0) {
 		#$serialport->write(chr(0x7D) . chr(0xFF));
 		$SerialPort->pulse_rts_on(50);
@@ -1365,14 +1367,14 @@ sub HDLC_Tx_Reset{
 	}
 }
 
-sub HDLC_Tx_UA{
+sub HDLC_Tx_UA {
 	my ($Address) = @_;
 	if ($HDLC_Verbose) {print "HDLC_Tx_UA.\n";}
 	my $Data = chr($Address) . chr(0x73);
 	HDLC_Tx ($Data);
 }
 
-sub HDLC_Tx_XID{
+sub HDLC_Tx_XID {
 	my ($Address) = @_;
 	if ($HDLC_Verbose) {print "HDLC_Tx_XID.\n";}
 	my $ID = 13;
@@ -1381,10 +1383,9 @@ sub HDLC_Tx_XID{
 	HDLC_Tx ($Data);
 }
 
-sub HDLC_Tx_RR{
-	my $Data;
+sub HDLC_Tx_RR {
 	if ($HDLC_Verbose) {print "HDLC_Tx_RR.\n";}
-	$Data = chr(253) . chr(0x01);
+	my $Data = chr(253) . chr(0x01);
 	HDLC_Tx ($Data);
 }
 
@@ -1409,7 +1410,7 @@ sub TMS_Tx {
 
 }
 
-sub Bytes_2_HexString{
+sub Bytes_2_HexString {
 	my ($Buffer) = @_;
 	# Display Rx Hex String.
 	#print "HDLC_Rx Buffer:              ";
@@ -1419,7 +1420,7 @@ sub Bytes_2_HexString{
 	print "\n";
 }
 
-sub CRC_CCITT_Gen{
+sub CRC_CCITT_Gen {
 	my ($Buffer) = @_;
 	my $ctx = Digest::CRC->new(type=>"crcccitt");
 	$ctx = Digest::CRC->new(width=>16, init=>0xFFFF, xorout=>0xFFFF,
@@ -1548,7 +1549,7 @@ sub ManufacturerName {
 			$ManufacturerName = "Zetron Inc";
 		}
 	}
-	print "Manufacturer Name = " . $ManufacturerName . "\n";
+	print "  Manufacturer Name = " . $ManufacturerName . "\n";
 }
 
 sub AlgoName {
@@ -1604,7 +1605,14 @@ sub AlgoName {
 			$AlgoName = "ADP";
 		}
 	}
-	print "Algo Name = " . $AlgoName . "\n";
+	print "  Algo Name = " . $AlgoName . "\n";
+}
+
+sub LogDebug{
+	my ($Message) = @_;
+	Bytes_2_HexString($Message);
+	print "----------------------------------------------------------------------\n";
+
 }
 
 
@@ -1639,7 +1647,7 @@ sub WritePoll{
 	}
 	$TG{$TalkGroup}{'Sock'}->send($Data);
 	if ($MMDVM_Verbose) {
-		print "WritePoll IP " . $TG{$TalkGroup}{'MMDVM_TalkGroup'} .
+		print "WritePoll IP " . $TalkGroup .
 			$TG{$TalkGroup}{'MMDVM_URL'} .
 			" Port " . $TG{$TalkGroup}{'MMDVM_Port'} . "\n";
 	}
@@ -1753,7 +1761,7 @@ sub P25NX_Tx{ # This function expect to Rx a formed Cisco STUN Packet.
 	if ($TG{$LinkedTalkGroup}{'P25NX_Connected'} != 1) {
 		return;
 	}
-	print "linkedTG*** " . $LinkedTalkGroup . "\n";
+	if ($P25NX_Verbose) {print "Linked TG *** " . $LinkedTalkGroup . "\n";}
 	# Tx to the Network.
 	if ($P25NX_Verbose >= 2) {print "P25NX_Tx Message " . StrToHex($Buffer) . "\n";}
 	my $MulticastAddress = makeMulticastAddress($LinkedTalkGroup);
@@ -1866,7 +1874,7 @@ sub HDLC_to_P25NX{
 
 sub MMDVM_to_HDLC{
 	my ($Buffer) = @_;
-	if ($HDLC_Handshake == 0 or length($Buffer) < 1) {return;}
+	if ( ($HDLC_Handshake == 0) or (length($Buffer) < 1) ) { return; }
 	if ($MMDVM_Verbose == 2) {
 		print "MMDVM_to_HDLC In.\n";
 		Bytes_2_HexString($Buffer);
@@ -1914,7 +1922,11 @@ sub P25NX_to_HDLC{ # P25NX packet contains Cisco STUN and Quantar packet.
 
 ##################################################################
 sub AddLinkTG{
-	my ($TalkGroup) = @_;	
+	my ($TalkGroup) = @_;
+	if (length( $TG{$TalkGroup}{'Linked'} ) == '') {
+		print "Local TG.\n";
+		return;
+	} # Undefined TG.
 	if ($TG{$TalkGroup}{'Linked'} == 1 ) {
 		if ($TalkGroup != $LinkedTalkGroup) {
 			if ($UseVoicePrompts) {
@@ -1941,7 +1953,7 @@ sub AddLinkTG{
 			return;
 		}
 		# Connect to TG.
-		if ($Verbose) {print "  MMDVM Connecting to TG " . $TG{$TalkGroup}{'MMDVM_TalkGroup'} .
+		if ($Verbose) {print "  MMDVM Connecting to TG " . $TalkGroup .
 			" IP " . $TG{$TalkGroup}{'MMDVM_URL'} .
 			" on Port " . $TG{$TalkGroup}{'MMDVM_Port'} . "\n";
 		}
@@ -1955,9 +1967,9 @@ sub AddLinkTG{
 			PeerPort => $TG{$TalkGroup}{'MMDVM_Port'}
 		) or die "Can not Bind MMDVM : $@\n";
 		$TG{$TalkGroup}{'Sel'} = IO::Select->new($TG{$TalkGroup}{'Sock'});
-		WritePoll($TG{$TalkGroup}{'MMDVM_TalkGroup'});
-		WritePoll($TG{$TalkGroup}{'MMDVM_TalkGroup'});
-		WritePoll($TG{$TalkGroup}{'MMDVM_TalkGroup'});
+		WritePoll($TalkGroup);
+		WritePoll($TalkGroup);
+		WritePoll($TalkGroup);
 	}
 	if ($P25NX_Enabled and $TalkGroup >= 10100 and $TalkGroup < 10600) { # case P25NX.
 		my $MulticastAddress = makeMulticastAddress($TalkGroup);
@@ -2161,13 +2173,15 @@ sub MainLoop{
 		(my $sec, my $min, my $hour, my $mday, my $mon, my $year, my $wday, my $yday, my $isdst) = localtime();
 		# HDLC Receive Ready keep alive.
 		my $RR_Timeout = $RR_NextTimer - time();
-		if ($RR_Timer = 1 && $RR_Timeout <= 0 and $HDLC_Handshake) {
-			print $hour . ":" . $min . ":" . $sec . " Send RR by timer.\n"; 
-			warn "RR Timed out @{[int time - $^T]}\n";
+		if ($RR_Timer == 1 and $RR_Timeout <= 0 and $HDLC_Handshake) {
+			if ($HDLC_Verbose) {print $hour . ":" . $min . ":" . $sec . " Send RR by timer.\n";} 
+			#warn "RR Timed out @{[int time - $^T]}\n";
 			if (($Mode == 1 and $STUN_Connected and $HDLC_TxTraffic == 0)
 				or ($Mode == 0 and $HDLC_TxTraffic == 0)) {
 				HDLC_Tx_RR();
-				print "----------------------------------------------------------------------\n";
+				if ($HDLC_Verbose) {
+					print "----------------------------------------------------------------------\n";
+				}
 			}
 			$RR_NextTimer = $RR_TimerInterval + time();
 		}
@@ -2207,7 +2221,7 @@ sub MainLoop{
 			#warn "MMDVM_Poll Timed out @{[int time - $^T]}\n";
 			foreach my $key (keys %TG) {
 				if ($TG{$key}{'MMDVM_Connected'}) {
-					WritePoll($TG{$key}{'MMDVM_TalkGroup'});
+					WritePoll($key);
 				}
 			}
 			$MMDVM_Poll_NextTimer = $MMDVM_Poll_Timer_Interval + time();
@@ -2237,7 +2251,7 @@ sub MainLoop{
 					my $P25NX_RemoteHost = $P25NX_fh->recv(my $Buffer, $MaxLen);
 					$P25NX_RemoteHost = $P25NX_fh->peerhost;
 					#if ($Verbose) {print "P25NX_LocalHost = " . $PNX_LocalHost . "\n";}
-					my $MulticastAddress = makeMulticastAddress($TG{$key}{'P25NX_TalkGroup'});
+					my $MulticastAddress = makeMulticastAddress($key);
 					if (($P25NX_RemoteHost cmp $MulticastAddress) != 0) {
 						if ($P25NX_Verbose) {print $hour . ":" . $min . ":" . $sec .
 							" " . $P25NX_RemoteHost .
@@ -2298,12 +2312,6 @@ sub MainLoop{
 						print "EscKey Pressed.\n";
 						$Run = 0;
 					}
-					case ord('C') { # 'C'
-						$STUN_Verbose = 1;
-					}
-					case ord('c') { # 'c'
-						$STUN_Verbose = 0;
-					}
 					case ord('H') { # 'H'
 						$HDLC_Verbose = 1;
 					}
@@ -2335,7 +2343,13 @@ sub MainLoop{
 					case ord('q') { # 'q'
 						$Run = 0;
 					}
-						case 0x41 { # 'UpKey'
+					case ord('S') { # 'S'
+						$STUN_Verbose = 1;
+					}
+					case ord('s') { # 's'
+						$STUN_Verbose = 0;
+					}
+					case 0x41 { # 'UpKey'
 						print "UpKey Pressed.\n";
 					}
 					case 0x42 { # 'DownKey'
