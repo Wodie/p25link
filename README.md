@@ -16,7 +16,17 @@ Mode = 1 means use of Cisco router and STUN.
 
 Modify the hosts.txt file with the Talk Groups you want lo add to the Scan list by setting the last field to a highest take precedence >= 1, 0 = No Scan.
 
-# Credits
+# Current users please replace your hosts.txt file with this release.
+
+# Version Hsitory
+
+# V2.0.15
+Bug fixes and Beta Page functionality on P25NX network side.
+
+# V2.0.14
+First official release.
+
+
 
 This project is based on the work and information from:
 
