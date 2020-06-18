@@ -1,8 +1,8 @@
 #!/bin/bash
 # P25NX-MENU
 ##################################################################
-#	*** P25NX v2.0.19 ***
-#	Released: May 27, 2020. Created September 04, 2019.
+#	*** P25NX v2.0.15 ***
+#	Released: June 17, 2020. Created September 04, 2019.
 #	Created by: Juan Carlos Pérez De Castro (Wodie) KM4NNO, XE1F.
 #	www.wodielite.com
 #	wodielite at mac.com
@@ -280,8 +280,8 @@ whiptail --msgbox "Done running CPAN mod installations" 20 60 2
 }
 
 do_build_exe() {
-chmod +x $CONFIGS/p25nx2.pl &&
-pp -o $CONFIGS/p25nx2.exe $CONFIGS/p25nx2.pl &&
+chmod +x $CONFIGS/p25nx_v2.0.14.pl &&
+pp -o $CONFIGS/p25nx2.exe $CONFIGS/p25nx_v2.0.14.pl &&
 whiptail --msgbox "Done building Exe file" 20 60 2
 }
 
@@ -437,9 +437,9 @@ RET=0
   while true; do
     calc_wt_size
       FUN=$(whiptail --title "P25NX v2 Main Menu $HOSTNAME $ETH0IP:$SSHPORT" --backtitle "$(cat /proc/device-tree/model)" --menu "Setup Options" $WT_HEIGHT $WT_WIDTH $WT_MENU_HEIGHT --cancel-button Finish --ok-button Select \
-        "1 Initialize" "Run first-time menu" \
-        "2 Network" "Network configuration menu options" \
-        "3 Utilities" "Utilities and misc options" \
+        "1 Initialize" "Run first-time step by step" \
+        "2 Network Menu" "Network configuration menu options" \
+        "3 Utilities Menu" "Utilities and misc options" \
         "4 config.ini" "Edit config.ini file with your settings" \
         "5 hosts.txt" "Edit hosts.txt file with your settings" \
         "6 Auto Start App" "Start P25NX v2 software" \
