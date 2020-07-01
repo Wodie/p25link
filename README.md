@@ -22,7 +22,7 @@ Modify the hosts.txt file with the Talk Groups you want lo add to the Scan list 
 
 # V2.0.15
 Bug fixes.
-P25Link beta implementation.
+P25Link beta implementation (TG 4095).
 Page and TMS implementation on P25NX and P25Link beta implementation.
 
 # V2.0.14
