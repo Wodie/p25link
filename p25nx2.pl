@@ -29,7 +29,7 @@ my $StartTime = time();
 # About Message.
 print "\n##################################################################\n";
 print "	*** P25NX v2.0.15 ***\n";
-print "	Released: June 17, 2020. Created October 17, 2019.\n";
+print "	Released: July 01, 2020. Created October 17, 2019.\n";
 print "	Created by:\n";
 print "	Juan Carlos Pérez De Castro (Wodie) KM4NNO / XE1F\n";
 print "	Bryan Fields W9CR.\n";
@@ -99,9 +99,9 @@ if (!open($fh, "<", $TalkGroupsFile)) {
 		$TG{$TalkGroup}{'MMDVM_Port'} = $Line[2];
 		$TG{$TalkGroup}{'Scan'} = $Line[3];
 		$TG{$TalkGroup}{'Linked'} = 0;
-		$TG{$TalkGroup}{'MMDVM_Connected'} = 0;
-		$TG{$TalkGroup}{'P25NX_Connected'} = 0;
 		$TG{$TalkGroup}{'P25Link_Connected'} = 0;
+		$TG{$TalkGroup}{'P25NX_Connected'} = 0;
+		$TG{$TalkGroup}{'MMDVM_Connected'} = 0;
 		if ($TG_Verbose) {
 			print "  TG Index " . $TalkGroup;
 			print ", URL " . $TG{$TalkGroup}{'MMDVM_URL'};
@@ -138,7 +138,6 @@ print "  Callsign = $Callsign\n";
 print "  RadioID = $RadioID\n";
 print "  Verbose = $MMDVM_Verbose\n";
 
-#my %MMDVM;
 my $MMDVM_LocalHost = $LocalHost; # Bind Address.
 my $MMDVM_LocalPort = 41020; # Local Port.
 my $MMDVM_RemoteHost; # Buffer for Rx data IP.
@@ -154,6 +153,8 @@ my $P25Link_Enabled = $cfg->val('P25Link', 'Enabled');
 my $P25Link_Verbose =$cfg->val('P25Link', 'Verbose');
 print "  Enabled = $P25Link_Enabled\n";
 print "  Verbose = $P25Link_Verbose\n";
+my $P25Link_MulticastAddress = '239.2.40.95';
+my $P25Link_Port = 30001;
 print "----------------------------------------------------------------------\n";
 
 
@@ -164,7 +165,6 @@ my $P25NX_Enabled = $cfg->val('P25NX', 'Enabled');
 my $P25NX_Verbose =$cfg->val('P25NX', 'Verbose');
 print "  Enabled = $P25NX_Enabled\n";
 print "  Verbose = $P25NX_Verbose\n";
-
 my $P25NX_Port = 30000;
 print "----------------------------------------------------------------------\n";
 
@@ -372,6 +372,7 @@ my $PriorityTGActive = 0;
 my $MuteTGTimer = time();
 foreach my $key (keys %TG) {
 	if ($TG{$key}{'Scan'}) {
+		print "Scan TG " . $key . "\n";
 		AddLinkTG($key);
 	}
 }
@@ -420,13 +421,13 @@ my $STUN_ClientIP;
 my $STUN_fh;
 
 $STUN_ServerSocket = IO::Socket::INET->new (
-#    LocalHost => '172.31.7.162',
-    LocalPort => $STUN_Port,
-    Proto => 'tcp',
-    Listen => SOMAXCONN,
-    ReuseAddr =>1,
-    Blocking => 0
-) or die "  cannot create CiscoUSTUN_ServerSocket $!\n";
+#	LocalHost => '172.31.7.162',
+	LocalPort => $STUN_Port,
+	Proto => 'tcp',
+	Listen => SOMAXCONN,
+	ReuseAddr =>1,
+	Blocking => 0
+) || die "  cannot create CiscoUSTUN_ServerSocket $!\n";
 print "  Server waiting for client connection on port " . $STUN_Port . ".\n";
 
 # Set timeouts -- may not really be needed
@@ -466,16 +467,10 @@ if ($Mode == 1) { # If Cisco STUN (Mode 1) is selected:
 			$STUN_ClientIP = inet_ntoa($Client_IP);
 			print "STUN_Client IP " . inet_ntoa($Client_IP) . 
 				":" . $STUN_Port . "\n";
-
 			$STUN_ClientSocket->autoflush(1);
 			$STUN_Sel = IO::Select->new($STUN_ClientSocket);
 			$STUN_Connected = 1;
-
-#			$STUN_ClientSocket->recv(my $Buffer, $MaxLen);
-#			$STUN_ClientSocket->send($Buffer);
-
 			MainLoop();
-
 		}
 	}
 	$STUN_ServerSocket->close();
@@ -1296,7 +1291,7 @@ sub HDLC_Rx {
 			HDLC_Tx_UA(253);
 			$SABM_Counter = $SABM_Counter + 1;
 			if ($SABM_Counter > 3) {
-				HDLC_Tx_Reset();
+				HDLC_Tx_Serial_Reset();
 				$SABM_Counter = 0;
 			}
 		}
@@ -1358,12 +1353,12 @@ sub HDLC_Tx {
 	if ($HDLC_Verbose) {print "HDLC_Tx Done.\n";}
 }
 
-sub HDLC_Tx_Reset {
+sub HDLC_Tx_Serial_Reset {
 	if ($Mode == 0) {
 		#$serialport->write(chr(0x7D) . chr(0xFF));
 		$SerialPort->pulse_rts_on(50);
 		$HDLC_TxTraffic = 0; 
-		print "HDLC_Tx_Reset Sent.\n";
+		print "HDLC_Tx_Serial_Reset Sent.\n";
 	}
 }
 
@@ -1647,7 +1642,7 @@ sub WritePoll{
 	}
 	$TG{$TalkGroup}{'Sock'}->send($Data);
 	if ($MMDVM_Verbose) {
-		print "WritePoll IP " . $TalkGroup .
+		print "WritePoll IP " . $TalkGroup . " IP " .
 			$TG{$TalkGroup}{'MMDVM_URL'} .
 			" Port " . $TG{$TalkGroup}{'MMDVM_Port'} . "\n";
 	}
@@ -1679,11 +1674,17 @@ sub MMDVM_Rx{ # Only HDLC UI Frame. Start on Quantar v.24 Byte 3.
 	my $OpCode = ord(substr($Buffer, 0, 1));
 	if ($MMDVM_Verbose) {print "MMDVM_Rx OpCode = " . sprintf("0x%X", $OpCode) . "\n";}
 	switch ($OpCode) {
+		case [0x60..0x61] { # Headers data.
+			MMDVM_to_HDLC($Buffer); # Use to bridge MMDVM to HDLC.
+		}
 		case [0x62..0x73] { # Audio data.
 			MMDVM_to_HDLC($Buffer); # Use to bridge MMDVM to HDLC.
 		}
 		case 0x80 { # End Tx.
 			if ($MMDVM_Verbose) {print "  End Tx, TG $TalkGroup.\n";}
+			MMDVM_to_HDLC($Buffer); # Use to bridge MMDVM to HDLC.
+		}
+		case [0xA1] { # Page data.
 			MMDVM_to_HDLC($Buffer); # Use to bridge MMDVM to HDLC.
 		}
 		case 0xF0 { # Ref. Poll Ack.
@@ -1708,6 +1709,64 @@ sub MMDVM_Tx{
 	my ($TalkGroup, $Buffer) = @_;
 	$TG{$TalkGroup}{'Sock'}->send($Buffer);
 }
+
+
+
+##################################################################
+# P25Link ########################################################
+##################################################################
+sub P25Link_Disconnect {
+	my ($TalkGroup) = @_;
+	if ($TalkGroup == 4095){
+		my $MulticastAddress = $P25Link_MulticastAddress;
+		$TG{$TalkGroup}{'Sock'}->mcast_drop($MulticastAddress);
+	}
+	$TG{$TalkGroup}{'P25Link_Connected'} = 0;
+	$TG{$TalkGroup}{'Sock'}->close();
+	print "P25Link TG " . $TalkGroup . " disconnected.\n";
+}
+
+sub P25Link_Rx{
+	my ($Buffer) = @_;
+	if (length($Buffer) < 1) {return;}
+	#if ($Verbose) {print "PN25Link_Rx\n";} if ($Verbose) {
+		#print "PN25Lnk_Rx HexData = " . StrToHex($Buffer) . "\n";
+	#}
+	#MMDVM_Tx(substr($Buffer, 9, length($Buffer)));
+	P25Link_to_HDLC($Buffer);
+}
+
+sub P25Link_Tx{ # This function expect to Rx a formed Cisco STUN Packet.
+	my ($Buffer) = @_;
+	if ($TG{$LinkedTalkGroup}{'P25Link_Connected'} != 1) {
+		return;
+	}
+	# Tx to the Network.
+	if ($P25Link_Verbose >= 2) {
+		print "P25Link_Tx Message.\n";
+		StrToHex($Buffer);
+	}
+	my $MulticastAddress = $P25Link_MulticastAddress;
+	my $Tx_Sock = IO::Socket::Multicast->new(
+		LocalHost => $MulticastAddress,
+		LocalPort => $P25Link_Port,
+		Proto => 'udp',
+		Blocking => 0,
+		Broadcast => 1,
+		ReuseAddr => 1,
+		PeerPort => $P25Link_Port
+		)
+		or die "Can not create Multicast : $@\n";
+	$Tx_Sock->mcast_ttl(10);
+	$Tx_Sock->mcast_loopback(0);
+	$Tx_Sock->mcast_send($Buffer, $MulticastAddress . ":" . $P25Link_Port);
+	$Tx_Sock->close;
+	if ($P25Link_Verbose) {
+		print "P25Link_Tx TG " . $LinkedTalkGroup . " IP Mcast " . $MulticastAddress . "\n";
+	}
+}
+
+
 
 ##################################################################
 # P25NX ##########################################################
@@ -1761,7 +1820,7 @@ sub P25NX_Tx{ # This function expect to Rx a formed Cisco STUN Packet.
 	if ($TG{$LinkedTalkGroup}{'P25NX_Connected'} != 1) {
 		return;
 	}
-	if ($P25NX_Verbose) {print "Linked TG *** " . $LinkedTalkGroup . "\n";}
+	if ($P25NX_Verbose) {print "P25NX Linked TG *** " . $LinkedTalkGroup . "\n";}
 	# Tx to the Network.
 	if ($P25NX_Verbose >= 2) {print "P25NX_Tx Message " . StrToHex($Buffer) . "\n";}
 	my $MulticastAddress = makeMulticastAddress($LinkedTalkGroup);
@@ -1798,34 +1857,23 @@ sub StrToHex{
 
 
 ##################################################################
-# P25Link ########################################################
-##################################################################
-
-sub P25Link_Disconnect {
-	my ($TalkGroup) = @_;
-	$TG{$TalkGroup}{'P25Link_Connected'} = 0;
-	$TG{$TalkGroup}{'Sock'}->close();
-}
-
-
-
-##################################################################
 # Traffic control ################################################
 ##################################################################
 sub Tx_to_Network{
 	my ($Buffer) = @_;
 	Start_TG_Mute();
-	if ( $MMDVM_Enabled and ((($LinkedTalkGroup > 11 and $LinkedTalkGroup < 10100)
-		or ($LinkedTalkGroup > 10599 and $LinkedTalkGroup < 65535))
-		or (!$P25NX_Enabled and !$P25Link_Enabled
-			and ($LinkedTalkGroup >= 10100 and $LinkedTalkGroup < 10600))) ) { # Case MMDVM.
-		HDLC_to_MMDVM($LinkedTalkGroup, $Buffer);
-	}
-	if ($P25NX_Enabled and ($LinkedTalkGroup >= 10100 and $LinkedTalkGroup < 10600)) { # case P25NX.
-		HDLC_to_P25NX($Buffer);
-	}
-	if ($P25Link_Enabled and ($LinkedTalkGroup >= 10100 and $LinkedTalkGroup < 10600)) {
+	if ($P25Link_Enabled and ($LinkedTalkGroup == 4095)) {
 		HDLC_to_P25Link($Buffer);
+		return;
+	}
+	if ($P25NX_Enabled and (($LinkedTalkGroup >= 10100) and ($LinkedTalkGroup < 10600))) { # case P25NX.
+		HDLC_to_P25NX($Buffer);
+		return;
+	}
+	if ( $MMDVM_Enabled and (((($LinkedTalkGroup > 10) and ($LinkedTalkGroup < 4095))
+		or (($LinkedTalkGroup > 4095) and ($LinkedTalkGroup < 10100))
+		or (($LinkedTalkGroup > 10599) and ($LinkedTalkGroup < 65535)))) ) { # Case MMDVM.
+		HDLC_to_MMDVM($LinkedTalkGroup, $Buffer);
 	}
 }
 
@@ -1859,8 +1907,17 @@ sub HDLC_to_MMDVM{
 			print "HDLC_to_MMDVM Error code " . hex(ord(substr($Buffer, 2, 1))) . "\n";
 			Bytes_2_HexString($Buffer);
 			return;
-		}	
+		}
 	}
+}
+
+sub HDLC_to_P25Link{
+	my ($Buffer) = @_;
+	my $Stun_Header = chr(0x08) . chr(0x31) . chr(0x00) . chr(0x00) . chr(0x00) .
+		chr(2 + length($Buffer)) . chr($STUN_ID); #STUN Header.
+	$Buffer = $Stun_Header . $Buffer;
+	#print "HDLC_to_P25Link.\n";
+	P25Link_Tx($Buffer);
 }
 
 sub HDLC_to_P25NX{
@@ -1911,6 +1968,14 @@ sub MMDVM_to_HDLC{
 	}
 }
 
+sub P25Link_to_HDLC{ # P25NX packet contains Cisco STUN and Quantar packet.
+	my ($Buffer) = @_;
+	$Buffer = substr($Buffer, 7, length($Buffer)); # Here we remove Cisco STUN.
+	$HDLC_TxTraffic = 1;
+	HDLC_Tx($Buffer);
+# Add a 1s timer to $HDLC_TxTraffic = 0;
+}
+
 sub P25NX_to_HDLC{ # P25NX packet contains Cisco STUN and Quantar packet.
 	my ($Buffer) = @_;
 	$Buffer = substr($Buffer, 7, length($Buffer)); # Here we remove Cisco STUN.
@@ -1918,6 +1983,7 @@ sub P25NX_to_HDLC{ # P25NX packet contains Cisco STUN and Quantar packet.
 	HDLC_Tx($Buffer);
 # Add a 1s timer to $HDLC_TxTraffic = 0;
 }
+
 
 
 ##################################################################
@@ -1943,35 +2009,30 @@ sub AddLinkTG{
 		return;
 	}
 	# Now connect to a network.
-	if ( $MMDVM_Enabled
-		and ($TalkGroup > 10 and $TalkGroup < 10100) # MMDVM.
-		or (!$P25NX_Enabled and ($TalkGroup >= 10100 and $TalkGroup < 10600)) # MMDVM P25NX Ref. 
-		or ($TalkGroup >= 10600 and $TalkGroup < 65535)) { # MMDVM.
-		# Search if reflector exist
-		if (exists($TG{$TalkGroup}{'MMDVM_URL'}) != 1) {
-			if ($Verbose) {print "This is a local only TG.\n";}
-			return;
+
+	if ($P25Link_Enabled and ($TalkGroup == 4095)) { # case P25Link.
+		my $MulticastAddress = $P25Link_MulticastAddress;
+		if ($Verbose) {print "  P25NX Connecting to " . $TalkGroup .
+			" Multicast Addr. " . $MulticastAddress . "\n";
 		}
-		# Connect to TG.
-		if ($Verbose) {print "  MMDVM Connecting to TG " . $TalkGroup .
-			" IP " . $TG{$TalkGroup}{'MMDVM_URL'} .
-			" on Port " . $TG{$TalkGroup}{'MMDVM_Port'} . "\n";
-		}
-		$TG{$TalkGroup}{Sock} = IO::Socket::INET->new(
-			LocalPort => $MMDVM_LocalPort,
+			$TG{$TalkGroup}{'Sock'} = IO::Socket::Multicast->new(
+			LocalHost => $MulticastAddress,
+			LocalPort => $P25Link_Port,
 			Proto => 'udp',
 			Blocking => 0,
-			Broadcast => 0,
+			Broadcast => 1,
 			ReuseAddr => 1,
-			PeerHost => $TG{$TalkGroup}{'MMDVM_URL'},
-			PeerPort => $TG{$TalkGroup}{'MMDVM_Port'}
-		) or die "Can not Bind MMDVM : $@\n";
+			PeerPort => $P25Link_Port
+			)
+			or die "Can not create Multicast : $@\n";
 		$TG{$TalkGroup}{'Sel'} = IO::Select->new($TG{$TalkGroup}{'Sock'});
-		WritePoll($TalkGroup);
-		WritePoll($TalkGroup);
-		WritePoll($TalkGroup);
+		$TG{$TalkGroup}{'Sock'}->mcast_add($MulticastAddress);
+		$TG{$TalkGroup}{'Sock'}->mcast_ttl(10);
+		$TG{$TalkGroup}{'Sock'}->mcast_loopback(0);
+		$TG{$TalkGroup}{'P25Link_Connected'} = 1;
 	}
-	if ($P25NX_Enabled and $TalkGroup >= 10100 and $TalkGroup < 10600) { # case P25NX.
+
+	if ($P25NX_Enabled and ($TalkGroup >= 10100) and ($TalkGroup < 10600)) { # case P25NX.
 		my $MulticastAddress = makeMulticastAddress($TalkGroup);
 		if ($Verbose) {print "  P25NX Connecting to " . $TalkGroup .
 			" Multicast Addr. " . $MulticastAddress . "\n";
@@ -1993,11 +2054,36 @@ sub AddLinkTG{
 		$TG{$TalkGroup}{'P25NX_Connected'} = 1;
 	}
 
-	if ($P25Link_Enabled and $TalkGroup >= 10100 and $TalkGroup < 10600) { # case P25Link.
-
-		$TG{$TalkGroup}{'P25Link_Connected'} = 1;
+	if ( $MMDVM_Enabled and (((($LinkedTalkGroup > 10) and ($LinkedTalkGroup < 4095))
+		or (($LinkedTalkGroup > 4095) and ($LinkedTalkGroup < 10100))
+		or (($LinkedTalkGroup > 10599) and ($LinkedTalkGroup < 65535)))
+		or (!$P25Link_Enabled and ($LinkedTalkGroup == 4095))
+		or (!$P25NX_Enabled and (($LinkedTalkGroup >= 10100) and ($LinkedTalkGroup < 10600)))) ) { # Case MMDVM.
+		# Search if reflector exist
+		if (exists($TG{$TalkGroup}{'MMDVM_URL'}) != 1) {
+			if ($Verbose) {print "This is a local only TG.\n";}
+			return;
+		}
+		# Connect to TG.
+		if ($Verbose) {print "  MMDVM Connecting to TG " . $TalkGroup .
+			" IP " . $TG{$TalkGroup}{'MMDVM_URL'} .
+			" on Port " . $TG{$TalkGroup}{'MMDVM_Port'} . "\n";
+		}
+		$TG{$TalkGroup}{Sock} = IO::Socket::INET->new(
+			LocalPort => $MMDVM_LocalPort,
+			Proto => 'udp',
+			Blocking => 0,
+			Broadcast => 0,
+			ReuseAddr => 1,
+			PeerHost => $TG{$TalkGroup}{'MMDVM_URL'},
+			PeerPort => $TG{$TalkGroup}{'MMDVM_Port'}
+		) || die "Can not Bind MMDVM : $@\n";
+		$TG{$TalkGroup}{'Sel'} = IO::Select->new($TG{$TalkGroup}{'Sock'});
+		WritePoll($TalkGroup);
+		WritePoll($TalkGroup);
+		WritePoll($TalkGroup);
 	}
-	
+
 	# Finalize link.
 	$TG{$TalkGroup}{'Linked'} = 1;
 	$LinkedTalkGroup = $TalkGroup;
@@ -2012,7 +2098,6 @@ sub AddLinkTG{
 	print "  System Linked to TG " . $TalkGroup . "\n";
 }
 
-
 ##################################################################
 sub RemoveLinkTG {
 	my ($TalkGroup) = @_;
@@ -2020,24 +2105,19 @@ sub RemoveLinkTG {
 		return;
 	}
 	print "RemoveLinkTG " . $TalkGroup . "\n";
-
 	# Disconnect from current network.
 	if ($TG{$TalkGroup}{'MMDVM_Connected'}) {
 		WriteUnlink($TalkGroup);
 		WriteUnlink($TalkGroup);
 		WriteUnlink($TalkGroup);
 	}
-	if ($TG{$TalkGroup}{'P25NX_Connected'}) {
-		P25NX_Disconnect($TalkGroup);
-	}
 	if ($TG{$TalkGroup}{'P25Link_Connected'}) {
 		P25Link_Disconnect($TalkGroup);
 	}
+	if ($TG{$TalkGroup}{'P25NX_Connected'}) {
+		P25NX_Disconnect($TalkGroup);
+	}
 	$TG{$TalkGroup}{'Linked'} = 0;
-	#if ($UseVoicePrompts) {
-	#	$VA_Message = $TalkGroup; # Linked TalkGroup.
-	#	$Pending_VA = 1;
-	#}
 	print "  System Disconnected from TG " . $TalkGroup . "\n";
 }
 
@@ -2158,7 +2238,7 @@ sub getTickCount {
 
 
 sub Pin5_Interrupt_Handler {
-    print "Pin5 Interrupt Handler.\n";
+	print "Pin5 Interrupt Handler.\n";
 }
 
 
@@ -2192,7 +2272,7 @@ sub MainLoop{
 
 		# Cisco STUN TCP Receiver.
 		if (($Mode == 1) and ($STUN_Connected == 1)) {
-			for $STUN_fh ($STUN_Sel->can_read(0.0001)) {
+			for $STUN_fh ($STUN_Sel->can_read(0.00001)) {
 				my $RemoteHost = $STUN_fh->recv(my $Buffer, $MaxLen);
 				if ($RemoteHost) {
 					print "RemoteHost = " . $RemoteHost . "\n";
@@ -2242,6 +2322,39 @@ sub MainLoop{
 				}
 			}
 		}
+		# P25Link Receiver
+		foreach my $key (keys %TG) {
+			if ($TG{$key}{'P25Link_Connected'}) {
+				my $TalkGroup;
+				my $OutBuffer;
+				for my $P25Link_fh ($TG{$key}{Sel}->can_read(0.0001)) {
+					my $P25Link_RemoteHost = $P25Link_fh->recv(my $Buffer, $MaxLen);
+					$P25Link_RemoteHost = $P25Link_fh->peerhost;
+					#if ($Verbose) {print "P25Link_LocalHost = " . $PN25Link_LocalHost . "\n";}
+					my $MulticastAddress = $P25Link_MulticastAddress;
+					if (($P25Link_RemoteHost cmp $MulticastAddress) != 0) {
+						if ($P25Link_Verbose) {print $hour . ":" . $min . ":" . $sec .
+							" " . $P25Link_RemoteHost .
+							" P25Link Data len(" . length($Buffer) . ")\n";
+						}
+						if (!$PriorityTGActive and ($TG{$key}{'Scan'} > $Scan)) {
+							$TalkGroup = $key;
+							$OutBuffer = $Buffer;
+							$Scan = $TG{$key}{'Scan'};
+						}
+						if ($key == $LinkedTalkGroup) {
+							$TalkGroup = $key;
+							$OutBuffer = $Buffer;
+							Start_TG_Mute();
+							last;
+						}
+					}	
+				}
+				if ($TalkGroup) {
+					P25Link_Rx($OutBuffer);
+				}
+			}
+		}
 		# P25NX Receiver
 		foreach my $key (keys %TG) {
 			if ($TG{$key}{'P25NX_Connected'}) {
@@ -2273,12 +2386,6 @@ sub MainLoop{
 				if ($TalkGroup) {
 					P25NX_Rx($OutBuffer);
 				}
-			}
-		}
-		# P25Link Receiver
-		foreach my $key (keys %TG) {
-			if ($TG{$key}{'P25Link_Connected'}) {
-				
 			}
 		}
 
