@@ -1,4 +1,4 @@
-# P25NX_v2 Software
+# P25NX2 Software
 
 P25NX2 is a program that let you connect your Quantar repeater or DIU 3000 to multiple HAM networks as P25NX, P25Link, and P25-MMDVM. It use the v.24 port on Quantar/DIU 3000, a Cisco router 28xx and a Raspberry Pi.
 
