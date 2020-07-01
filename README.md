@@ -30,7 +30,7 @@ Page and TMS implementation on P25NX and P25Link beta implementation.
 # V2.0.14
 First official release.
 
-
+# Knowledge sources
 
 This project is based on the work and information from:
 
@@ -43,5 +43,4 @@ Jonathan Naylor G4KLX
 Juan Carlos Pérez KM4NNO / XE1F
 
 # License
-
 This software and hardware is licenced under the GPL v3. If you are using it, please let me know, I will be glad to know it.
