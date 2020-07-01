@@ -21,7 +21,9 @@ Modify the hosts.txt file with the Talk Groups you want lo add to the Scan list 
 # Version Hsitory
 
 # V2.0.15
-Bug fixes and Beta Page functionality on P25NX network side.
+Bug fixes.
+P25Link beta implementation.
+Page and TMS implementation on P25NX and P25Link beta implementation.
 
 # V2.0.14
 First official release.
