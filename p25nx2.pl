@@ -28,8 +28,8 @@ my $StartTime = time();
 
 # About Message.
 print "\n##################################################################\n";
-print "	*** P25NX v2.0.15 ***\n";
-print "	Released: July 01, 2020. Created October 17, 2019.\n";
+print "	*** P25NX v2.0.16 ***\n";
+print "	Released: August 18, 2020. Created October 17, 2019.\n";
 print "	Created by:\n";
 print "	Juan Carlos Pérez De Castro (Wodie) KM4NNO / XE1F\n";
 print "	Bryan Fields W9CR.\n";
@@ -237,6 +237,8 @@ foreach (my $i = 0; $i < 1; $i++ ) {
 	$Quant{$i}{'Raw0x72'} = "";
 	$Quant{$i}{'Raw0x73'} = "";
 	$Quant{$i}{'SuperFrame'} = "";
+	$Quant{$i}{'Tail'} = 0;
+	$Quant{$i}{'Last'} = "";
 }
 #
 # ICW (Infrastructure Control Word).
@@ -338,6 +340,9 @@ print "Loading voice announcements...\n";
 my $SpeechFile = Config::IniFiles->new( -file => "Speech.ini");
 print "  File = $SpeechFile\n";
 
+my @Speech_cTone = $SpeechFile->val('speech_cTone', 'byte');
+my @Speech_cTone1 = $SpeechFile->val('speech_cTone1', 'byte');
+my @Speech_cTone2 = $SpeechFile->val('speech_cTone2', 'byte');
 my @Speech_SystemStart = $SpeechFile->val('speech_SystemStart', 'byte');
 my @Speech_DefaultRevert = $SpeechFile->val('speech_DefaultRevert', 'byte');
 my @HDLC_TestPattern = $SpeechFile->val('HDLC_TestPattern', 'byte');
@@ -361,6 +366,7 @@ my @Speech_PacTac2 = $SpeechFile->val('speech_PacTac2', 'byte');
 my @Speech_PacTac3 = $SpeechFile->val('speech_PacTac3', 'byte');
 my $Pending_VA = 0;
 my $VA_Message = 0;
+my $Pending_CourtesyTone = 0;
 print "Done.\n";
 print "----------------------------------------------------------------------\n";
 
@@ -385,7 +391,7 @@ print "----------------------------------------------------------------------\n"
 
 
 # Prepare Startup VA Message.
-$VA_Message = 0; # 0 = Welcome to the P25NX.
+$VA_Message = 4; # 0 = Welcome to the P25NX.
 $Pending_VA = 1; # Let the system know we wish a Voice Announce when possible.
 
 
@@ -689,6 +695,11 @@ sub HDLC_Rx {
 								print ", HDLC ICW Terminate";
 							}
 							$Quant{$Index}{'LocalRx'} = 0;
+							if ($Quant{$Index}{'Tail'} == 1) {
+								$Pending_CourtesyTone = 1;
+								$Quant{$Index}{'Tail'} = 0;
+								print("Tail\n");
+							}
 						}
 					}
 					switch ($OpArg) {
@@ -1130,6 +1141,7 @@ sub HDLC_Rx {
 					$Quant{$Index}{'Raw0x6B'} = $Message;
 					$Quant{$Index}{'SourceDev'} = ord(substr($Message, 23, 1));
 					$Quant{$Index}{'SuperFrame'} = $Message;
+					$Quant{$Index}{'Tail'} = 1;
 					Tx_to_Network($Message);
 				}
 				case 0x6C {
@@ -1194,6 +1206,7 @@ sub HDLC_Rx {
 					$Quant{$Index}{'Speech'} = ord(substr($Message, 6, 11));
 					$Quant{$Index}{'Raw0x73'} = $Message;
 					$Quant{$Index}{'SuperFrame'} = $Quant{$Index}{'SuperFrame'} . $Message;
+					$Quant{$Index}{'Tail'} = 1;
 					Tx_to_Network($Message);
 				}
 				case 0x80 {
@@ -1963,6 +1976,10 @@ sub MMDVM_to_HDLC{
 			HDLC_Tx(chr($Address) . chr($C_UI) . chr(0x00) . chr(0x02). chr($RTRT) .
 				chr($C_EndTx) . chr($C_DVoice) . chr(0x00) . chr(0x00) . chr(0x00) .
 				chr(0x00) . chr(0x00));
+			if ($UseRemoteCourtesyTone) {
+				$Pending_CourtesyTone = 1;
+				print("Tail_MMDVM_to_HDLC\n");
+			}
 			$HDLC_TxTraffic = 0;
 		}
 	}
@@ -1973,6 +1990,16 @@ sub P25Link_to_HDLC{ # P25NX packet contains Cisco STUN and Quantar packet.
 	$Buffer = substr($Buffer, 7, length($Buffer)); # Here we remove Cisco STUN.
 	$HDLC_TxTraffic = 1;
 	HDLC_Tx($Buffer);
+	if (ord(substr($Buffer, 2, 1)) == $Quant{0}{'Last'} and
+		ord(substr($Buffer, 2, 1)) == 0x00 and
+		ord(substr($Buffer, 5, 1)) == 0x25
+	){
+		if ($UseRemoteCourtesyTone) {
+			$Pending_CourtesyTone = 1;
+			print("Tail_P25Link\n");
+		}
+	}
+	$Quant{0}{'Last'} = ord(substr($Buffer, 2, 1));
 # Add a 1s timer to $HDLC_TxTraffic = 0;
 }
 
@@ -1981,6 +2008,16 @@ sub P25NX_to_HDLC{ # P25NX packet contains Cisco STUN and Quantar packet.
 	$Buffer = substr($Buffer, 7, length($Buffer)); # Here we remove Cisco STUN.
 	$HDLC_TxTraffic = 1;
 	HDLC_Tx($Buffer);
+	if (ord(substr($Buffer, 2, 1)) == $Quant{0}{'Last'} and
+		ord(substr($Buffer, 2, 1)) == 0x00 and
+		ord(substr($Buffer, 5, 1)) == 0x25
+	){
+		if ($UseRemoteCourtesyTone) {
+			$Pending_CourtesyTone = 1;
+			print("Tail_P25NX\n");
+		}
+	}
+	$Quant{0}{'Last'} = ord(substr($Buffer, 2, 1));
 # Add a 1s timer to $HDLC_TxTraffic = 0;
 }
 
@@ -1997,7 +2034,7 @@ sub AddLinkTG{
 		if ($TalkGroup != $LinkedTalkGroup) {
 			if ($UseVoicePrompts) {
 				$VA_Message = $TalkGroup; # Linked TalkGroup.
-				$Pending_VA = 1;
+				$Pending_VA = 5;
 			}
 		}
 		$LinkedTalkGroup = $TalkGroup;
@@ -2093,7 +2130,7 @@ sub AddLinkTG{
 	}
 	if ($UseVoicePrompts) {
 		$VA_Message = $TalkGroup; # Linked TalkGroup.
-		$Pending_VA = 1;
+		$Pending_VA = 5;
 	}
 	print "  System Linked to TG " . $TalkGroup . "\n";
 }
@@ -2134,16 +2171,28 @@ sub Start_TG_Mute{
 sub SaySomething{
 	my ($ThingToSay) = @_;
 	my @Speech;
-	print "Voice Announcement running.\n";
+	print "Voice Announcement " . $ThingToSay . " running.\n";
 	$HDLC_TxTraffic = 1;
 	switch ($ThingToSay) {
 		case 0x00 {
-			@Speech = @Speech_SystemStart;
+			;#@Speech = NONE;
 		}
 		case 0x01 {
-			@Speech = @Speech_DefaultRevert;
+			@Speech = @Speech_cTone;
 		}
 		case 0x02 {
+			@Speech = @Speech_cTone1;
+		}
+		case 0x03 {
+			@Speech = @Speech_cTone2;
+		}
+		case 0x04 {
+			@Speech = @Speech_SystemStart;
+		}
+		case 0x05 {
+			@Speech = @Speech_DefaultRevert;
+		}
+		case 0x06 {
 			@Speech = @HDLC_TestPattern;
 		}
 		case 10100 {
@@ -2395,15 +2444,28 @@ sub MainLoop{
 			$PriorityTGActive = 0;
 		}
 
-
 		# End of Tx timmer (1 sec).
-		if ($Quant{0}{'LocalRx'} and ($Quant{0}{'LocalRx_Time'} + 1000 >= $TickCount)) {
+		if (($Quant{0}{'LocalRx'} > 0) and (int($Quant{0}{'LocalRx_Time'} + 1000) <= $TickCount)) {
+print ("Timer 1 event " . $Quant{0}{'LocalRx'} . "\n");
+if (int($Quant{0}{'LocalRx_Time'} + 1000) <= $TickCount) {
+	print("bla\n");
+}
 			$Quant{0}{'LocalRx'} = 0;
+			$Pending_CourtesyTone = 1; # Let the system know we wish a roger beep when possible.
 		}
 
+		# Courtesy Tone.
+		if ($HDLC_Handshake and ($Quant{0}{'LocalRx'} == 0) and ($Pending_CourtesyTone > 0)) {
+			if ($UseLocalCourtesyTone > 0 and $Pending_CourtesyTone == 1) {
+print ("Roger expected " . $Pending_CourtesyTone . "\n");
+				SaySomething($UseLocalCourtesyTone);
+				$Pending_CourtesyTone = 0;
+			}
+		}
 
 		# Voice Announce.
 		if ($HDLC_Handshake and ($Quant{0}{'LocalRx'} == 0) and $Pending_VA) {
+print ("VA expected\n");
 			SaySomething($VA_Message);
 			$Pending_VA = 0;
 		}
