@@ -2,6 +2,22 @@
 
 P25NX2 is a program that let you connect your Quantar repeater or DIU 3000 to multiple HAM networks as P25NX, P25Link, and P25-MMDVM. It use the v.24 port on Quantar/DIU 3000, a Cisco router 28xx and a Raspberry Pi.
 
+# Featues
+
+## For P25NX network:
+Voice talk groups 10100 to 10599.
+Private and Talk group TMS text messages implemented if repeaters are on the same TG.
+Private and Talk group Page functionality implemented if repeaters are on same TG.
+Repeater Scan mode with priority index for talk groups.
+Local and remote ourtesy tones.
+Use the same router setup as with pnxmono.
+
+
+For P25-MMDVM network:
+Voice talk groups 11 to 65534.
+
+# Setup
+
 To configure your Cisco router, please follow the P25NX router setup. If you only want to connect to P25-MMDVM, you only need to setup STUN.
 
 To use the p25nx2 program copy files to your Raspberry path /opt/p25nx2.
@@ -20,8 +36,6 @@ Mode = 1 means use of Cisco router and its STUN protocol.
 
 Modify the hosts.txt file with the Talk Groups you want lo add to the Scan list by setting the last field to a highest take precedence >= 1, 0 = No Scan.
 
-# Current users please replace your hosts.txt file with this release.
-
 # History
 
 # August 18, 2020.
@@ -36,7 +50,7 @@ P25Link beta implementation (TG 4095).
 
 Page and TMS implementation on P25NX and P25Link beta implementation.
 
-# V2.0.14
+# June 2, 2020.
 First official release.
 
 # Knowledge sources
