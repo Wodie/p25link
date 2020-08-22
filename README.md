@@ -6,22 +6,33 @@ P25NX2 is a program that let you connect your Quantar repeater or DIU 3000 to mu
 
 ## For P25NX network:
 Voice talk groups 10100 to 10599.
-voice talk group announce as with pnxmono.
+
+Voice talk group announce as with pnxmono.
+
 TMS (text messages) implemented if repeaters are on the same TG.
+
 Page functionality implemented if repeaters are on same TG.
+
 Repeater Scan mode with priority index for talk groups.
+
 Local and remote courtesy tones.
+
 Use the same router setup as with pnxmono.
 
 ## For P25-MMDVM network:
 Voice talk groups 11 to 65534.
+
 Local and remote courtesy tones.
 
 ## For P25Link network:
 Voice talk groups TBD.
+
 TMS (text messages) implemented if repeaters are on P25Link network.
+
 Page functionality implemented if repeaters are on P25Link network.
+
 Repeater Scan mode with priority index for talk groups.
+
 Local and remote courtesy tones.
 
 
