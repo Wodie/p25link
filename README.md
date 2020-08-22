@@ -22,7 +22,7 @@ Modify the hosts.txt file with the Talk Groups you want lo add to the Scan list 
 
 # Current users please replace your hosts.txt file with this release.
 
-# Version Hsitory
+# History
 
 # V2.0.15
 Bug fixes.
