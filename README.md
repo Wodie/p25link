@@ -2,19 +2,28 @@
 
 P25NX2 is a program that let you connect your Quantar repeater or DIU 3000 to multiple HAM networks as P25NX, P25Link, and P25-MMDVM. It use the v.24 port on Quantar/DIU 3000, a Cisco router 28xx and a Raspberry Pi.
 
-# Featues
+# Current release features:
 
 ## For P25NX network:
 Voice talk groups 10100 to 10599.
-Private and Talk group TMS text messages implemented if repeaters are on the same TG.
-Private and Talk group Page functionality implemented if repeaters are on same TG.
+voice talk group announce as with pnxmono.
+TMS (text messages) implemented if repeaters are on the same TG.
+Page functionality implemented if repeaters are on same TG.
 Repeater Scan mode with priority index for talk groups.
-Local and remote ourtesy tones.
+Local and remote courtesy tones.
 Use the same router setup as with pnxmono.
 
-
-For P25-MMDVM network:
+## For P25-MMDVM network:
 Voice talk groups 11 to 65534.
+Local and remote courtesy tones.
+
+## For P25Link network:
+Voice talk groups TBD.
+TMS (text messages) implemented if repeaters are on P25Link network.
+Page functionality implemented if repeaters are on P25Link network.
+Repeater Scan mode with priority index for talk groups.
+Local and remote courtesy tones.
+
 
 # Setup
 
@@ -36,24 +45,24 @@ Mode = 1 means use of Cisco router and its STUN protocol.
 
 Modify the hosts.txt file with the Talk Groups you want lo add to the Scan list by setting the last field to a highest take precedence >= 1, 0 = No Scan.
 
-# History
+# History:
 
-# August 18, 2020.
+## August 18, 2020.
 Courtesy tones implemented.
 Call end timer bug fixed.
 
-# July, 2020.
+## July, 2020.
 Bug fixes.
 
-# June, 2020.
+## June, 2020.
 P25Link beta implementation (TG 4095).
 
 Page and TMS implementation on P25NX and P25Link beta implementation.
 
-# June 2, 2020.
-First official release.
+## June 2, 2020.
+First official public release.
 
-# Knowledge sources
+# Knowledge sources:
 
 This project is based on the work and information from:
 
