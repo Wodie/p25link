@@ -1,8 +1,19 @@
-# P25NX2 Software
+# P25Link Software
 
-P25NX2 is a program that let you connect your Quantar repeater or DIU 3000 to multiple HAM networks as P25NX, P25Link, and P25-MMDVM. It use the v.24 port on Quantar/DIU 3000, a Cisco router 28xx and a Raspberry Pi.
+P25Link is a program that let you connect your Quantar repeater or DIU 3000 to multiple HAM networks as P25Link, P25NX, and P25-MMDVM. It use the v.24 port on Quantar/DIU 3000, a Cisco router 28xx and a Raspberry Pi.
 
 # Current release features:
+
+## For P25Link network:
+Voice talk groups TBD.
+
+TMS (text messages) implemented if repeaters are on P25Link network.
+
+Page functionality implemented if repeaters are on P25Link network.
+
+Repeater Scan mode with priority index for talk groups.
+
+Local and remote courtesy tones.
 
 ## For P25NX network:
 Voice talk groups 10100 to 10599.
@@ -24,17 +35,6 @@ Voice talk groups 11 to 65534.
 
 Local and remote courtesy tones.
 
-## For P25Link network:
-Voice talk groups TBD.
-
-TMS (text messages) implemented if repeaters are on P25Link network.
-
-Page functionality implemented if repeaters are on P25Link network.
-
-Repeater Scan mode with priority index for talk groups.
-
-Local and remote courtesy tones.
-
 
 # Setup
 
@@ -44,9 +44,9 @@ To use the p25nx2 program copy files to your Raspberry path /opt/p25nx2.
 
 To run the configuration menu:
 
-cd /opt/p25nx2
-sudo chmod 755 p25nx2-menu
-sudo ./p25nx2-menu
+cd /opt/p25link
+sudo chmod 755 p25link-menu
+sudo ./p25link-menu
 
 there you can make the initial setup, download libraries to get it working, etc.
 
@@ -72,18 +72,6 @@ Page and TMS implementation on P25NX and P25Link beta implementation.
 
 ## June 2, 2020.
 First official public release.
-
-# Knowledge sources:
-
-This project is based on the work and information from:
-
-David Kraus NX4Y
-
-Byan Fields W9CR
-
-Jonathan Naylor G4KLX
-
-Juan Carlos Pérez KM4NNO / XE1F
 
 # License
 This software and hardware is licenced under the GPL v3. If you are using it, please let me know, I will be glad to know it.
