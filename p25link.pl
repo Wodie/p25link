@@ -28,8 +28,8 @@ my $StartTime = time();
 
 # About Message.
 print "\n##################################################################\n";
-print "	*** P25NX v2.0.16 ***\n";
-print "	Released: August 18, 2020. Created October 17, 2019.\n";
+print "	*** P25Link v2.0.16 ***\n";
+print "	Released: August 25, 2020. Created October 17, 2019.\n";
 print "	Created by:\n";
 print "	Juan Carlos Pérez De Castro (Wodie) KM4NNO / XE1F\n";
 print "	Bryan Fields W9CR.\n";
@@ -39,10 +39,10 @@ print "	License\n";
 print "	This software is licenced under the GPL v3.\n";
 print "	If you are using it, please let me know, I will be glad to know it.\n\n";
 print "	This project is based on the work and information from:\n";
-print "	David Kraus NX4Y\n";
+print "	Juan Carlos Pérez KM4NNO / XE1F\n\n";
 print "	Byan Fields W9CR\n";
 print "	Jonathan Naylor G4KLX\n";
-print "	Juan Carlos Pérez KM4NNO / XE1F\n\n";
+print "	David Kraus NX4Y\n";
 print "##################################################################\n\n";
 
 # Load Settings ini file.
