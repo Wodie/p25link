@@ -46,7 +46,7 @@
 3142	3.215.215.169					41002		0
 
 # KM4NNO Wave/ASL
-4095	44.98.254.131					41010		0
+4095	reflectors.p25.link					41010		10
 
 # 5057 VK7 TAS 
 5057	45.248.50.37					41000		0
@@ -61,13 +61,13 @@
 10100	m1geo.com						41000		1
 
 # 10101 World Wide TAC 1 (Bridged to the P25NX Network).
-10101	44.98.254.131					41000		0
+10101	reflectors.p25.link					41000		0
 
 # 10102 World Wide TAC 2 (Bridged to the P25NX Network).
-10102	44.98.254.131					41001		0
+10102	reflectors.p25.link					41001		0
 
 # 10103 World Wide TAC 3 (Bridged to the P25NX Network).
-10103	44.98.254.131					41002		0
+10103	reflectors.p25.link					41002		0
 
 # 10200 North America
 10200	dvswitch.org					41000		2
@@ -76,10 +76,10 @@
 10201	dvswitch.org					41010		0
 
 # 10202 North America TAC 2 (Bridged to the P25NX Network).
-10202	44.98.254.131					41003		0
+10202	reflectors.p25.link					41003		0
 
 # 10203 North America TAC 3 (Bridged to the P25NX Network).
-10203	44.98.254.131					41004		0
+10203	reflectors.p25.link					41004		0
 
 # P25 France
 10208	m55.evxonline.net				41000		0
@@ -100,10 +100,10 @@
 10301	ea5gvk.duckdns.org				41000		0
 
 # 10302 Europe TAC 2 (Bridged to the P25NX Network).
-10302	44.98.254.131					41005		0
+10302	reflectors.p25.link					41005		0
 
 # 10303 Europe TAC 3 (Bridged to the P25NX Network).
-10303	44.98.254.131					41006		0
+10303	reflectors.p25.link					41006		0
 
 # 10310 Germany HAMNET (Bridge to 10320)	http://44.148.230.100/
 10310	44.148.230.100					41000		0
@@ -114,7 +114,7 @@
 # 10320 Germany INTERNET (Bridge to 10310)	http://xlx-hc.ham-digital.org/
 10320	137.226.79.122					41000		0
 
-# 10321 Germany INTERNET Multimode (Bridge to 10311)	http://xlx-hc.ham-digital.org/
+# 10321 Germany INTERNET Multimode (Bridge to 10311) http://xlx-hc.ham-digital.org/
 10321	137.226.79.122					41010		0
 
 # 10328 German Pegasus Project

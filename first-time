@@ -1,8 +1,8 @@
 #!/bin/bash
 # first-time
 ##################################################################
-#	*** P25NX v2.0.19 ***
-#	Released: May 27, 2020. Created September 04, 2019.
+#	*** P25Link v2.0.19 ***
+#	Released: August 25, 2020. Created September 04, 2019.
 #	Created by: Juan Carlos Pérez De Castro (Wodie) KM4NNO, XE1F.
 #	www.wodielite.com
 #	wodielite at mac.com
@@ -11,7 +11,7 @@
 # See LICENSE file for copyright and license details
 # Based on ASL modification by mod4whip N8THN
 
-CONFIGS=/opt/p25nx2
+CONFIGS=/opt/p25link
 CONFIGPATH=$CONFIGS/config.ini
 
 
@@ -76,7 +76,7 @@ do_mode_menu() {
     esac || whiptail --msgbox "There was an error running option $FUNM" 20 60 1
   fi
 # Use Voice Prompts
-  FUNA=$(whiptail --title "Voice Prompts" --menu "Do you want to enable P25NX Voice Prompts?" 20 80 5 --cancel-button Back --ok-button Select \
+  FUNA=$(whiptail --title "Voice Prompts" --menu "Do you want to enable P25Link Voice Prompts?" 20 80 5 --cancel-button Back --ok-button Select \
     "0 " "Voice Prompts Disabled" \
     "1 " "Voice Prompts Enabled" \
     3>&1 1>&2 2>&3)
