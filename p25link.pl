@@ -28,8 +28,8 @@ my $StartTime = time();
 
 # About Message.
 print "\n##################################################################\n";
-print "	*** P25Link v2.0.16 ***\n";
-print "	Released: August 25, 2020. Created October 17, 2019.\n";
+print "	*** P25Link v2.0.17 ***\n";
+print "	Released: August 26, 2020. Created October 17, 2019.\n";
 print "	Created by:\n";
 print "	Juan Carlos Pérez De Castro (Wodie) KM4NNO / XE1F\n";
 print "	Bryan Fields W9CR.\n";
@@ -95,15 +95,17 @@ if (!open($fh, "<", $TalkGroupsFile)) {
 		my @Line = split(/\s+/, $Line);
 		my $TalkGroup = $Line[0];
 		$TG{$TalkGroup}{'TalkGroup'} = $Line[0];
-		$TG{$TalkGroup}{'MMDVM_URL'} = $Line[1];
-		$TG{$TalkGroup}{'MMDVM_Port'} = $Line[2];
-		$TG{$TalkGroup}{'Scan'} = $Line[3];
+		$TG{$TalkGroup}{'Mode'} = $Line[1];
+		$TG{$TalkGroup}{'MMDVM_URL'} = $Line[2];
+		$TG{$TalkGroup}{'MMDVM_Port'} = $Line[3];
+		$TG{$TalkGroup}{'Scan'} = $Line[4];
 		$TG{$TalkGroup}{'Linked'} = 0;
 		$TG{$TalkGroup}{'P25Link_Connected'} = 0;
 		$TG{$TalkGroup}{'P25NX_Connected'} = 0;
 		$TG{$TalkGroup}{'MMDVM_Connected'} = 0;
 		if ($TG_Verbose) {
 			print "  TG Index " . $TalkGroup;
+			print ", Mode " . $TG{$TalkGroup}{'Mode'};
 			print ", URL " . $TG{$TalkGroup}{'MMDVM_URL'};
 			print ", Port " . $TG{$TalkGroup}{'MMDVM_Port'};
 			print ", Scan " . $TG{$TalkGroup}{'Scan'} . "\n";
@@ -153,7 +155,6 @@ my $P25Link_Enabled = $cfg->val('P25Link', 'Enabled');
 my $P25Link_Verbose =$cfg->val('P25Link', 'Verbose');
 print "  Enabled = $P25Link_Enabled\n";
 print "  Verbose = $P25Link_Verbose\n";
-my $P25Link_MulticastAddress = '239.2.40.95';
 my $P25Link_Port = 30001;
 print "----------------------------------------------------------------------\n";
 
@@ -1730,13 +1731,21 @@ sub MMDVM_Tx{
 ##################################################################
 sub P25Link_Disconnect {
 	my ($TalkGroup) = @_;
-	if ($TalkGroup == 4095){
-		my $MulticastAddress = $P25Link_MulticastAddress;
-		$TG{$TalkGroup}{'Sock'}->mcast_drop($MulticastAddress);
-	}
+	my $MulticastAddress = P25Link_makeMulticastAddress($TalkGroup);
+	$TG{$TalkGroup}{'Sock'}->mcast_drop($MulticastAddress);
 	$TG{$TalkGroup}{'P25Link_Connected'} = 0;
 	$TG{$TalkGroup}{'Sock'}->close();
 	print "P25Link TG " . $TalkGroup . " disconnected.\n";
+}
+
+sub P25Link_makeMulticastAddress{
+	my ($TalkGroup) = @_;
+	my $b = 2;
+	my $c = ($TalkGroup & 0xFF00) >> 8;
+	my $d = $TalkGroup & 0x00FF;
+	my $ThisAddress = "239." . $b . "." . $c . "." . $d;
+	#if ($Verbose) {print "makeP24LinkMulticastAddress = " . $ThisAddress . "\n";}
+	return $ThisAddress;
 }
 
 sub P25Link_Rx{
@@ -1759,7 +1768,7 @@ sub P25Link_Tx{ # This function expect to Rx a formed Cisco STUN Packet.
 		print "P25Link_Tx Message.\n";
 		StrToHex($Buffer);
 	}
-	my $MulticastAddress = $P25Link_MulticastAddress;
+	my $MulticastAddress = P25Link_makeMulticastAddress($LinkedTalkGroup);
 	my $Tx_Sock = IO::Socket::Multicast->new(
 		LocalHost => $MulticastAddress,
 		LocalPort => $P25Link_Port,
@@ -1787,7 +1796,7 @@ sub P25Link_Tx{ # This function expect to Rx a formed Cisco STUN Packet.
 sub P25NX_Disconnect{
 	my ($TalkGroup) = @_;
 	if ($TalkGroup > 10099 and $TalkGroup < 10600){
-		my $MulticastAddress = makeMulticastAddress($TalkGroup);
+		my $MulticastAddress = P25NX_makeMulticastAddress($TalkGroup);
 		$TG{$TalkGroup}{'Sock'}->mcast_drop($MulticastAddress);
 	}
 	$TG{$TalkGroup}{'P25NX_Connected'} = 0;
@@ -1795,7 +1804,7 @@ sub P25NX_Disconnect{
 	print "P25NX TG " . $TalkGroup . " disconnected.\n";
 }
 
-sub makeMulticastAddress{
+sub P25NX_makeMulticastAddress{
 	my ($TalkGroup) = @_;
 	my $x = $TalkGroup - 10099;
 	my $b = 0;
@@ -1813,15 +1822,15 @@ sub makeMulticastAddress{
 	}
 	$Region = substr($TalkGroup, 2, 1);
 	$ThisAddress = "239." . $Region . "." . $b . "." . $c;
-	#if ($Verbose) {print "makeMulticastAddress = " . $ThisAddress . "\n";}
+	#if ($Verbose) {print "P25NX_makeMulticastAddress = " . $ThisAddress . "\n";}
 	return $ThisAddress;
 }
 
 sub P25NX_Rx{
 	my ($Buffer) = @_;
 	if (length($Buffer) < 1) {return;}
-	#if ($Verbose) {print "PNX_Rx\n";} if ($Verbose) {
-		#print "PNX_Rx HexData = " . StrToHex($Buffer) . "\n";
+	#if ($Verbose) {print "P25NX_Rx\n";} if ($Verbose) {
+		#print "P25NX_Rx HexData = " . StrToHex($Buffer) . "\n";
 	#}
 	#MMDVM_Tx(substr($Buffer, 9, length($Buffer)));
 	P25NX_to_HDLC($Buffer);
@@ -1836,7 +1845,7 @@ sub P25NX_Tx{ # This function expect to Rx a formed Cisco STUN Packet.
 	if ($P25NX_Verbose) {print "P25NX Linked TG *** " . $LinkedTalkGroup . "\n";}
 	# Tx to the Network.
 	if ($P25NX_Verbose >= 2) {print "P25NX_Tx Message " . StrToHex($Buffer) . "\n";}
-	my $MulticastAddress = makeMulticastAddress($LinkedTalkGroup);
+	my $MulticastAddress = P25NX_makeMulticastAddress($LinkedTalkGroup);
 	my $Tx_Sock = IO::Socket::Multicast->new(
 		LocalHost => $MulticastAddress,
 		LocalPort => $P25NX_Port,
@@ -1875,17 +1884,18 @@ sub StrToHex{
 sub Tx_to_Network{
 	my ($Buffer) = @_;
 	Start_TG_Mute();
-	if ($P25Link_Enabled and ($LinkedTalkGroup == 4095)) {
+	if ( $P25Link_Enabled and ($TG{$LinkedTalkGroup}{'Mode'} eq 'P25Link') and 
+		($LinkedTalkGroup > 10) and ($LinkedTalkGroup < 65535) ) { # Case P25Link.
 		HDLC_to_P25Link($Buffer);
 		return;
 	}
-	if ($P25NX_Enabled and (($LinkedTalkGroup >= 10100) and ($LinkedTalkGroup < 10600))) { # case P25NX.
+	if ( $P25NX_Enabled and ($TG{$LinkedTalkGroup}{'Mode'} eq 'P25NX') and
+		($LinkedTalkGroup >= 10100) and ($LinkedTalkGroup < 10600) ) { # case P25NX.
 		HDLC_to_P25NX($Buffer);
 		return;
 	}
-	if ( $MMDVM_Enabled and (((($LinkedTalkGroup > 10) and ($LinkedTalkGroup < 4095))
-		or (($LinkedTalkGroup > 4095) and ($LinkedTalkGroup < 10100))
-		or (($LinkedTalkGroup > 10599) and ($LinkedTalkGroup < 65535)))) ) { # Case MMDVM.
+	if ( $MMDVM_Enabled and ($TG{$LinkedTalkGroup}{'Mode'} eq 'MMDVM') and
+		($LinkedTalkGroup > 10) and ($LinkedTalkGroup < 65535) ) { # Case MMDVM.
 		HDLC_to_MMDVM($LinkedTalkGroup, $Buffer);
 	}
 }
@@ -2026,11 +2036,11 @@ sub P25NX_to_HDLC{ # P25NX packet contains Cisco STUN and Quantar packet.
 ##################################################################
 sub AddLinkTG{
 	my ($TalkGroup) = @_;
-	if (length( $TG{$TalkGroup}{'Linked'} ) == '') {
+	if ($TG{$TalkGroup}{'Linked'} eq '') {
 		print "Local TG.\n";
 		return;
 	} # Undefined TG.
-	if ($TG{$TalkGroup}{'Linked'} == 1 ) {
+	if ($TG{$TalkGroup}{'Linked'} == 1) {
 		if ($TalkGroup != $LinkedTalkGroup) {
 			if ($UseVoicePrompts) {
 				$VA_Message = $TalkGroup; # Linked TalkGroup.
@@ -2042,14 +2052,14 @@ sub AddLinkTG{
 		if ($TG{$TalkGroup}{'Scan'} == 0) {
 			$TG{$TalkGroup}{'Timer'} = time();
 		}
-		print "  System Already Linked to TG " . $TalkGroup . "\n";
+		print "  System already linked to TG " . $TalkGroup . "\n";
 		return;
 	}
 	# Now connect to a network.
 
-	if ($P25Link_Enabled and ($TalkGroup == 4095)) { # case P25Link.
-		my $MulticastAddress = $P25Link_MulticastAddress;
-		if ($Verbose) {print "  P25NX Connecting to " . $TalkGroup .
+	if ($P25Link_Enabled and ($TG{$TalkGroup}{'Mode'} eq 'P25Link')) { # case P25Link.
+		my $MulticastAddress = P25Link_makeMulticastAddress($TalkGroup);
+		if ($Verbose) {print "  P25Link connecting to " . $TalkGroup .
 			" Multicast Addr. " . $MulticastAddress . "\n";
 		}
 			$TG{$TalkGroup}{'Sock'} = IO::Socket::Multicast->new(
@@ -2069,9 +2079,10 @@ sub AddLinkTG{
 		$TG{$TalkGroup}{'P25Link_Connected'} = 1;
 	}
 
-	if ($P25NX_Enabled and ($TalkGroup >= 10100) and ($TalkGroup < 10600)) { # case P25NX.
-		my $MulticastAddress = makeMulticastAddress($TalkGroup);
-		if ($Verbose) {print "  P25NX Connecting to " . $TalkGroup .
+	if ( $P25NX_Enabled and ($TalkGroup >= 10100) and ($TalkGroup < 10600)
+		and ($TG{$TalkGroup}{'Mode'} eq 'P25NX')) { # case P25NX.
+		my $MulticastAddress = P25NX_makeMulticastAddress($TalkGroup);
+		if ($Verbose) {print "  P25NX connecting to " . $TalkGroup .
 			" Multicast Addr. " . $MulticastAddress . "\n";
 		}
 			$TG{$TalkGroup}{'Sock'} = IO::Socket::Multicast->new(
@@ -2091,18 +2102,14 @@ sub AddLinkTG{
 		$TG{$TalkGroup}{'P25NX_Connected'} = 1;
 	}
 
-	if ( $MMDVM_Enabled and (((($LinkedTalkGroup > 10) and ($LinkedTalkGroup < 4095))
-		or (($LinkedTalkGroup > 4095) and ($LinkedTalkGroup < 10100))
-		or (($LinkedTalkGroup > 10599) and ($LinkedTalkGroup < 65535)))
-		or (!$P25Link_Enabled and ($LinkedTalkGroup == 4095))
-		or (!$P25NX_Enabled and (($LinkedTalkGroup >= 10100) and ($LinkedTalkGroup < 10600)))) ) { # Case MMDVM.
+	if ( $MMDVM_Enabled and ($TG{$TalkGroup}{'Mode'} eq 'MMDVM') ) { # Case MMDVM.
 		# Search if reflector exist
 		if (exists($TG{$TalkGroup}{'MMDVM_URL'}) != 1) {
 			if ($Verbose) {print "This is a local only TG.\n";}
 			return;
 		}
 		# Connect to TG.
-		if ($Verbose) {print "  MMDVM Connecting to TG " . $TalkGroup .
+		if ($Verbose) {print "  MMDVM connecting to TG " . $TalkGroup .
 			" IP " . $TG{$TalkGroup}{'MMDVM_URL'} .
 			" on Port " . $TG{$TalkGroup}{'MMDVM_Port'} . "\n";
 		}
@@ -2380,7 +2387,7 @@ sub MainLoop{
 					my $P25Link_RemoteHost = $P25Link_fh->recv(my $Buffer, $MaxLen);
 					$P25Link_RemoteHost = $P25Link_fh->peerhost;
 					#if ($Verbose) {print "P25Link_LocalHost = " . $PN25Link_LocalHost . "\n";}
-					my $MulticastAddress = $P25Link_MulticastAddress;
+					my $MulticastAddress = P25Link_makeMulticastAddress($key);
 					if (($P25Link_RemoteHost cmp $MulticastAddress) != 0) {
 						if ($P25Link_Verbose) {print $hour . ":" . $min . ":" . $sec .
 							" " . $P25Link_RemoteHost .
@@ -2397,7 +2404,7 @@ sub MainLoop{
 							Start_TG_Mute();
 							last;
 						}
-					}	
+					}
 				}
 				if ($TalkGroup) {
 					P25Link_Rx($OutBuffer);
@@ -2412,8 +2419,8 @@ sub MainLoop{
 				for my $P25NX_fh ($TG{$key}{Sel}->can_read(0.0001)) {
 					my $P25NX_RemoteHost = $P25NX_fh->recv(my $Buffer, $MaxLen);
 					$P25NX_RemoteHost = $P25NX_fh->peerhost;
-					#if ($Verbose) {print "P25NX_LocalHost = " . $PNX_LocalHost . "\n";}
-					my $MulticastAddress = makeMulticastAddress($key);
+					#if ($Verbose) {print "P25NX_LocalHost = " . $P25NX_LocalHost . "\n";}
+					my $MulticastAddress = P25NX_makeMulticastAddress($key);
 					if (($P25NX_RemoteHost cmp $MulticastAddress) != 0) {
 						if ($P25NX_Verbose) {print $hour . ":" . $min . ":" . $sec .
 							" " . $P25NX_RemoteHost .
