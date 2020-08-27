@@ -1,17 +1,27 @@
 # P25Link Software
 
-P25Link is a program that let you connect your Quantar repeater or DIU 3000 to multiple HAM networks as P25Link, P25NX, and P25-MMDVM. It use the v.24 port on Quantar/DIU 3000, a Cisco router 28xx and a Raspberry Pi.
+P25Link is a program that let you connect your Quantar repeater or DIU 3000 to multiple HAM networks as P25Link, P25NX, and P25-MMDVM. It use the v.24 port on Quantar/DIU 3000, a Cisco router 28xx and a Raspberry Pi. It use the same router setup as P25NX v2.
+
 
 # Current release features:
 
-## For P25Link network:
-Voice talk groups TBD.
+## Local
+Voice talk groups 1 to 10.
 
 TMS (text messages) implemented if repeaters are on P25Link network.
 
 Page functionality implemented if repeaters are on P25Link network.
 
-Repeater Scan mode with priority index for talk groups.
+Repeater scan mode with priority index for talk groups.
+
+## For P25Link network:
+Voice talk groups 11 to 65534.
+
+TMS (text messages) implemented if repeaters are on P25Link network.
+
+Page functionality implemented if repeaters are on P25Link network.
+
+Repeater scan mode with priority index for talk groups.
 
 Local and remote courtesy tones.
 
@@ -24,11 +34,9 @@ TMS (text messages) implemented if repeaters are on the same TG.
 
 Page functionality implemented if repeaters are on same TG.
 
-Repeater Scan mode with priority index for talk groups.
+Repeater scan mode with priority index for talk groups.
 
 Local and remote courtesy tones.
-
-Use the same router setup as with pnxmono.
 
 ## For P25-MMDVM network:
 Voice talk groups 11 to 65534.
@@ -58,8 +66,12 @@ Modify the hosts.txt file with the Talk Groups you want lo add to the Scan list 
 
 # History:
 
+## August 26, 2020.
+P25Link Talk Groups now implemented for future compatibility with P25-MMDVM talk groups 11-65534.
+
 ## August 18, 2020.
 Courtesy tones implemented.
+
 Call end timer bug fixed.
 
 ## July, 2020.
