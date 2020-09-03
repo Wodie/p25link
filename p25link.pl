@@ -635,12 +635,13 @@ sub HDLC_Rx {
 	#Bytes_2_HexString($Message);
 	
 	$Quant{$Index}{'FrameType'} = ord(substr($Message, 1, 1));
-	#print "Frame Types = ", sprintf("0x%x", $FrameType), "\n";
+	#print "Frame Types = ", sprintf("0x%x", $Quant{$Index}{'FrameType'}), "\n";
 	switch ($Quant{$Index}{'FrameType'}) {
 		case 0x01 { # RR Receive Ready.
 			if ($Address == 253) {
 				$RR_Timer = 0;
 				$HDLC_Handshake = 1;
+				HDLC_Tx_RR();
 			} else {
 				print "*** Warning ***   HDLC_Rx RR Address 253 != $Address\n";
 			}
