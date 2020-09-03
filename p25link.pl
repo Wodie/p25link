@@ -29,7 +29,7 @@ my $StartTime = time();
 # About Message.
 print "\n##################################################################\n";
 print "	*** P25Link v2.0.17 ***\n";
-print "	Released: August 26, 2020. Created October 17, 2019.\n";
+print "	Released: September 03, 2020. Created October 17, 2019.\n";
 print "	Created by:\n";
 print "	Juan Carlos Pérez De Castro (Wodie) KM4NNO / XE1F\n";
 print "	Bryan Fields W9CR.\n";
