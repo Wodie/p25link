@@ -37,6 +37,9 @@
 # 927 Southern California
 927		MMDVM	927.org							41000		0
 
+# KM4NNO AllStarLink (Bridged to the P25Link Network).
+2050	P25Link	reflector.p25.link				41009		0
+
 # 2140 P25 Reflector BM DMR+ Multi 
 2140	MMDVM	94.177.235.81					41000		0
 
@@ -49,7 +52,7 @@
 # 3142 Pennsylvania
 3142	MMDVM	3.215.215.169					41002		0
 
-# KM4NNO Wave/ASL
+# KM4NNO Wave (Bridged to the P25Link Network).
 4095	P25Link	reflector.p25.link				41010		0
 
 # 5057 VK7 TAS 
@@ -64,14 +67,14 @@
 # 10100 World Wide	http://www.george-smart.co.uk/p25/
 10100	P25NX	m1geo.com						41000		1
 
-# 10101 World Wide TAC 1 (Bridged to the P25NX Network).
-10101	P25NX	reflector.p25.link				41000		0
+# 10101 World Wide TAC 1 (Bridged to the P25Link Network).
+10101	P25Link	reflector.p25.link				41000		0
 
-# 10102 World Wide TAC 2 (Bridged to the P25NX Network).
-10102	P25NX	reflector.p25.link				41001		0
+# 10102 World Wide TAC 2 (Bridged to the P25Link Network).
+10102	P25Link	reflector.p25.link				41001		0
 
-# 10103 World Wide TAC 3 (Bridged to the P25NX Network).
-10103	P25NX	reflector.p25.link				41002		0
+# 10103 World Wide TAC 3 (Bridged to the P25Link Network).
+10103	P25Link	reflector.p25.link				41002		0
 
 # 10200 North America
 10200	P25NX	dvswitch.org					41000		2
@@ -79,11 +82,11 @@
 # 10201 North America TAC 1
 10201	P25NX	dvswitch.org					41010		0
 
-# 10202 North America TAC 2 (Bridged to the P25NX Network).
-10202	P25NX	reflector.p25.link				41003		0
+# 10202 North America TAC 2 (Bridged to the P25Link Network).
+10202	P25Link	reflector.p25.link				41003		0
 
-# 10203 North America TAC 3 (Bridged to the P25NX Network).
-10203	P25NX	reflector.p25.link				41004		0
+# 10203 North America TAC 3 (Bridged to the P25Link Network).
+10203	P25Link	reflector.p25.link				41004		0
 
 # P25 France
 10208	MMDVM	m55.evxonline.net				41000		0
@@ -103,11 +106,11 @@
 # 10301	Europe TAC 1
 10301	MMDVM	ea5gvk.duckdns.org				41000		0
 
-# 10302 Europe TAC 2 (Bridged to the P25NX Network).
-10302	P25NX	reflector.p25.link				41005		0
+# 10302 Europe TAC 2 (Bridged to the P25Link Network).
+10302	P25Link	reflector.p25.link				41005		0
 
-# 10303 Europe TAC 3 (Bridged to the P25NX Network).
-10303	P25NX	reflector.p25.link				41006		0
+# 10303 Europe TAC 3 (Bridged to the P25Link Network).
+10303	P25Link	reflector.p25.link				41006		0
 
 # 10310 Germany HAMNET (Bridge to 10320)	http://44.148.230.100/
 10310	MMDVM	44.148.230.100					41000		0
