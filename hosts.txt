@@ -64,7 +64,7 @@
 # 7225 MULTIPROTOCOLO ARGENTINA
 7225	MMDVM	ysfarg.ddns.net					41000		0
 
-# 10100 World Wide	http://www.george-smart.co.uk/p25/
+# 10100 World Wide	http://www.george-smart.co.uk/p25/ (Bridged to the P25Link Network).
 10100	P25NX	m1geo.com						41000		1
 
 # 10101 World Wide TAC 1 (Bridged to the P25Link Network).
@@ -76,10 +76,10 @@
 # 10103 World Wide TAC 3 (Bridged to the P25Link Network).
 10103	P25Link	reflector.p25.link				41002		0
 
-# 10200 North America
+# 10200 North America (Bridged to the P25Link Network).
 10200	P25NX	dvswitch.org					41000		2
 
-# 10201 North America TAC 1
+# 10201 North America TAC 1 (Bridged to the P25Link Network).
 10201	P25NX	dvswitch.org					41010		0
 
 # 10202 North America TAC 2 (Bridged to the P25Link Network).
