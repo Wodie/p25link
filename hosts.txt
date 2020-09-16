@@ -37,8 +37,8 @@
 # 927 Southern California
 927		MMDVM	927.org							41000		0
 
-# KM4NNO AllStarLink (Bridged to the P25Link Network).
-2050	P25Link	reflector.p25.link				41009		0
+# 2050 KM4NNO AllStarLink (Bridged to the P25Link Network).
+2050	P25Link	reflector.p25.link				41009		9
 
 # 2140 P25 Reflector BM DMR+ Multi 
 2140	MMDVM	94.177.235.81					41000		0
@@ -53,7 +53,7 @@
 3142	MMDVM	3.215.215.169					41002		0
 
 # KM4NNO Wave (Bridged to the P25Link Network).
-4095	P25Link	reflector.p25.link				41010		0
+4095	P25Link	reflector.p25.link				41010		10
 
 # 5057 VK7 TAS 
 5057	MMDVM	45.248.50.37					41000		0
@@ -64,29 +64,29 @@
 # 7225 MULTIPROTOCOLO ARGENTINA
 7225	MMDVM	ysfarg.ddns.net					41000		0
 
-# 10100 World Wide	http://www.george-smart.co.uk/p25/ (Bridged to the P25Link Network).
-10100	P25NX	m1geo.com						41000		1
+# 10100 World Wide	http://www.george-smart.co.uk/p25/ (Bridged to the P25NX Network).
+10100	P25NX	m1geo.com						41000		0
 
-# 10101 World Wide TAC 1 (Bridged to the P25Link Network).
-10101	P25Link	reflector.p25.link				41000		0
+# 10101 World Wide TAC 1 (Bridged to the P25NX Network).
+10101	P25NX	reflector.p25.link				41000		0
 
-# 10102 World Wide TAC 2 (Bridged to the P25Link Network).
-10102	P25Link	reflector.p25.link				41001		0
+# 10102 World Wide TAC 2 (Bridged to the P25NX Network).
+10102	P25NX	reflector.p25.link				41001		0
 
-# 10103 World Wide TAC 3 (Bridged to the P25Link Network).
-10103	P25Link	reflector.p25.link				41002		0
+# 10103 World Wide TAC 3 (Bridged to the P25NX Network).
+10103	P25NX	reflector.p25.link				41002		0
 
-# 10200 North America (Bridged to the P25Link Network).
-10200	P25NX	dvswitch.org					41000		2
+# 10200 North America (Bridged to the P25NX Network).
+10200	P25NX	dvswitch.org					41000		0
 
-# 10201 North America TAC 1 (Bridged to the P25Link Network).
+# 10201 North America TAC 1 (Bridged to the P25NX Network).
 10201	P25NX	dvswitch.org					41010		0
 
-# 10202 North America TAC 2 (Bridged to the P25Link Network).
-10202	P25Link	reflector.p25.link				41003		0
+# 10202 North America TAC 2 (Bridged to the P25NX Network).
+10202	P25NX	reflector.p25.link				41003		0
 
-# 10203 North America TAC 3 (Bridged to the P25Link Network).
-10203	P25Link	reflector.p25.link				41004		0
+# 10203 North America TAC 3 (Bridged to the P25NX Network).
+10203	P25NX	reflector.p25.link				41004		0
 
 # P25 France
 10208	MMDVM	m55.evxonline.net				41000		0
@@ -101,16 +101,16 @@
 10260	MMDVM	31.0.161.238					41000		0
 
 # 10300 Europe	https://p25-eu.n18.de/
-10300	MMDVM	176.9.1.168						41000		3
+10300	MMDVM	176.9.1.168						41000		0
 
 # 10301	Europe TAC 1
 10301	MMDVM	ea5gvk.duckdns.org				41000		0
 
-# 10302 Europe TAC 2 (Bridged to the P25Link Network).
-10302	P25Link	reflector.p25.link				41005		0
+# 10302 Europe TAC 2 (Bridged to the P25NX Network).
+10302	P25NX	reflector.p25.link				41005		0
 
-# 10303 Europe TAC 3 (Bridged to the P25Link Network).
-10303	P25Link	reflector.p25.link				41006		0
+# 10303 Europe TAC 3 (Bridged to the P25NX Network).
+10303	P25NX	reflector.p25.link				41006		0
 
 # 10310 Germany HAMNET (Bridge to 10320)	http://44.148.230.100/
 10310	MMDVM	44.148.230.100					41000		0
@@ -134,19 +134,19 @@
 10350	MMDVM	warc.ddns.net					41000		0
 
 # 10400 Pacific	http://pacificp25.repeaters.info/
-10400	MMDVM	pacificp25.repeaters.info		41000		4
+10400	MMDVM		pacificp25.repeaters.info		41000		0
 
 # 10401 Pacific	TAC 1 http://pacifictac1.repeaters.info/
-10401	MMDVM	pacifictac1.repeaters.info		41010		0
+10401	MMDVM		pacifictac1.repeaters.info		41010		0
 
 # 10402	Pacific	TAC 2
-10402	P25NX	47.104.177.248					41000		0
+10402	P25NX		47.104.177.248					41000		0
 
 # 10403	Pacific	TAC 3 http://ysf.sz790.com:8082/
-10403	P25NX	ysf.sz790.com					41000		0
+10403	P25NX		ysf.sz790.com					41000		0
 
 # 10401	Pacific	TAC 4
-10404	P25NX	p25tw338.ddns.net				41000		0
+10404	P25NX		p25tw338.ddns.net				41000		0
 
 # 10700 Australia NSW Bridge to AU NSW YSF
 10700	MMDVM	p25nsw.gustotech.net			41000		0
