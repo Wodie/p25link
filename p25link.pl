@@ -28,8 +28,8 @@ my $StartTime = time();
 
 # About Message.
 print "\n##################################################################\n";
-print "	*** P25Link v2.0.17 ***\n";
-print "	Released: September 03, 2020. Created October 17, 2019.\n";
+print "	*** P25Link v2.0.18 ***\n";
+print "	Released: September 16, 2020. Created October 17, 2019.\n";
 print "	Created by:\n";
 print "	Juan Carlos Pérez De Castro (Wodie) KM4NNO / XE1F\n";
 print "	Bryan Fields W9CR.\n";
@@ -704,42 +704,41 @@ sub HDLC_Rx {
 							}
 						}
 					}
+					if ($HDLC_Verbose) {
+						print ", Linked Talk Group " . $LinkedTalkGroup;
+					}
 					switch ($OpArg) {
 						case 0x00 { # AVoice
-							if ($HDLC_Verbose) {print ", Analog Voice";}
+							if ($HDLC_Verbose) {print ", Analog Voice\n";}
 						}
 						case 0x06 { # TMS Data Payload
-							if ($HDLC_Verbose) {print ", TMS Data Payload";}
+							if ($HDLC_Verbose) {print ", TMS Data Payload\n";}
 							Tx_to_Network($Message);
 							LogDebug($Message);
 						}
 						case 0x0B { # DVoice
-							if ($HDLC_Verbose) {print ", Digital Voice";}
+							if ($HDLC_Verbose) {print ", Digital Voice\n";}
 							Tx_to_Network($Message);
 						}
 						case 0x0C { # TMS
-							if ($HDLC_Verbose) {print ", TMS";}
+							if ($HDLC_Verbose) {print ", TMS\n";}
 							Tx_to_Network($Message);
 							LogDebug($Message);
 						}
 						case 0x0D { # From Comparator Start
-							if ($HDLC_Verbose) {print ", From Comparator Start";}
+							if ($HDLC_Verbose) {print ", From Comparator Start\n";}
 #							Tx_to_Network($Message);
 							LogDebug($Message);
 						}
 						case 0x0E { # From Comprator Stop
-							if ($HDLC_Verbose) {print ", From Comparator Stop";}
+							if ($HDLC_Verbose) {print ", From Comparator Stop\n";}
 #							Tx_to_Network($Message);
 							LogDebug($Message);
 						}
 						case 0x0F { # Page
-							if ($HDLC_Verbose) {print ", Page";}
+							if ($HDLC_Verbose) {print ", Page\n";}
 							Tx_to_Network($Message);
 						}
-					}
-					if ($HDLC_Verbose) {
-						print ", Linked Talk Group " . $LinkedTalkGroup . ".\n";
-						print "\n";
 					}
 				}
 				case 0x01 {
@@ -2261,9 +2260,10 @@ sub SaySomething{
 	for (my $x = 0; $x < scalar(@Speech); $x++) {
 		$Message = HexString_2_Bytes($Speech[$x]);
 		HDLC_Tx($Message);
-		my $SerialWait = (8.0 / 9600.0) * 1; # 1 Byte length delay for VA.
+		my $SerialWait = (8.0 / 9600.0) * 1.0; # 1 Byte length delay for VA.
 		nanosleep($SerialWait * 1000000000);
 	}
+	nanosleep(0.5 * 1000000000);
 	$HDLC_TxTraffic = 0;
 	print "  Voice Announcement done.\n";
 }
@@ -2453,7 +2453,7 @@ sub MainLoop{
 		}
 
 		# End of Tx timmer (1 sec).
-		if (($Quant{0}{'LocalRx'} > 0) and (int($Quant{0}{'LocalRx_Time'} + 1000) <= $TickCount)) {
+		if (($Quant{0}{'LocalRx'} > 0) and (int($Quant{0}{'LocalRx_Time'} + 2000) <= $TickCount)) {
 print ("Timer 1 event " . $Quant{0}{'LocalRx'} . "\n");
 if (int($Quant{0}{'LocalRx_Time'} + 1000) <= $TickCount) {
 	print("bla\n");
@@ -2489,6 +2489,16 @@ print ("VA expected\n");
 						print "EscKey Pressed.\n";
 						$Run = 0;
 					}
+
+					case ord('A') { # 'A'
+						$VA_Message = 10202;
+						$Pending_VA = 1;
+					}
+					case ord('a') { # 'a'
+						$VA_Message = 10203;
+						$Pending_VA = 1;
+					}
+
 					case ord('H') { # 'H'
 						$HDLC_Verbose = 1;
 					}
