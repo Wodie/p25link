@@ -66,6 +66,9 @@ Modify the hosts.txt file with the Talk Groups you want lo add to the Scan list 
 
 # History:
 
+## September 16, 2020.
+Voice announce bug fixed, should play complete files. Hosts.txt file updated.
+
 ## August 26, 2020.
 P25Link Talk Groups now implemented for future compatibility with P25-MMDVM talk groups 11-65534.
 
