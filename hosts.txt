@@ -38,7 +38,7 @@
 927		MMDVM	927.org							41000		0
 
 # 2050 KM4NNO AllStarLink (Bridged to the P25Link Network).
-2050	P25Link	reflector.p25.link				41009		9
+2050	P25Link	reflector.p25.link				41009		0
 
 # 2140 P25 Reflector BM DMR+ Multi 
 2140	MMDVM	94.177.235.81					41000		0
@@ -53,7 +53,7 @@
 3142	MMDVM	3.215.215.169					41002		0
 
 # KM4NNO Wave (Bridged to the P25Link Network).
-4095	P25Link	reflector.p25.link				41010		10
+4095	P25Link	reflector.p25.link				41010		0
 
 # 5057 VK7 TAS 
 5057	MMDVM	45.248.50.37					41000		0
@@ -65,7 +65,7 @@
 7225	MMDVM	ysfarg.ddns.net					41000		0
 
 # 10100 World Wide	http://www.george-smart.co.uk/p25/ (Bridged to the P25NX Network).
-10100	P25NX	m1geo.com						41000		0
+10100	P25NX	m1geo.com						41000		1
 
 # 10101 World Wide TAC 1 (Bridged to the P25NX Network).
 10101	P25NX	reflector.p25.link				41000		0
@@ -77,7 +77,7 @@
 10103	P25NX	reflector.p25.link				41002		0
 
 # 10200 North America (Bridged to the P25NX Network).
-10200	P25NX	dvswitch.org					41000		0
+10200	P25NX	dvswitch.org					41000		2
 
 # 10201 North America TAC 1 (Bridged to the P25NX Network).
 10201	P25NX	dvswitch.org					41010		0
@@ -101,7 +101,7 @@
 10260	MMDVM	31.0.161.238					41000		0
 
 # 10300 Europe	https://p25-eu.n18.de/
-10300	MMDVM	176.9.1.168						41000		0
+10300	MMDVM	176.9.1.168						41000		3
 
 # 10301	Europe TAC 1
 10301	MMDVM	ea5gvk.duckdns.org				41000		0
