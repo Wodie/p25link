@@ -29,7 +29,7 @@ my $StartTime = time();
 # About Message.
 print "\n##################################################################\n";
 print "	*** P25Link v2.0.18 ***\n";
-print "	Released: September 16, 2020. Created October 17, 2019.\n";
+print "	Released: September 17, 2020. Created October 17, 2019.\n";
 print "	Created by:\n";
 print "	Juan Carlos Pérez De Castro (Wodie) KM4NNO / XE1F\n";
 print "	Bryan Fields W9CR.\n";
@@ -2263,14 +2263,14 @@ sub SaySomething{
 		my $SerialWait = (8.0 / 9600.0) * 1.0; # 1 Byte length delay for VA.
 		nanosleep($SerialWait * 1000000000);
 	}
-	nanosleep(0.5 * 1000000000);
+	nanosleep(0.0001 * 1000000000); # Needed for playing complete voice announcements.
 	$HDLC_TxTraffic = 0;
 	print "  Voice Announcement done.\n";
 }
 
 sub HexString_2_Bytes{
 	my ($Buffer) = @_;
-	my $Data;
+	my $Data = "";
 	for (my $x = 0; $x < length($Buffer); $x = $x + 6) {
 		#print "Dat = " . substr($Buffer, $x, 4) . "\n";
 		#print "Dat2 = " . sprintf("%d", hex(substr($Buffer, $x, 4))) . "\n";
@@ -2454,29 +2454,30 @@ sub MainLoop{
 
 		# End of Tx timmer (1 sec).
 		if (($Quant{0}{'LocalRx'} > 0) and (int($Quant{0}{'LocalRx_Time'} + 2000) <= $TickCount)) {
-print ("Timer 1 event " . $Quant{0}{'LocalRx'} . "\n");
-if (int($Quant{0}{'LocalRx_Time'} + 1000) <= $TickCount) {
-	print("bla\n");
-}
+			print ("Timer 1 event " . $Quant{0}{'LocalRx'} . "\n");
+			#if (int($Quant{0}{'LocalRx_Time'} + 1000) <= $TickCount) {
+			#	print("bla\n");
+			#}
 			$Quant{0}{'LocalRx'} = 0;
 			$Pending_CourtesyTone = 1; # Let the system know we wish a roger beep when possible.
+		}
+
+		# Voice Announce.
+		if ($HDLC_Handshake and ($Quant{0}{'LocalRx'} == 0) and $Pending_VA) {
+			print ("VA expected\n");
+			SaySomething($VA_Message);
+			$Pending_VA = 0;
 		}
 
 		# Courtesy Tone.
 		if ($HDLC_Handshake and ($Quant{0}{'LocalRx'} == 0) and ($Pending_CourtesyTone > 0)) {
 			if ($UseLocalCourtesyTone > 0 and $Pending_CourtesyTone == 1) {
-print ("Roger expected " . $Pending_CourtesyTone . "\n");
+				print ("Roger beep expected " . $Pending_CourtesyTone . "\n");
 				SaySomething($UseLocalCourtesyTone);
 				$Pending_CourtesyTone = 0;
 			}
 		}
 
-		# Voice Announce.
-		if ($HDLC_Handshake and ($Quant{0}{'LocalRx'} == 0) and $Pending_VA) {
-print ("VA expected\n");
-			SaySomething($VA_Message);
-			$Pending_VA = 0;
-		}
 
 
 		# Hot Keys.
