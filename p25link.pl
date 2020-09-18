@@ -55,6 +55,7 @@ my $LocalHost = $cfg->val('Settings', 'LocalHost');
 	#my($LocalIPAddr) = inet_ntoa((gethostbyname(hostname))[4]); 
 	my($LocalHostIP) = inet_ntoa((gethostbyname($LocalHost))[4]); 
 my $PriorityTG = $cfg->val('Settings', 'PriorityTG');
+my $Hangtime = $cfg->val('Settings', 'Hangtime');
 my $MuteTGTimeout = $cfg->val('Settings', 'MuteTGTimeout');
 my $UseVoicePrompts = $cfg->val('Settings', 'UseVoicePrompts');
 my $UseLocalCourtesyTone = $cfg->val('Settings', 'UseLocalCourtesyTone');
@@ -491,16 +492,7 @@ if ($Mode == 0) { # Close Serial Port:
 	$SerialPort->close || die "Failed to close SerialPort.\n";
 }
 foreach my $key (keys %TG){ # Close Socket connections:
-	if ($TG{$key}{'MMDVM_Connected'}) {
-		WriteUnlink($key);
-		$TG{$key}{'Sock'}->close();
-	}
-	if ($TG{$key}{'P25NX_Connected'}) {
-		P25NX_Disconnect($key);
-	}
-	if ($TG{$key}{'P25Link_Connected'}) {
-		P25Link_Disconnect($key);
-	}
+	RemoveLinkTG($key);
 }
 print "Good bye cruel World.\n";
 print "----------------------------------------------------------------------\n";
@@ -639,9 +631,8 @@ sub HDLC_Rx {
 	switch ($Quant{$Index}{'FrameType'}) {
 		case 0x01 { # RR Receive Ready.
 			if ($Address == 253) {
-				$RR_Timer = 0;
-				$HDLC_Handshake = 1;
 				HDLC_Tx_RR();
+				$RR_NextTimer = $RR_TimerInterval + time();
 			} else {
 				print "*** Warning ***   HDLC_Rx RR Address 253 != $Address\n";
 			}
@@ -2044,7 +2035,7 @@ sub AddLinkTG{
 		if ($TalkGroup != $LinkedTalkGroup) {
 			if ($UseVoicePrompts) {
 				$VA_Message = $TalkGroup; # Linked TalkGroup.
-				$Pending_VA = 5;
+				$Pending_VA = 1;
 			}
 		}
 		$LinkedTalkGroup = $TalkGroup;
@@ -2137,7 +2128,7 @@ sub AddLinkTG{
 	}
 	if ($UseVoicePrompts) {
 		$VA_Message = $TalkGroup; # Linked TalkGroup.
-		$Pending_VA = 5;
+		$Pending_VA = 1;
 	}
 	print "  System Linked to TG " . $TalkGroup . "\n";
 }
@@ -2145,7 +2136,7 @@ sub AddLinkTG{
 ##################################################################
 sub RemoveLinkTG {
 	my ($TalkGroup) = @_;
-	if ($TG{$TalkGroup}{'Linked'} == 0 ) {
+	if ($TG{$TalkGroup}{'Linked'} == 0) {
 		return;
 	}
 	print "RemoveLinkTG " . $TalkGroup . "\n";
@@ -2162,7 +2153,7 @@ sub RemoveLinkTG {
 		P25NX_Disconnect($TalkGroup);
 	}
 	$TG{$TalkGroup}{'Linked'} = 0;
-	print "  System Disconnected from TG " . $TalkGroup . "\n";
+	#print "  System Disconnected from TG " . $TalkGroup . "\n";
 }
 
 sub Start_TG_Mute{
@@ -2310,11 +2301,12 @@ sub MainLoop{
 		(my $sec, my $min, my $hour, my $mday, my $mon, my $year, my $wday, my $yday, my $isdst) = localtime();
 		# HDLC Receive Ready keep alive.
 		my $RR_Timeout = $RR_NextTimer - time();
-		if ($RR_Timer == 1 and $RR_Timeout <= 0 and $HDLC_Handshake) {
+		#print "RR_Timer $RR_Timer RR_Timeout $RR_Timeout HDLC_Handshake $HDLC_Handshake\n";
+		if (($RR_Timer == 1) and ($RR_Timeout < 0) and $HDLC_Handshake) {
 			if ($HDLC_Verbose) {print $hour . ":" . $min . ":" . $sec . " Send RR by timer.\n";} 
 			#warn "RR Timed out @{[int time - $^T]}\n";
-			if (($Mode == 1 and $STUN_Connected and $HDLC_TxTraffic == 0)
-				or ($Mode == 0 and $HDLC_TxTraffic == 0)) {
+			if ((($Mode == 1) and $STUN_Connected and ($HDLC_TxTraffic == 0))
+				or (($Mode == 0) and ($HDLC_TxTraffic == 0))) {
 				HDLC_Tx_RR();
 				if ($HDLC_Verbose) {
 					print "----------------------------------------------------------------------\n";
@@ -2459,22 +2451,34 @@ sub MainLoop{
 			#	print("bla\n");
 			#}
 			$Quant{0}{'LocalRx'} = 0;
-			$Pending_CourtesyTone = 1; # Let the system know we wish a roger beep when possible.
+			$Pending_CourtesyTone = 1; # Let the system know we wish a courtesy tone when possible.
 		}
 
-		# Voice Announce.
+		# Voice announce.
 		if ($HDLC_Handshake and ($Quant{0}{'LocalRx'} == 0) and $Pending_VA) {
 			print ("VA expected\n");
 			SaySomething($VA_Message);
 			$Pending_VA = 0;
 		}
 
-		# Courtesy Tone.
+		# Courtesy tone.
 		if ($HDLC_Handshake and ($Quant{0}{'LocalRx'} == 0) and ($Pending_CourtesyTone > 0)) {
 			if ($UseLocalCourtesyTone > 0 and $Pending_CourtesyTone == 1) {
-				print ("Roger beep expected " . $Pending_CourtesyTone . "\n");
+				print ("Courtesy tone expected " . $Pending_CourtesyTone . "\n");
 				SaySomething($UseLocalCourtesyTone);
 				$Pending_CourtesyTone = 0;
+			}
+		}
+
+		# Remove Dynamic Talk Group Link.
+		foreach my $key (keys %TG) {
+			if ( ($TG{$key}{'P25Link_Connected'} or $TG{$key}{'P25NX_Connected'} or 
+				$TG{$key}{'MMDVM_Connected'} ) and ($TG{$key}{'Scan'} == 0) ) {
+				if (  ($TG{$key}{'Timer'} + $Hangtime < time() ) ) {
+					RemoveLinkTG($key);
+					$VA_Message = 5; # Default revert.
+					$Pending_VA = 1;
+				}
 			}
 		}
 
