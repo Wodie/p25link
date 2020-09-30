@@ -275,6 +275,7 @@ cpan install Device::SerialPort &&
 cpan install IO::Socket::Timeout &&
 cpan install IO::Socket::Multicast &&
 cpan install Term::ReadKey &&
+cpan install Ham::APRS::IS &&
 # Used to make Exe files:
 #cpan -i PAR::Packer &&
 apt install libpar-packer-perl
