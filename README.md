@@ -66,30 +66,61 @@ Modify the hosts.txt file with the Talk Groups you want lo add to the Scan list 
 
 # History:
 
-## September 17, 2020.
-Dynamic Talk Groups disconnect function implemented using Hangtime timer.
+## v2.19 September 29, 2020.
+APRS-IS implemented, now the repeater location can be posted thru APRS-IS.
 
-## September 16, 2020.
+## v2.00.18 September 17, 2020.
+Dynamic Talk Groups disconnect function implemented using Hangtime timer.
 Voice announce bug fixed, should play complete files. hosts.txt file updated.
 
-## August 26, 2020.
-P25Link Talk Groups now implemented for future compatibility with P25-MMDVM talk groups 11-65534.
-
-## August 18, 2020.
+## v2.00.18 August 18, 2020.
 Courtesy tones implemented.
 
 Call end timer bug fixed.
 
-## July, 2020.
+## v2.0.17 September 03, 2020.
 Bug fixes.
 
-## June, 2020.
+## v2.0.16 August 25, 2020.
+P25Link Talk Groups now implemented for future compatibility with P25-MMDVM talk groups 11-65534.
+
+## v2.0.15 July 01, 2020.
+Bug fixes.
+
+## v2.0.14 June 11, 2020.
 P25Link beta implementation (TG 4095).
 
 Page and TMS implementation on P25NX and P25Link beta implementation.
 
-## June 2, 2020.
+## v2.0.13 June 2, 2020.
 First official public release.
+
+## v2.0.13 May 27, 2020.
+
+## v2.0.12 May 12, 2020.
+
+## v2.0.11 May 12, 2020.
+
+## v2.0.10 January 26, 2020.
+
+## v2.0.9 Deceber 20, 2019.
+
+## v2.0.8 December 01, 2019.
+
+## v2.0.7 November 16, 2019.
+
+## v2.0.6 October 29, 2019.
+
+## v2.0.5 October 29, 2019.
+
+## v2.0.4 October 29, 2019.
+
+## v2.0.3 October 29, 2019.
+
+## v2.0.2 October 29, 2019.
+
+## v2.0.0 October 17, 2019.
+First code created.
 
 # License
 This software and hardware is licenced under the GPL v3. If you are using it, please let me know, I will be glad to know it.
