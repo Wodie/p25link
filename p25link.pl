@@ -20,29 +20,36 @@ use Time::HiRes qw(nanosleep);
 use Term::ReadKey;
 #use RPi::Pin;
 #use RPi::Const qw(:all);
+use Ham::APRS::IS;
+use Ham::APRS::FAP;
+
 
 
 my $MaxLen =1024; # Max Socket Buffer length.
 my $StartTime = time();
 
 
-# About Message.
+# About this app.
+my $AppName = 'P25Link';
+my $Version = '2.19';
 print "\n##################################################################\n";
-print "	*** P25Link v2.0.18 ***\n";
-print "	Released: September 17, 2020. Created October 17, 2019.\n";
+print "	*** $AppName v$Version ***\n";
+print "	Released: September 29, 2020. Created October 17, 2019.\n";
 print "	Created by:\n";
 print "	Juan Carlos Pérez De Castro (Wodie) KM4NNO / XE1F\n";
 print "	Bryan Fields W9CR.\n";
 print "	www.wodielite.com\n";
 print "	wodielite at mac.com\n\n";
-print "	License\n";
+print "	km4nno at yahoo.com\n\n";
+print "	License:\n";
 print "	This software is licenced under the GPL v3.\n";
 print "	If you are using it, please let me know, I will be glad to know it.\n\n";
 print "	This project is based on the work and information from:\n";
-print "	Juan Carlos Pérez KM4NNO / XE1F\n\n";
+print "	Juan Carlos Pérez KM4NNO / XE1F\n";
 print "	Byan Fields W9CR\n";
 print "	Jonathan Naylor G4KLX\n";
 print "	David Kraus NX4Y\n";
+print "	David Kierzkowski KD8EYF\n";
 print "##################################################################\n\n";
 
 # Load Settings ini file.
@@ -337,6 +344,48 @@ print "----------------------------------------------------------------------\n"
 
 
 
+# APRS-IS:
+print "Loading APRS-IS...\n";
+my $APRS_Callsign = $cfg->val('APRS_IS', 'Callsign');
+my $APRS_Passcode = $cfg->val('APRS_IS', 'Passcode');
+my $APRS_Server= $cfg->val('APRS_IS', 'Server');
+my $Repeater_Latitude = $cfg->val('APRS_IS', 'Latitude');
+my $Repeater_Longitude = $cfg->val('APRS_IS', 'Longitude');
+my $Repeater_Symbol = $cfg->val('APRS_IS', 'Symbol');
+my $Repeater_Altitude = $cfg->val('APRS_IS', 'Altitude');
+my $Repeater_Comment = $cfg->val('APRS_IS', 'Comment');
+my $APRS_Verbose= $cfg->val('APRS_IS', 'Verbose');
+print "  Callsign = $APRS_Callsign\n";
+print "  Passcode = $APRS_Passcode\n";
+print "  Server = $APRS_Server\n";
+print "  Latitude = $Repeater_Latitude\n";
+print "  Longitude = $Repeater_Longitude\n";
+print "  Symbol = $Repeater_Symbol\n";
+print "  Altitude = $Repeater_Altitude\n";
+print "  Comment = $Repeater_Comment\n";
+print "  Verbose = $APRS_Verbose\n";
+my @upd_q;
+my $APRS_IS;
+my $APRS_Timer = time();
+my $APRS_Interval = 1800; # Seconds
+if ($APRS_Passcode ne Ham::APRS::IS::aprspass($APRS_Callsign)) {
+	$APRS_Server = undef;
+}
+if (defined $APRS_Server) {
+	$APRS_IS = new Ham::APRS::IS($APRS_Server, $APRS_Callsign,
+		'appid' => "$AppName $Version",
+		'passcode' => $APRS_Passcode,
+		'filter' => 't/m');
+	if (!$APRS_IS) {
+		warn "Failed to create APRS-IS Server object: " . $APRS_IS->{'error'} . "\n";
+	}
+	Ham::APRS::FAP::debug(1);
+}
+APRS_make_pos($Repeater_Latitude, $Repeater_Longitude, -1, -1, $Repeater_Altitude, 'M&', $Repeater_Comment);
+print "----------------------------------------------------------------------\n";
+
+
+
 # Voice Announce.
 print "Loading voice announcements...\n";
 my $SpeechFile = Config::IniFiles->new( -file => "Speech.ini");
@@ -467,14 +516,14 @@ my $Run = 1;
 # MAIN ############################################################
 ###################################################################
 if ($Mode == 1) { # If Cisco STUN (Mode 1) is selected:
-	print "Cisco STUN listen for connections:\n";
+	if ($STUN_Verbose) {print "Cisco STUN listen for connections:\n";}
 	while ($Run) {
 		#if($STUN_ClientAddr = accept($STUN_ClientSocket, $STUN_ServerSocket)) {
 		if(($STUN_ClientSocket, $STUN_ClientAddr) = $STUN_ServerSocket->accept()) {
 			my ($Client_Port, $Client_IP) = sockaddr_in($STUN_ClientAddr);
 			$STUN_ClientIP = inet_ntoa($Client_IP);
-			print "STUN_Client IP " . inet_ntoa($Client_IP) . 
-				":" . $STUN_Port . "\n";
+			if ($STUN_Verbose) {print "STUN_Client IP " . inet_ntoa($Client_IP) . 
+				":" . $STUN_Port . "\n";}
 			$STUN_ClientSocket->autoflush(1);
 			$STUN_Sel = IO::Select->new($STUN_ClientSocket);
 			$STUN_Connected = 1;
@@ -510,6 +559,54 @@ sub PrintMenu {
 	print "  S/s = STUN  show/hide verbose.   t   = Test.                   \n\n";
 
 }
+
+
+
+##################################################################
+# APRS-IS ########################################################
+##################################################################
+sub APRS_connect {
+	my $ret = $APRS_IS->connect('retryuntil' => 2);
+	if (!$ret) {
+		warn "Failed to connect to APRS-IS server: " . $APRS_IS->{'error'} . "\n";
+		return;
+	}
+	warn "APRS-IS: connected.\n";
+}
+
+sub APRS_make_pos {
+	my ($Latitude, $Longitude, $Speed, $Course, $Altitude, $Symbol, $Comment) = @_;
+	if (!$APRS_IS) {
+		return;
+	}
+	if (!$APRS_IS->connected()) {
+		APRS_connect();
+	}
+	if (!$APRS_IS->connected()) {
+		return;
+	}
+
+	my $APRS_position = Ham::APRS::FAP::make_position(
+		$Latitude,
+		$Longitude,
+		$Speed, # speed
+		$Course, # course
+		$Altitude, # altitude
+		$Symbol, # symbol
+		0); # compression
+		#0); # no ambiguity
+	if ($APRS_Verbose) {print "  APRS Position is: $APRS_position\n";}
+	my $Packet = sprintf('%s>APTR01:%s%s', $APRS_Callsign, $APRS_position, $Comment);
+	if ($APRS_Verbose) {print "  APRS Packet is: $Packet\n";}
+	my $ok = $APRS_IS->sendline($Packet);
+	if ($APRS_Verbose) {print "  APRS  sending Packet ok = $ok\n";}
+	if (!$ok) {
+		print "  APRS-IS Error sending Packet $ok\n";
+		$APRS_IS->disconnect();
+	}
+}
+
+
 
 ##################################################################
 # Serial #########################################################
@@ -2169,7 +2266,7 @@ sub Start_TG_Mute{
 sub SaySomething{
 	my ($ThingToSay) = @_;
 	my @Speech;
-	print "Voice Announcement " . $ThingToSay . " running.\n";
+	if ($Verbose) {print "  Voice Announcement " . $ThingToSay . " running.\n";}
 	$HDLC_TxTraffic = 1;
 	switch ($ThingToSay) {
 		case 0x00 {
@@ -2256,7 +2353,7 @@ sub SaySomething{
 	}
 	nanosleep(0.0001 * 1000000000); # Needed for playing complete voice announcements.
 	$HDLC_TxTraffic = 0;
-	print "  Voice Announcement done.\n";
+	if ($Verbose) {print "  Voice Announcement done.\n";}
 }
 
 sub HexString_2_Bytes{
@@ -2456,7 +2553,7 @@ sub MainLoop{
 
 		# Voice announce.
 		if ($HDLC_Handshake and ($Quant{0}{'LocalRx'} == 0) and $Pending_VA) {
-			print ("VA expected\n");
+			if ($Verbose) {print ("VA expected\n");}
 			SaySomething($VA_Message);
 			$Pending_VA = 0;
 		}
@@ -2464,7 +2561,7 @@ sub MainLoop{
 		# Courtesy tone.
 		if ($HDLC_Handshake and ($Quant{0}{'LocalRx'} == 0) and ($Pending_CourtesyTone > 0)) {
 			if ($UseLocalCourtesyTone > 0 and $Pending_CourtesyTone == 1) {
-				print ("Courtesy tone expected " . $Pending_CourtesyTone . "\n");
+				if ($Verbose) {print ("Courtesy tone expected " . $Pending_CourtesyTone . "\n");}
 				SaySomething($UseLocalCourtesyTone);
 				$Pending_CourtesyTone = 0;
 			}
@@ -2479,6 +2576,20 @@ sub MainLoop{
 					$VA_Message = 5; # Default revert.
 					$Pending_VA = 1;
 				}
+			}
+		}
+
+		# APRS-IS
+		if ($APRS_IS) {
+			if (!$APRS_IS->connected()) {
+				APRS_connect();
+			}
+			
+			if ($APRS_IS->connected() and ($APRS_Timer <= time())) {
+				print "APRS-IS Timer.\n";
+				APRS_make_pos($Repeater_Latitude, $Repeater_Longitude, -1, -1,
+					$Repeater_Altitude, 'M&', $Repeater_Comment);
+				$APRS_Timer = time() + $APRS_Interval;
 			}
 		}
 
