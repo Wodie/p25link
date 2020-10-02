@@ -21,8 +21,13 @@ use Term::ReadKey;
 #use RPi::Pin;
 #use RPi::Const qw(:all);
 use Ham::APRS::IS;
-use Ham::APRS::FAP;
+#use Ham::APRS::FAP;
 
+
+use FindBin 1.51 qw( $RealBin );
+use lib $RealBin;
+
+use FAP;
 
 
 my $MaxLen =1024; # Max Socket Buffer length.
@@ -31,10 +36,10 @@ my $StartTime = time();
 
 # About this app.
 my $AppName = 'P25Link';
-my $Version = '2.19';
+my $Version = '2.20';
 print "\n##################################################################\n";
 print "	*** $AppName v$Version ***\n";
-print "	Released: September 29, 2020. Created October 17, 2019.\n";
+print "	Released: October 02, 2020. Created October 17, 2019.\n";
 print "	Created by:\n";
 print "	Juan Carlos Pérez De Castro (Wodie) KM4NNO / XE1F\n";
 print "	Bryan Fields W9CR.\n";
@@ -116,7 +121,8 @@ if (!open($fh, "<", $TalkGroupsFile)) {
 			print ", Mode " . $TG{$TalkGroup}{'Mode'};
 			print ", URL " . $TG{$TalkGroup}{'MMDVM_URL'};
 			print ", Port " . $TG{$TalkGroup}{'MMDVM_Port'};
-			print ", Scan " . $TG{$TalkGroup}{'Scan'} . "\n";
+			print ", Scan " . $TG{$TalkGroup}{'Scan'};
+			print "\n";
 		}
 	}
 	close $fh;
@@ -349,22 +355,33 @@ print "Loading APRS-IS...\n";
 my $APRS_Callsign = $cfg->val('APRS_IS', 'Callsign');
 my $APRS_Passcode = $cfg->val('APRS_IS', 'Passcode');
 my $APRS_Server= $cfg->val('APRS_IS', 'Server');
-my $Repeater_Latitude = $cfg->val('APRS_IS', 'Latitude');
-my $Repeater_Longitude = $cfg->val('APRS_IS', 'Longitude');
-my $Repeater_Symbol = $cfg->val('APRS_IS', 'Symbol');
-my $Repeater_Altitude = $cfg->val('APRS_IS', 'Altitude');
-my $Repeater_Comment = $cfg->val('APRS_IS', 'Comment');
+my $APRS_File = $cfg->val('APRS_IS', 'File');
+my $My_Latitude = $cfg->val('APRS_IS', 'Latitude');
+my $My_Longitude = $cfg->val('APRS_IS', 'Longitude');
+my $My_Symbol = $cfg->val('APRS_IS', 'Symbol');
+my $My_Altitude = $cfg->val('APRS_IS', 'Altitude');
+my $My_Comment = $cfg->val('APRS_IS', 'Comment');
+my $My_Freq = $cfg->val('APRS_IS', 'Frequency');
+my $My_Tone = $cfg->val('APRS_IS', 'Tone');
+my $My_Offset = $cfg->val('APRS_IS', 'Offset');
+my $My_NAC = $cfg->val('APRS_IS', 'NAC');
+
 my $APRS_Verbose= $cfg->val('APRS_IS', 'Verbose');
 print "  Callsign = $APRS_Callsign\n";
 print "  Passcode = $APRS_Passcode\n";
 print "  Server = $APRS_Server\n";
-print "  Latitude = $Repeater_Latitude\n";
-print "  Longitude = $Repeater_Longitude\n";
-print "  Symbol = $Repeater_Symbol\n";
-print "  Altitude = $Repeater_Altitude\n";
-print "  Comment = $Repeater_Comment\n";
+print "  APRS File $APRS_File\n";
+print "  Latitude = $My_Latitude\n";
+print "  Longitude = $My_Longitude\n";
+print "  Symbol = $My_Symbol\n";
+print "  Altitude = $My_Altitude\n";
+print "  Comment = $My_Comment\n";
+print "  Freq = $My_Freq\n";
+print "  Tone = $My_Tone\n";
+print "  Offset = $My_Offset\n";
+print "  NAC = $My_NAC\n";
 print "  Verbose = $APRS_Verbose\n";
-my @upd_q;
+my %APRS;
 my $APRS_IS;
 my $APRS_Timer = time();
 my $APRS_Interval = 1800; # Seconds
@@ -381,7 +398,7 @@ if (defined $APRS_Server) {
 	}
 	Ham::APRS::FAP::debug(1);
 }
-APRS_make_pos($Repeater_Latitude, $Repeater_Longitude, -1, -1, $Repeater_Altitude, 'M&', $Repeater_Comment);
+APRS_Update();
 print "----------------------------------------------------------------------\n";
 
 
@@ -553,11 +570,10 @@ exit;
 sub PrintMenu {
 	print "Shortcuts:\n";
 	print "  Q/q = Quit.                      h = Help..\n";
-	print "  H/h = HDLC  show/hide verbose.   \n";
+	print "  A/a = APRS  show/hide verbose.   H/h = HDLC  show/hide verbose.  \n";
 	print "  J/j = JSON  show/hide verbose.   M/m = MMDVM   show/hide verbose.\n";
 	print "  P/p = P25NX show/hide verbose.   L/l = P25Link show/hide verbose.\n";
 	print "  S/s = STUN  show/hide verbose.   t   = Test.                   \n\n";
-
 }
 
 
@@ -585,7 +601,10 @@ sub APRS_make_pos {
 	if (!$APRS_IS->connected()) {
 		return;
 	}
-
+	my %Options;
+	$Options{'timestamp'} = 0;
+	$Options{'comment'} = 'Hola';
+	
 	my $APRS_position = Ham::APRS::FAP::make_position(
 		$Latitude,
 		$Longitude,
@@ -593,16 +612,131 @@ sub APRS_make_pos {
 		$Course, # course
 		$Altitude, # altitude
 		$Symbol, # symbol
-		0); # compression
-		#0); # no ambiguity
+		{
+		#'compression' => 1,
+		#'ambiguity' => 1, # still can not make it work.
+		#'timestamp' => time(), # still can not make it work.
+		'comment' => $Comment,
+		#'dao' => 1
+	});
 	if ($APRS_Verbose) {print "  APRS Position is: $APRS_position\n";}
-	my $Packet = sprintf('%s>APTR01:%s%s', $APRS_Callsign, $APRS_position, $Comment);
-	if ($APRS_Verbose) {print "  APRS Packet is: $Packet\n";}
+	#my $Packet = sprintf('%s>APTR01:!%s', $APRS_Callsign, $APRS_position);
+	my $Packet = sprintf('%s>APTR01:!%s', $APRS_Callsign, $APRS_position);
+	if ($APRS_Verbose > 1) {print "  APRS Packet is: $Packet\n";}
 	my $ok = $APRS_IS->sendline($Packet);
-	if ($APRS_Verbose) {print "  APRS  sending Packet ok = $ok\n";}
+	if ($APRS_Verbose > 1) {print "  APRS  sending Packet ok = $ok\n";}
 	if (!$ok) {
 		print "  APRS-IS Error sending Packet $ok\n";
 		$APRS_IS->disconnect();
+	}
+}
+
+sub APRS_make_obj {
+	my ($Name, $TimeStamp, $Latitude, $Longitude, $Symbol, $Speed, 
+		$Course, $Altitude, $Alive, $UseCompression, $PosAmbiguity, $Comment) = @_;
+	if (!$APRS_IS) {
+		return;
+	}
+	if (!$APRS_IS->connected()) {
+		APRS_connect();
+	}
+	if (!$APRS_IS->connected()) {
+		return;
+	}
+	my $APRS_object = Ham::APRS::FAP::make_object(
+		$Name, # Name
+		$TimeStamp,
+		$Latitude,
+		$Longitude,
+		$Symbol, # symbol
+		$Speed, # speed
+		$Course,
+		$Altitude, # altitude
+		$Alive,
+		$UseCompression,
+		$PosAmbiguity,
+		$Comment);
+	if ($APRS_Verbose) {print "  APRS object is: $APRS_object\n";}
+	my $Packet = sprintf('%s>APTR01:%s', $APRS_Callsign, $APRS_object);
+	if ($APRS_Verbose > 1) {print "  APRS Packet is: $Packet\n";}
+
+	my $ok = $APRS_IS->sendline($Packet);
+	if ($APRS_Verbose < 1) {print "  APRS  sending Packet ok = $ok\n";}
+	if (!$ok) {
+		print "  APRS-IS Error sending Packet $ok\n";
+		$APRS_IS->disconnect();
+	}
+}
+
+sub APRS_Update {
+	# Station position
+	APRS_make_pos($My_Latitude, $My_Longitude, -1, -1, $My_Altitude, $My_Symbol,
+		$My_Freq . 'MHz ' . $My_Tone . ' ' . $My_Offset . ' NAC-' . $My_NAC . ' ' .
+		$My_Comment);
+	# Objects refresh list loading file.
+	my $fh;
+	print "  Loading APRS File...\n";
+	if (!open($fh, "<", $APRS_File)) {
+		print "  *** Error ***   $APRS_File File not found.\n";
+	} else {
+		print "  File Ok.\n";
+		my %result;
+		while (my $Line = <$fh>) {
+			chomp $Line;
+			## skip comments and blank lines and optional repeat of title line
+			next if $Line =~ /^\#/ || $Line =~ /^\s*$/ || $Line =~ /^\+/;
+			#split each line into array
+			my @Line = split(/\s+/, $Line);
+			my $Index = $Line[0];
+			$APRS{$Index}{'Name'} = $Line[0];
+			$APRS{$Index}{'Lat'} = $Line[1];
+			$APRS{$Index}{'Long'} = $Line[2];
+			$APRS{$Index}{'Speed'} = $Line[3];
+			$APRS{$Index}{'Course'} = $Line[4];
+			$APRS{$Index}{'Altitude'} = $Line[5];
+			$APRS{$Index}{'Symbol'} = $Line[6];
+			$APRS{$Index}{'Comment'} = $Line[7];
+			for (my $x = 8; $x < 20; $x++) {
+				if ($Line[$x]) {
+					$APRS{$Index}{'Comment'} = $APRS{$Index}{'Comment'} . ' ' . $Line[$x];
+				}
+			}
+			if ($APRS_Verbose) {
+				print "  APRS Index " . $Index;
+				print ", Name " . $APRS{$Index}{'Name'};
+				print ", Lat " . $APRS{$Index}{'Lat'};
+				print ", Long " . $APRS{$Index}{'Long'};
+				print ", Speed " . $APRS{$Index}{'Speed'};
+				print ", Course " . $APRS{$Index}{'Course'};
+				print ", Altitude " . $APRS{$Index}{'Altitude'};
+				print ", Symbol " . $APRS{$Index}{'Symbol'};
+				print ", Comment " . $APRS{$Index}{'Comment'};
+				print "\n";
+			}
+			APRS_make_obj(
+				$APRS{$Index}{'Name'},
+				0, # Timestamp
+				$APRS{$Index}{'Lat'},
+				$APRS{$Index}{'Long'},
+				$APRS{$Index}{'Symbol'},
+				$APRS{$Index}{'Speed'},
+				$APRS{$Index}{'Course'},
+				$APRS{$Index}{'Altitude'},
+				1, 0, 0, #Active, Compressed, PosAmbiguity
+				$APRS{$Index}{'Comment'},
+			);
+		}
+		close $fh;
+		if ($APRS_Verbose > 2) {
+			foreach my $key (keys %APRS)
+			{
+				print "  Key field: $key\n";
+				foreach my $key2 (keys %{$APRS{$key}})
+				{
+					print "  - $key2 = $APRS{$key}{$key2}\n";
+				}
+			}
+		}
 	}
 }
 
@@ -2586,9 +2720,8 @@ sub MainLoop{
 			}
 			
 			if ($APRS_IS->connected() and ($APRS_Timer <= time())) {
-				print "APRS-IS Timer.\n";
-				APRS_make_pos($Repeater_Latitude, $Repeater_Longitude, -1, -1,
-					$Repeater_Altitude, 'M&', $Repeater_Comment);
+				if ($APRS_Verbose) {print "APRS-IS Timer.\n";}
+				APRS_Update();
 				$APRS_Timer = time() + $APRS_Interval;
 			}
 		}
@@ -2607,14 +2740,16 @@ sub MainLoop{
 					}
 
 					case ord('A') { # 'A'
-						$VA_Message = 10202;
-						$Pending_VA = 1;
+						APRS_Update();
+						$APRS_Verbose = 1;
+#						$VA_Message = 10202;
+#						$Pending_VA = 1;
 					}
 					case ord('a') { # 'a'
-						$VA_Message = 10203;
-						$Pending_VA = 1;
+						$APRS_Verbose = 1;
+#						$VA_Message = 10203;
+#						$Pending_VA = 1;
 					}
-
 					case ord('H') { # 'H'
 						$HDLC_Verbose = 1;
 					}
