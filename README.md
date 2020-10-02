@@ -66,6 +66,9 @@ Modify the hosts.txt file with the Talk Groups you want lo add to the Scan list 
 
 # History:
 
+## v2.20 October 02, 2020.
+APRS-IS objects implemented.
+
 ## v2.19 September 29, 2020.
 APRS-IS implemented, now the repeater location can be posted thru APRS-IS.
 
