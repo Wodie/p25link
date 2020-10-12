@@ -36,10 +36,11 @@ my $StartTime = time();
 
 # About this app.
 my $AppName = 'P25Link';
+use constant VersionInfo => 2;
 my $Version = '2.20';
 print "\n##################################################################\n";
 print "	*** $AppName v$Version ***\n";
-print "	Released: October 02, 2020. Created October 17, 2019.\n";
+print "	Released: October 12, 2020. Created October 17, 2019.\n";
 print "	Created by:\n";
 print "	Juan Carlos Pérez De Castro (Wodie) KM4NNO / XE1F\n";
 print "	Bryan Fields W9CR.\n";
@@ -140,6 +141,32 @@ if (!open($fh, "<", $TalkGroupsFile)) {
 my $NumberOfTalkGroups = scalar keys %TG;
 print "\n  Total number of links is: " . $NumberOfTalkGroups . "\n";
 print "----------------------------------------------------------------------\n";
+
+
+
+# Init Report.
+print "Init Report.\n";
+my %Report;
+use constant OpPollReply => 0x2100;
+my $Report_Interval = 300;
+$Report{'Timer'} = time() - $Report_Interval + 10;
+$Report{'Port'} = 30002;
+$Report{'MulticastAddress'} = P25Link_makeMulticastAddress(100);
+#$Report{'Sock'} = IO::Socket::Multicast->new (
+#	LocalHost => $Report{'MulticastAddress'},
+#	LocalPort => $Report{'Port'},
+#	Proto => 'udp',
+#	Blocking => 0,
+#	Broadcast => 1,
+#	ReuseAddr => 1,
+#	PeerPort => $Report{'Port'}
+#) || die "Can not Bind Report Sock : $@\n";
+#$Report{'Sel'} = IO::Select->new($Report{'Sock'});
+#) || die "  cannot create Report_Sock $!\n";
+#$Report{'Sock'}->mcast_add($Report{'MulticastAddress'});
+#$Report{'Sock'}->mcast_ttl(10);
+#$Report{'Sock'}->mcast_loopback(0);
+#$Report{'Connected'} = 1;
 
 
 
@@ -352,25 +379,24 @@ print "----------------------------------------------------------------------\n"
 
 # APRS-IS:
 print "Loading APRS-IS...\n";
-my $APRS_Callsign = $cfg->val('APRS_IS', 'Callsign');
-my $APRS_Passcode = $cfg->val('APRS_IS', 'Passcode');
-my $APRS_Server= $cfg->val('APRS_IS', 'Server');
-my $APRS_File = $cfg->val('APRS_IS', 'File');
-my $My_Latitude = $cfg->val('APRS_IS', 'Latitude');
-my $My_Longitude = $cfg->val('APRS_IS', 'Longitude');
-my $My_Symbol = $cfg->val('APRS_IS', 'Symbol');
-my $My_Altitude = $cfg->val('APRS_IS', 'Altitude');
-my $My_Comment = $cfg->val('APRS_IS', 'Comment');
-my $My_Freq = $cfg->val('APRS_IS', 'Frequency');
-my $My_Tone = $cfg->val('APRS_IS', 'Tone');
-my $My_Offset = $cfg->val('APRS_IS', 'Offset');
-my $My_NAC = $cfg->val('APRS_IS', 'NAC');
-
-my $APRS_Verbose= $cfg->val('APRS_IS', 'Verbose');
-print "  Callsign = $APRS_Callsign\n";
+my $APRS_Suffix = $cfg->val('APRS', 'Suffix');
+my $APRS_Passcode = $cfg->val('APRS', 'Passcode');
+my $APRS_Server= $cfg->val('APRS', 'Server');
+my $APRS_File = $cfg->val('APRS', 'APRS_File');
+my $My_Latitude = $cfg->val('APRS', 'Latitude');
+my $My_Longitude = $cfg->val('APRS', 'Longitude');
+my $My_Symbol = $cfg->val('APRS', 'Symbol');
+my $My_Altitude = $cfg->val('APRS', 'Altitude');
+my $My_Comment = $cfg->val('APRS', 'Comment');
+my $My_Freq = $cfg->val('APRS', 'Frequency');
+my $My_Tone = $cfg->val('APRS', 'Tone');
+my $My_Offset = $cfg->val('APRS', 'Offset');
+my $My_NAC = $cfg->val('APRS', 'NAC');
+my $APRS_Verbose= $cfg->val('APRS', 'Verbose');
+print "  Suffix = $APRS_Suffix\n";
 print "  Passcode = $APRS_Passcode\n";
 print "  Server = $APRS_Server\n";
-print "  APRS File $APRS_File\n";
+print "  APRS_File $APRS_File\n";
 print "  Latitude = $My_Latitude\n";
 print "  Longitude = $My_Longitude\n";
 print "  Symbol = $My_Symbol\n";
@@ -381,13 +407,17 @@ print "  Tone = $My_Tone\n";
 print "  Offset = $My_Offset\n";
 print "  NAC = $My_NAC\n";
 print "  Verbose = $APRS_Verbose\n";
-my %APRS;
+my @upd_q;
 my $APRS_IS;
+my %APRS;
 my $APRS_Timer = time();
 my $APRS_Interval = 1800; # Seconds
-if ($APRS_Passcode ne Ham::APRS::IS::aprspass($APRS_Callsign)) {
+if ($APRS_Passcode ne Ham::APRS::IS::aprspass($Callsign)) {
 	$APRS_Server = undef;
+	print "APRS invalid pasword.\n";
 }
+my $APRS_Callsign = $Callsign . '/' . $APRS_Suffix;
+print "APRS Callsign = $APRS_Callsign\n";
 if (defined $APRS_Server) {
 	$APRS_IS = new Ham::APRS::IS($APRS_Server, $APRS_Callsign,
 		'appid' => "$AppName $Version",
@@ -579,6 +609,55 @@ sub PrintMenu {
 
 
 ##################################################################
+# Report to WWW ##################################################
+##################################################################
+sub Report_Tx {
+	if ($Mode == 0) { return; }
+	my $Buffer;
+	$Buffer = 'P25Link' . chr(0x00);
+	$Buffer = $Buffer . chr(OpPollReply & 0xFF) . chr((OpPollReply & 0xFF00) >> 8);
+	$Buffer = $Buffer . inet_aton($LocalHost);
+	$Buffer = $Buffer . chr($Report{'Port'} & 0xFF) . chr(($Report{'Port'} & 0xFF00) >> 8);
+	$Buffer = $Buffer . chr((VersionInfo & 0xFF00) >> 8); # Firmware Version Hi
+	# 6
+	$Buffer = $Buffer . chr(VersionInfo & 0xFF); # Firmware Version Lo
+	$Buffer = $Buffer . chr($LinkedTalkGroup & 0xFF) . chr(($LinkedTalkGroup & 0xFF00) >> 8);
+	$Buffer = $Buffer . $Callsign;
+	for (my $x = length($Callsign); $x <= 10; $x++) {
+		$Buffer = $Buffer . chr(0);
+	}
+
+	#Filler 20
+	$Buffer = $Buffer . chr(0) . chr(0) . chr(0) . chr(0) . chr(0) . chr(0) . chr(0) . chr(0) . chr(0) . chr(0)
+		. chr(0) . chr(0) . chr(0) . chr(0) . chr(0) . chr(0) . chr(0) . chr(0) . chr(0) . chr(0);
+		
+	# Tx to the Network.
+	if ($Verbose >= 2) {
+		print "Report_Tx Message.\n";
+		StrToHex($Buffer);
+	}
+	my $Tx_Sock = IO::Socket::Multicast->new(
+		LocalHost => $Report{'MulticastAddress'},
+		LocalPort => $Report{'Port'},
+		Proto => 'udp',
+		Blocking => 0,
+		Broadcast => 1,
+		ReuseAddr => 1,
+		PeerPort => $Report{'Port'}
+		)
+		or die "Can not create Multicast : $@\n";
+	$Tx_Sock->mcast_ttl(10);
+	$Tx_Sock->mcast_loopback(0);
+	$Tx_Sock->mcast_send($Buffer, $Report{'MulticastAddress'} . ":" . $Report{'Port'});
+	$Tx_Sock->close;
+#	if ($Verbose) {
+		print "Report_Tx IP Mcast " . $Report{'MulticastAddress'} . "\n";
+#	}
+}
+
+
+
+##################################################################
 # APRS-IS ########################################################
 ##################################################################
 sub APRS_connect {
@@ -624,7 +703,6 @@ sub APRS_make_pos {
 	my $Packet = sprintf('%s>APTR01:!%s', $APRS_Callsign, $APRS_position);
 	if ($APRS_Verbose > 1) {print "  APRS Packet is: $Packet\n";}
 	my $ok = $APRS_IS->sendline($Packet);
-	if ($APRS_Verbose > 1) {print "  APRS  sending Packet ok = $ok\n";}
 	if (!$ok) {
 		print "  APRS-IS Error sending Packet $ok\n";
 		$APRS_IS->disconnect();
@@ -659,9 +737,7 @@ sub APRS_make_obj {
 	if ($APRS_Verbose) {print "  APRS object is: $APRS_object\n";}
 	my $Packet = sprintf('%s>APTR01:%s', $APRS_Callsign, $APRS_object);
 	if ($APRS_Verbose > 1) {print "  APRS Packet is: $Packet\n";}
-
 	my $ok = $APRS_IS->sendline($Packet);
-	if ($APRS_Verbose < 1) {print "  APRS  sending Packet ok = $ok\n";}
 	if (!$ok) {
 		print "  APRS-IS Error sending Packet $ok\n";
 		$APRS_IS->disconnect();
@@ -701,7 +777,7 @@ sub APRS_Update {
 					$APRS{$Index}{'Comment'} = $APRS{$Index}{'Comment'} . ' ' . $Line[$x];
 				}
 			}
-			if ($APRS_Verbose) {
+			if ($APRS_Verbose > 1) {
 				print "  APRS Index " . $Index;
 				print ", Name " . $APRS{$Index}{'Name'};
 				print ", Lat " . $APRS{$Index}{'Lat'};
@@ -2222,9 +2298,9 @@ sub P25Link_to_HDLC{ # P25NX packet contains Cisco STUN and Quantar packet.
 	$Buffer = substr($Buffer, 7, length($Buffer)); # Here we remove Cisco STUN.
 	$HDLC_TxTraffic = 1;
 	HDLC_Tx($Buffer);
-	if (ord(substr($Buffer, 2, 1)) == $Quant{0}{'Last'} and
-		ord(substr($Buffer, 2, 1)) == 0x00 and
-		ord(substr($Buffer, 5, 1)) == 0x25
+	if (ord(substr($Buffer, 2, 1)) eq $Quant{0}{'Last'} and
+		ord(substr($Buffer, 2, 1)) eq 0x00 and
+		ord(substr($Buffer, 5, 1)) eq 0x25
 	){
 		if ($UseRemoteCourtesyTone) {
 			$Pending_CourtesyTone = 1;
@@ -2240,9 +2316,9 @@ sub P25NX_to_HDLC{ # P25NX packet contains Cisco STUN and Quantar packet.
 	$Buffer = substr($Buffer, 7, length($Buffer)); # Here we remove Cisco STUN.
 	$HDLC_TxTraffic = 1;
 	HDLC_Tx($Buffer);
-	if (ord(substr($Buffer, 2, 1)) == $Quant{0}{'Last'} and
-		ord(substr($Buffer, 2, 1)) == 0x00 and
-		ord(substr($Buffer, 5, 1)) == 0x25
+	if (ord(substr($Buffer, 2, 1)) eq $Quant{0}{'Last'} and
+		ord(substr($Buffer, 2, 1)) eq 0x00 and
+		ord(substr($Buffer, 5, 1)) eq 0x25
 	){
 		if ($UseRemoteCourtesyTone) {
 			$Pending_CourtesyTone = 1;
@@ -2572,6 +2648,13 @@ sub MainLoop{
 
 
 
+		# Status Beacon Timer.
+		if ((time() - $Report{'Timer'}) >= 300) {
+			Report_Tx();
+			$Report{'Timer'} = time();
+		}
+
+
 
 		# MMDVM WritePoll beacon.
 		my $MMDVM_Timeout = $MMDVM_Poll_NextTimer - time();
@@ -2671,7 +2754,7 @@ sub MainLoop{
 
 		# Mute non priority TGs timer.
 		if ($PriorityTGActive and ($MuteTGTimer  <=  time())) {
-			print "$PriorityTGActive Mute Timeout End.\n";
+			print "Mute Timeout Ended.\n";
 			$PriorityTGActive = 0;
 		}
 
@@ -2746,7 +2829,7 @@ sub MainLoop{
 #						$Pending_VA = 1;
 					}
 					case ord('a') { # 'a'
-						$APRS_Verbose = 1;
+						$APRS_Verbose = 0;
 #						$VA_Message = 10203;
 #						$Pending_VA = 1;
 					}
