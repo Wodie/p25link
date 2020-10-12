@@ -87,7 +87,7 @@ print "----------------------------------------------------------------------\n"
 
 
 # TalkGroups:
-print "Loading TalkGroups...\n";
+print "Init TalkGroups...\n";
 my $TalkGroupsFile = $cfg->val('TalkGroups', 'File');
 my $TG_Verbose = $cfg->val('TalkGroups', 'Verbose');
 print "  Verbose = $TG_Verbose\n";
@@ -97,7 +97,7 @@ my %TG;
 my $fh;
 print "  Loading TalkGroupsFile...\n";
 if (!open($fh, "<", $TalkGroupsFile)) {
-	print "  *** Error ***   File not found.\n";
+	warn "  *** Error ***   File $TalkGroupsFile not found.\n";
 } else {
 	print "  File Ok.\n";
 	my %result;
@@ -407,16 +407,15 @@ print "  Tone = $My_Tone\n";
 print "  Offset = $My_Offset\n";
 print "  NAC = $My_NAC\n";
 print "  Verbose = $APRS_Verbose\n";
-my @upd_q;
 my $APRS_IS;
 my %APRS;
 my $APRS_Timer = time();
 my $APRS_Interval = 1800; # Seconds
 if ($APRS_Passcode ne Ham::APRS::IS::aprspass($Callsign)) {
 	$APRS_Server = undef;
-	print "APRS invalid pasword.\n";
+	warn "APRS invalid pasword.\n";
 }
-my $APRS_Callsign = $Callsign . '/' . $APRS_Suffix;
+my $APRS_Callsign = $Callsign . '-' . $APRS_Suffix;
 print "APRS Callsign = $APRS_Callsign\n";
 if (defined $APRS_Server) {
 	$APRS_IS = new Ham::APRS::IS($APRS_Server, $APRS_Callsign,
@@ -428,7 +427,6 @@ if (defined $APRS_Server) {
 	}
 	Ham::APRS::FAP::debug(1);
 }
-APRS_Update();
 print "----------------------------------------------------------------------\n";
 
 
@@ -590,6 +588,9 @@ if ($Mode == 0) { # Close Serial Port:
 foreach my $key (keys %TG){ # Close Socket connections:
 	RemoveLinkTG($key);
 }
+if ($APRS_IS and $APRS_IS->connected()) {
+	$APRS_IS->disconnect();
+}
 print "Good bye cruel World.\n";
 print "----------------------------------------------------------------------\n";
 exit;
@@ -666,18 +667,21 @@ sub APRS_connect {
 		warn "Failed to connect to APRS-IS server: " . $APRS_IS->{'error'} . "\n";
 		return;
 	}
-	warn "APRS-IS: connected.\n";
+	print "  APRS-IS: connected.\n";
 }
 
 sub APRS_make_pos {
 	my ($Latitude, $Longitude, $Speed, $Course, $Altitude, $Symbol, $Comment) = @_;
 	if (!$APRS_IS) {
+		warn "  APRS-IS does not exist.\n"; 
 		return;
 	}
 	if (!$APRS_IS->connected()) {
+		warn "  APRS-IS not connected, trying to reconnect.\n"; 
 		APRS_connect();
 	}
 	if (!$APRS_IS->connected()) {
+		warn "APRS-IS can not connect.\n"; 
 		return;
 	}
 	my %Options;
@@ -698,27 +702,32 @@ sub APRS_make_pos {
 		'comment' => $Comment,
 		#'dao' => 1
 	});
-	if ($APRS_Verbose) {print "  APRS Position is: $APRS_position\n";}
+	if ($APRS_Verbose > 1) {print "  APRS Position is: $APRS_position\n";}
 	#my $Packet = sprintf('%s>APTR01:!%s', $APRS_Callsign, $APRS_position);
 	my $Packet = sprintf('%s>APTR01:!%s', $APRS_Callsign, $APRS_position);
-	if ($APRS_Verbose > 1) {print "  APRS Packet is: $Packet\n";}
+	if ($APRS_Verbose > 2) {print "  APRS Packet is: $Packet\n";}
 	my $ok = $APRS_IS->sendline($Packet);
 	if (!$ok) {
-		print "  APRS-IS Error sending Packet $ok\n";
+		warn "Error sending APRS-IS Pos packet $ok\n";
 		$APRS_IS->disconnect();
+		return;
 	}
+	print "  $APRS_Callsign APRS-IS Pos sent.\n";
 }
 
 sub APRS_make_obj {
 	my ($Name, $TimeStamp, $Latitude, $Longitude, $Symbol, $Speed, 
 		$Course, $Altitude, $Alive, $UseCompression, $PosAmbiguity, $Comment) = @_;
 	if (!$APRS_IS) {
+		warn "  APRS-IS does not exist.\n"; 
 		return;
 	}
 	if (!$APRS_IS->connected()) {
+		warn "  APRS-IS not connected, trying to reconnect.\n"; 
 		APRS_connect();
 	}
 	if (!$APRS_IS->connected()) {
+		warn "APRS-IS can not connect.\n"; 
 		return;
 	}
 	my $APRS_object = Ham::APRS::FAP::make_object(
@@ -734,18 +743,21 @@ sub APRS_make_obj {
 		$UseCompression,
 		$PosAmbiguity,
 		$Comment);
-	if ($APRS_Verbose) {print "  APRS object is: $APRS_object\n";}
+	if ($APRS_Verbose > 1) {print "  APRS object is: $APRS_object\n";}
 	my $Packet = sprintf('%s>APTR01:%s', $APRS_Callsign, $APRS_object);
-	if ($APRS_Verbose > 1) {print "  APRS Packet is: $Packet\n";}
+	if ($APRS_Verbose > 2) {print "  APRS Packet is: $Packet\n";}
 	my $ok = $APRS_IS->sendline($Packet);
 	if (!$ok) {
-		print "  APRS-IS Error sending Packet $ok\n";
+		warn "*** Error *** sending APRS-IS Obj $Name packet $ok\n";
 		$APRS_IS->disconnect();
+		return;
 	}
+	if ($APRS_Verbose) { print "  Obj $Name sent.\n"; }
 }
 
 sub APRS_Update {
 	# Station position
+	if ($APRS_Verbose) { print "APRS-IS Update:\n"; }
 	APRS_make_pos($My_Latitude, $My_Longitude, -1, -1, $My_Altitude, $My_Symbol,
 		$My_Freq . 'MHz ' . $My_Tone . ' ' . $My_Offset . ' NAC-' . $My_NAC . ' ' .
 		$My_Comment);
@@ -753,7 +765,7 @@ sub APRS_Update {
 	my $fh;
 	print "  Loading APRS File...\n";
 	if (!open($fh, "<", $APRS_File)) {
-		print "  *** Error ***   $APRS_File File not found.\n";
+		warn "  *** Error ***   $APRS_File File not found.\n";
 	} else {
 		print "  File Ok.\n";
 		my %result;
@@ -885,7 +897,7 @@ sub HDLC_Rx {
 
 		if (substr($Buffer, 0, 7) eq "!RESET!") {
 			my $BoardID = ord(substr($Buffer, 7, 1));
-			print "*** Warning ***   HDLC_Rx Board $BoardID made a Reset!\n";
+			warn "*** Warning ***   HDLC_Rx Board $BoardID made a Reset!\n";
 			return;
 		}
 
@@ -899,7 +911,7 @@ sub HDLC_Rx {
 	
 		# CRC CCITT.
 		if (length($Buffer) < 2) {
-			print "*** Warning ***   HDLC_Rx Warning Buffer < 2 Bytes.\n";
+			warn "*** Warning ***   HDLC_Rx Warning Buffer < 2 Bytes.\n";
 			return;
 		}
 		$Message = substr($Buffer, 0, length($Buffer) - 2);
@@ -908,7 +920,7 @@ sub HDLC_Rx {
 			ord(substr($Buffer, length($Buffer) - 1, 1));
 		#print "CRC_Rx  = $CRC_Rx\n";
 		if (length($Message) == 0) {
-			print "*** Warning ***   HDLC_Rx Message is Null.\n";
+			warn "*** Warning ***   HDLC_Rx Message is Null.\n";
 			return;
 		}
 		my $CRC_Gen = CRC_CCITT_Gen($Message);
@@ -917,7 +929,7 @@ sub HDLC_Rx {
 		#print "CRCL ", sprintf("0x%x", ord(substr($CRC_Gen, 1, 1))), "\n";
 		#print "Calc CRC16 in hex: ", unpack('H*', pack('S', $Message)), "\n";
 		if ($CRC_Rx != $CRC_Gen) {
-			print "*** Warning ***   HDLC_Rx CRC does not match " . $CRC_Rx . " <> " . $CRC_Gen . ".\n";
+			warn "*** Warning ***   HDLC_Rx CRC does not match " . $CRC_Rx . " <> " . $CRC_Gen . ".\n";
 			return;
 		}
 	} else {
@@ -941,7 +953,7 @@ sub HDLC_Rx {
 				HDLC_Tx_RR();
 				$RR_NextTimer = $RR_TimerInterval + time();
 			} else {
-				print "*** Warning ***   HDLC_Rx RR Address 253 != $Address\n";
+				warn "*** Warning ***   HDLC_Rx RR Address 253 != $Address\n";
 			}
 			return;
 		}
@@ -955,7 +967,7 @@ sub HDLC_Rx {
 					if ($HDLC_Verbose) {
 						print "UI 0x00 NID Start/Stop";
 					}
-					if (ord(substr($Message, 3, 1)) != 0x02) {print "Debug this with the XML.\n";}
+					if (ord(substr($Message, 3, 1)) != 0x02) {warn "Debug this with the XML.\n";}
 					if (ord(substr($Message, 4, 1)) == $C_RTRT_Enabled) {
 						$RTRTOn = 1;
 						if ($HDLC_Verbose) {
@@ -1040,10 +1052,10 @@ sub HDLC_Rx {
 					}
 				}
 				case 0x01 {
-					print "UI 0x01 Undefined.\n";
+					warn "UI 0x01 Undefined.\n";
 				}
 				case 0x59 {
-					print "UI 0x59 Undefined.\n";
+					warn "UI 0x59 Undefined.\n";
 					return;
 				}
 				case 0x60 {
@@ -1111,7 +1123,7 @@ sub HDLC_Rx {
 						Bytes_2_HexString($Message);
 					}
 					#my $TGID = 256 * ord(substr($Message, 4, 1)) + ord(substr($Message, 3, 1));;
-					#print "Not true TalkGroup ID = " . $TGID . "\n";
+					#warn "Not true TalkGroup ID = " . $TGID . "\n";
 					if ( ($Quant{$Index}{'IsDigitalVoice'} == 1) or ($Quant{$Index}{'IsPage'} == 1) ) {
 						Tx_to_Network($Message);
 					}
@@ -1353,7 +1365,7 @@ sub HDLC_Rx {
 						}
 						#QSO_Log($Index, $RemoteHostIP);
 					} else {
-						if ($Verbose) {print "Misterious packet 0x66\n";}
+						if ($Verbose) {warn "Misterious packet 0x66\n";}
 					}
 					$Quant{$Index}{'Speech'} = ord(substr($Message, 7, 11));
 					$Quant{$Index}{'Raw0x66'} = $Message;
@@ -2225,7 +2237,7 @@ sub HDLC_to_MMDVM{
 			MMDVM_Tx($TalkGroup, $Buffer);
 		}
 		else {
-			print "HDLC_to_MMDVM Error code " . hex(ord(substr($Buffer, 2, 1))) . "\n";
+			warn "HDLC_to_MMDVM Error code " . hex(ord(substr($Buffer, 2, 1))) . "\n";
 			Bytes_2_HexString($Buffer);
 			return;
 		}
