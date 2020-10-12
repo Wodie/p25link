@@ -66,6 +66,10 @@ Modify the hosts.txt file with the Talk Groups you want lo add to the Scan list 
 
 # History:
 
+## v2.20 October 12, 2020.
+APRS-IS objects code modified.
+config.ini APRS-IS stanza renamed to APRS.
+
 ## v2.20 October 02, 2020.
 APRS-IS objects implemented.
 
