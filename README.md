@@ -6,7 +6,7 @@ P25Link is a program that let you connect your Quantar repeater or DIU 3000 to m
 # Current release features:
 
 ## Local
-Voice talk groups 1 to 10.
+Voice talk groups 1 to 3.
 
 TMS (text messages) implemented if repeaters are on P25Link network.
 
@@ -15,7 +15,7 @@ Page functionality implemented if repeaters are on P25Link network.
 Repeater scan mode with priority index for talk groups.
 
 ## For P25Link network:
-Voice talk groups 11 to 65534.
+Voice talk groups 4 to 65534.
 
 TMS (text messages) implemented if repeaters are on P25Link network.
 
@@ -39,7 +39,7 @@ Repeater scan mode with priority index for talk groups.
 Local and remote courtesy tones.
 
 ## For P25-MMDVM network:
-Voice talk groups 11 to 65534.
+Voice talk groups 4 to 65534.
 
 Local and remote courtesy tones.
 
@@ -65,6 +65,13 @@ Mode = 1 means use of Cisco router and its STUN protocol.
 Modify the hosts.txt file with the Talk Groups you want lo add to the Scan list by setting the last field to a highest take precedence >= 1, 0 = No Scan.
 
 # History:
+
+## v2.30 October 23, 2020.
+Lot of code updates and bugs fixed.
+All config files changed and been renamed.
+New Voice Announcements.
+First time menu changed, now it is very friendly.
+Report to server draft code implemented.
 
 ## v2.20 October 12, 2020.
 APRS-IS objects code modified.
