@@ -1,14 +1,15 @@
 #!/bin/bash
 # P25LINK-MENU
 ##################################################################
-#	*** P25Link v2.0.16 ***
-#	Released: August 25, 2020. Created September 04, 2019.
+#	*** P25Link v2.20-1 ***
+#	Released: October 17, 2020. Created September 04, 2019.
 #	Created by: Juan Carlos Pérez De Castro (Wodie) KM4NNO, XE1F.
 #	www.wodielite.com
 #	wodielite at mac.com
 ##################################################################
 
 # See LICENSE file for copyright and license details
+# Based on ASL modification by mod4whip N8THN
 clear
 
 # define variables
@@ -18,7 +19,7 @@ logfile=/tmp/p25link-menu.log
 ## all other variables defined in get_node_info
 INTERACTIVE=True
 ASK_TO_REBOOT=0
-#CONFIG=/opt/config.txt
+#CONFIG=/opt/p25link/config.txt
 
 
 #################################################################################
@@ -77,11 +78,18 @@ HOSTNAME=$(cat /etc/hostname | tr -d " \t\n\r")
 #################################################################################
 do_run_firsttime() {
   echo "do_run_firsttime" >> $logfile
+
+  if (whiptail --title "Do you want to run update before install" --yesno --defaultno "Update Yes or No" 8 78) then
+    do_apt_get_update
+  fi
+#  if (whiptail --title "CPAN modules needed to run P25Link" --yesno "Do you want to download/update modules Yes or No" 8 78) then
+#    do_install_cpan
+#  fi
   touch $CONFIGS/firsttime
   chmod +x $CONFIGS/first-time
   $CONFIGS/first-time
   rm -f $CONFIGS/firsttime
-  do_build_exe
+#  do_build_exe
 }
 
 do_start() {
@@ -254,7 +262,7 @@ apt-get update &&
 apt-get install raspi-config &&
 printf "Sleeping 5 seconds before reloading raspi-config\n" &&
 sleep 5 &&
-exec p25link-menu
+exec ./p25link-menu
 whiptail --msgbox "Done running apt-get update" 20 60 2
 }
 
@@ -387,11 +395,9 @@ do_utilities_menu() {
     "U2 " "Change User password for the current user" \
     "U3 " "Run apt-get update" \
     "U4 " "Run apt-get upgrade" \
-    "U5 " "Install Perl CPAN modules" \
-    "U6 " "Build p25link.exe" \
-    "U7 " "Run p25link-menu at login" \
-    "U8 " "Restart system (Raspberry Pi)" \
-    "U9 " "Shutdown system" \
+    "U5 " "Run p25link-menu at login" \
+    "U6 " "Restart system (Raspberry Pi)" \
+    "U7 " "Shutdown system" \
     3>&1 1>&2 2>&3)
   RET=$?
   if [ $RET -eq 1 ]; then
@@ -402,11 +408,28 @@ do_utilities_menu() {
       U2\ *) do_set_my_passwd ;;
       U3\ *) do_apt_get_update ;;
       U4\ *) do_apt_get_upgrade ;;
-      U5\ *) do_install_cpan ;;
-      U6\ *) do_build_exe ;;
-      U7\ *) do_use_p25link_menu ;;
-      U8\ *) do_system_restart ;;
-      U9\ *) do_system_halt ;;
+      U5\ *) do_use_p25link_menu ;;
+      U6\ *) do_system_restart ;;
+      U7\ *) do_system_halt ;;
+      *) whiptail --msgbox "Programmer error: unrecognized option" 20 60 1 ;;
+    esac || whiptail --msgbox "There was an error running option $FUN" 20 60 1
+  fi
+}
+
+do_developer_menu() {
+  FUN=$(whiptail --title "P25Link Developer menu" --menu "Developer" $WT_HEIGHT $WT_WIDTH $WT_MENU_HEIGHT --cancel-button Back --ok-button Select \
+    "U1 " "Install Perl CPAN modules" \
+    "U2 " "Build p25link.exe" \
+    "U3 " "Build p25link.deb" \
+    3>&1 1>&2 2>&3)
+  RET=$?
+  if [ $RET -eq 1 ]; then
+    return 0
+  elif [ $RET -eq 0 ]; then
+    case "$FUN" in
+      U1\ *) do_install_cpan ;;
+      U2\ *) do_build_exe ;;
+      U3\ *) do_build_deb ;;
       *) whiptail --msgbox "Programmer error: unrecognized option" 20 60 1 ;;
     esac || whiptail --msgbox "There was an error running option $FUN" 20 60 1
   fi
@@ -440,30 +463,34 @@ RET=0
   while true; do
     calc_wt_size
       FUN=$(whiptail --title "P25Link Main Menu $HOSTNAME $ETH0IP:$SSHPORT" --backtitle "$(cat /proc/device-tree/model)" --menu "Setup Options" $WT_HEIGHT $WT_WIDTH $WT_MENU_HEIGHT --cancel-button Finish --ok-button Select \
-        "1 Initialize" "Run first-time step by step" \
+        "A About p25link-menu" "Information about this configuration tool" \
+        "1 First-time setup" "Run initial step by step configuration" \
         "2 Network Menu" "Network configuration menu options" \
         "3 Utilities Menu" "Utilities and misc options" \
-        "4 config.ini" "Edit config.ini file with your settings" \
-        "5 hosts.txt" "Edit hosts.txt file with your settings" \
-        "6 Auto Start App" "Start P25Link software" \
-        "7 Restart App" "Restart P25Link software" \
-        "8 Stop App" "Stop P25Link software" \
-        "9 About p25link-menu" "Information about this configuration tool" \
+        "4 Developer tools" "Advanced utilities for dev." \
+        "5 config.ini" "Edit config.ini file with your settings" \
+        "5 hosts.txt" "Edit hosts.txt file with your custom hosts" \
+        "7 APRS.txt" "Edit APRS.txt file with your objects" \
+        "8 Auto Start App" "Auto-start P25Link software on boot" \
+        "9 Restart App" "Restart P25Link software only" \
+        "S Stop Auto Start" "Disable Auto-start P25Link software on boot" \
         3>&1 1>&2 2>&3)
       RET=$?
       if [ $RET -eq 1 ]; then
         do_exit
       elif [ $RET -eq 0 ]; then
         case "$FUN" in
+          A\ *) do_about ;;
           1\ *) do_run_firsttime ;;
           2\ *) do_network_menu ;;
           3\ *) do_utilities_menu ;;
-          4\ *) nano $CONFIGS/config.ini ;;
-          5\ *) nano $CONFIGS/hosts.txt ;;
-          6\ *) do_start ;;
-          7\ *) do_restart ;;
-          8\ *) do_stop ;;
-          9\ *) do_about ;;
+          4\ *) do_developer_menu ;;
+          5\ *) nano $CONFIGS/config.ini ;;
+          6\ *) nano $CONFIGS/hosts.txt ;;
+          7\ *) nano $CONFIGS/APRS.txt ;;
+          8\ *) do_start ;;
+          9\ *) do_restart ;;
+          S\ *) do_stop ;;
           *) whiptail --msgbox "Programmer error: unrecognized option" 20 60 1 ;;
         esac || whiptail --msgbox "There was an error running option $FUN" 20 60 1
       else

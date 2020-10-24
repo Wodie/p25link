@@ -1,8 +1,8 @@
 #!/bin/bash
 # first-time
 ##################################################################
-#	*** P25Link v2.0.19 ***
-#	Released: August 25, 2020. Created September 04, 2019.
+#	*** P25Link v2.20 ***
+#	Released: October 03, 2020. Created September 04, 2019.
 #	Created by: Juan Carlos Pérez De Castro (Wodie) KM4NNO, XE1F.
 #	www.wodielite.com
 #	wodielite at mac.com
@@ -12,7 +12,10 @@
 # Based on ASL modification by mod4whip N8THN
 
 CONFIGS=/opt/p25link
-CONFIGPATH=$CONFIGS/config.ini
+CONFIGPPATH=$CONFIGS/config.ini
+MONTHDAY=$(date +%Y-%m-%d)
+DATEEXT=$(date +%Y-%m-%d.%H:%M)
+LOGFILE=/tmp/p25link_setup.log
 
 
 
@@ -24,11 +27,24 @@ do_check_if_firsttime() {
   fi
 }
 
+calc_wt_size() {
+  echo "doing calc_wt_size" >> $LOGFILE
+  WT_HEIGHT=22
+  WT_WIDTH=$(tput cols)
+  if [ -z "$WT_WIDTH" ] || [ "$WT_WIDTH" -lt 60 ]; then
+    WT_WIDTH=80
+  fi
+  if [ "$WT_WIDTH" -gt 178 ]; then
+    WT_WIDTH=120
+  fi
+  WT_MENU_HEIGHT=$(($WT_HEIGHT-7))
+}
+
 #################################################################################
 # root/sudo test ################################################################
 #################################################################################
 check_if_root() {
-  echo "check_if_root" >> $logfile
+  echo "check_if_root" >> $LOGFILE
   if [ `whoami` != root ]; then
     whiptail --msgbox "This script must be run as root or with sudo" 20 60 2
     exit 1
@@ -39,102 +55,117 @@ check_if_root() {
 # Functions #####################################################################
 #################################################################################
 do_config() {
-  do_mode_menu
-# Review data to be saved
-  if (whiptail --yesno "So we have:\n
-  Mode :              $MODE
-  Priority TG :       $PRIORITYTG
-  Mute TG Timeout :   $MUTETGTIMEOUT
-  Use Voice Prompts : $USEVOICEPROMPTS
-  Callsign :          $CALLSIGN
-  Radio ID :          $RADIOID
-  Verbose :           $VERBOSE
-  \nSelect yes to continue or no to start over." 30 80); then
-    # yes, write it
-    do_static_write
-    whiptail --msgbox "Saved new configuration." 20 80 2
-  else
-    # no, re-enter
-    do_config
-    whiptail --msgbox "Re-enter data." 20 80 2
-  fi
+  mkdir -p $CONFIGS/backup/$DATEEXT
+  cp -f $CONFIGPPATH   $CONFIGS/backup/$DATEEXT/config.ini
+
+  HARDWAREMODE=$(grep '^HardwareMode =' /$CONFIGS/config.ini | awk -F'=' '{print $2}' | sed 's/|\i//' | sed -e 's/^\(.\{2\}\).*/\1/'|sed 's/ //g')
+  HARDWAREMODE=$(whiptail --inputbox "Current Harware Mode is $HARDWAREMODE, enter new Mode.\n
+  0 Serial Set if using KM4NNO HDLC to Serial board,
+  1 TCP Set if using Cisco router serial port." 12 78 "$HARDWAREMODE" --title "Hardware Mode" 3>&1 1>&2 2>&3)
+
+  MMDVM_ENABLED=$(grep '^MMDVM_Enabled =' /$CONFIGS/config.ini | awk -F'=' '{print $2}' | sed 's/|\i//' | sed -e 's/^\(.\{2\}\).*/\1/'|sed 's/ //g')
+  MMDVM_ENABLED=$(whiptail --inputbox "Current MMDVM network is $MMDVM_ENABLED, enter new mode.\n
+  0 No (disabled),
+  1 Yes (enabled)." 12 78 "$MMDVM_ENABLED" --title "MMDVM Network" 3>&1 1>&2 2>&3)
+
+  P25LINK_ENABLED=$(grep '^P25Link_Enabled =' /$CONFIGS/config.ini | awk -F'=' '{print $2}' | sed 's/|\i//' | sed -e 's/^\(.\{2\}\).*/\1/'|sed 's/ //g')
+  P25LINK_ENABLED=$(whiptail --inputbox "Current P25.Link network mode is $P25LINK_ENABLED, enter new mode.\n
+  0 No (disabled),
+  1 Yes (enabled)." 12 78 "$P25LINK_ENABLED" --title "P25.Link Network" 3>&1 1>&2 2>&3)
+
+  P25NX_ENABLED=$(grep '^P25NX_Enabled =' /$CONFIGS/config.ini | awk -F'=' '{print $2}' | sed 's/|\i//' | sed -e 's/^\(.\{2\}\).*/\1/'|sed 's/ //g')
+  P25NX_ENABLED=$(whiptail --inputbox "Current P25NX network is $P25NX_ENABLED, enter new mode.\n
+  0 No (disabled),
+  1 Yes (enabled)." 12 78 "$P25NX_ENABLED" --title "P25NX Network" 3>&1 1>&2 2>&3)
+
+  PRIORITYTG=$(grep '^PriorityTG =' /$CONFIGS/config.ini | awk -F'=' '{print $2}' | sed 's/|\i//' | sed -e 's/^\(.\{10\}\).*/\1/'|sed 's/ //g')
+  PRIORITYTG=$(whiptail --inputbox "Current Priority TG is $PRIORITYTG enter new Priority TG." 8 78 "$PRIORITYTG" --title "Priority TG" 3>&1 1>&2 2>&3)
+
+  MUTETGTIMEOUT=$(grep '^MuteTGTimeout =' /$CONFIGS/config.ini | awk -F'=' '{print $2}' | sed 's/|\i//' | sed -e 's/^\(.\{9\}\).*/\1/'|sed 's/ //g')
+  MUTETGTIMEOUT=$(whiptail --inputbox "Current MuteTGTimeout is $MUTETGTIMEOUT seconds, enter new MuteTGTimeout." 8 78 "$MUTETGTIMEOUT" --title "MuteTGTimeout" 3>&1 1>&2 2>&3)
+
+  HANGTIME=$(grep '^Hangtime =' /$CONFIGS/config.ini | awk -F'=' '{print $2}' | sed 's/|\i//' | sed -e 's/^\(.\{9\}\).*/\1/'|sed 's/ //g')
+  HANGTIME=$(whiptail --inputbox "Current Hangtime is $HANGTIME seconds, enter new Hangtime." 8 78 "$HANGTIME" --title "Hangtime" 3>&1 1>&2 2>&3)
+
+  USEVOICEPROMPTS=$(grep '^UseVoicePrompts =' /$CONFIGS/config.ini | awk -F'=' '{print $2}' | sed 's/|\i//' | sed -e 's/^\(.\{2\}\).*/\1/'|sed 's/ //g')
+  USEVOICEPROMPTS=$(whiptail --inputbox "Current Use Voice Prompts mode is $USEVOICEPROMPTS, enter new UseVoicePrompts mode.\n
+  0 No (disabled),
+  1 Yes (enabled)." 12 78 "$USEVOICEPROMPTS" --title "Use Voice Prompts" 3>&1 1>&2 2>&3)
+
+  USELOCALCOURTESYTONE=$(grep '^UseLocalCourtesyTone =' /$CONFIGS/config.ini | awk -F'=' '{print $2}' | sed 's/|\i//' | sed -e 's/^\(.\{2\}\).*/\1/'|sed 's/ //g')
+  USELOCALCOURTESYTONE=$(whiptail --inputbox "Current Local Courtesy Tone is $USELOCALCOURTESYTONE, enter new Local Courtesy Tone selection.\n
+  0 Disabled,
+  1 3Up Tone,
+  2 BeeBoo,
+  3 Bumblebee,
+  4 Nextel,
+  5 RC210-9,
+  6 RC210-10,
+  7 Quindar-Tone-Start,
+  8 Quindar-Tone-End,
+  9 CustomTone." 20 78 "$USELOCALCOURTESYTONE" --title "Local Courtesy Tone Selection" 3>&1 1>&2 2>&3)
+
+  USEREMOTECOURTESYTONE=$(grep '^UseRemoteCourtesyTone =' /$CONFIGS/config.ini | awk -F'=' '{print $2}' | sed 's/|\i//' | sed -e 's/^\(.\{2\}\).*/\1/'|sed 's/ //g')
+  USEREMOTECOURTESYTONE=$(whiptail --inputbox "Current Remote Courtesy Tone is $USEREMOTECOURTESYTONE, enter new Remote Courtesy Tone selection.\n
+  0 Disabled,
+  1 3Up Tone,
+  2 BeeBoo,
+  3 Bumblebee,
+  4 Nextel,
+  5 RC210-9,
+  6 RC210-10,
+  7 Quindar-Tone-Start,
+  8 Quindar-Tone-End,
+  9 CustomTone." 20 78 "$USEREMOTECOURTESYTONE" --title "Remote Courtesy Tone Selection" 3>&1 1>&2 2>&3)
+
+  RADIOID=$(grep '^RadioID =' /$CONFIGS/config.ini | awk -F'=' '{print $2}' | sed 's/|\i//' | sed -e 's/^\(.\{9\}\).*/\1/'|sed 's/ //g')
+  RADIOID=$(whiptail --inputbox "Current RadioID is $RADIOID, enter new RadioID." 8 78 "$RADIOID" --title "RadioID" 3>&1 1>&2 2>&3)
+
+  CALLSIGN=$(grep '^Callsign =' /$CONFIGS/config.ini | awk -F'=' '{print $2}' | sed 's/|\i//' | sed -e 's/^\(.\{9\}\).*/\1/'|sed 's/ //g')
+  CALLSIGN=$(whiptail --inputbox "Current Callsign is $CALLSIGN, enter new Callsign." 8 78 "$CALLSIGN" --title "Callsign" 3>&1 1>&2 2>&3)
+
+  SUFFIX=$(grep '^Suffix =' /$CONFIGS/config.ini | awk -F'=' '{print $2}' | sed 's/|\i//' | sed -e 's/^\(.\{3\}\).*/\1/'|sed 's/ //g')
+  SUFFIX=$(whiptail --inputbox "Current APRS Suffix is $SUFFIX enter new Suffix." 8 78 "$SUFFIX" --title "APRS Suffix" 3>&1 1>&2 2>&3)
+
+  PASSCODE=$(grep '^Passcode =' /$CONFIGS/config.ini | awk -F'=' '{print $2}' | sed 's/|\i//' | sed -e 's/^\(.\{9\}\).*/\1/'|sed 's/ //g')
+  PASSCODE=$(whiptail --inputbox "Current APRS Passcode is $PASSCODE, enter new Passcode." 8 78 "$PASSCODE" --title "APRS Passcode" 3>&1 1>&2 2>&3)
+
+  LATITUDE=$(grep '^Latitude =' /$CONFIGS/config.ini | awk -F'=' '{print $2}' | sed 's/|\i//' | sed -e 's/^\(.\{10\}\).*/\1/'|sed 's/ //g')
+  LATITUDE=$(whiptail --inputbox "Current Latitude is $LATITUDE, enter new Latitude in decimal degrees." 8 78 "$LATITUDE" --title "Latitude" 3>&1 1>&2 2>&3)
+
+  LONGITUDE=$(grep '^Longitude =' /$CONFIGS/config.ini | awk -F'=' '{print $2}' | sed 's/|\i//' | sed -e 's/^\(.\{11\}\).*/\1/'|sed 's/ //g')
+  LONGITUDE=$(whiptail --inputbox "Current Longitude is $LONGITUDE, enter new Longitude in decimal degrees." 8 78 "$LONGITUDE" --title "Longitude" 3>&1 1>&2 2>&3)
+
+  SYMBOL=$(grep '^Symbol =' /$CONFIGS/config.ini | awk -F'=' '{print $2}' | sed 's/|\i//' | sed -e 's/^\(.\{3\}\).*/\1/'|sed 's/ //g')
+  SYMBOL=$(whiptail --inputbox "Current APRS Symbol is $SYMBOL enter new Symbol." 8 78 "$SYMBOL" --title "Symbol" 3>&1 1>&2 2>&3)
+
+  ALTITUDE=$(grep '^Altitude =' /$CONFIGS/config.ini | awk -F'=' '{print $2}' | sed 's/|\i//' | sed -e 's/^\(.\{6\}\).*/\1/'|sed 's/ //g')
+  ALTITUDE=$(whiptail --inputbox "Current Altitude is $ALTITUDE, enter new Altitude in meters." 8 78 "$ALTITUDE" --title "Altitude" 3>&1 1>&2 2>&3)
+
+  FREQUENCY=$(grep '^Frequency =' /$CONFIGS/config.ini | awk -F'=' '{print $2}' | sed 's/|\i//' | sed -e 's/^\(.\{10\}\).*/\1/'|sed 's/ //g')
+  FREQUENCY=$(whiptail --inputbox "Current Frequency is $FREQUENCY enter new Frequencyin MHz (i.e. 445.000)." 8 78 "$FREQUENCY" --title "Frequency" 3>&1 1>&2 2>&3)
+
+  ACCESSTONE=$(grep '^AccessTone =' /$CONFIGS/config.ini | awk -F'=' '{print $2}' | sed 's/|\i//' | sed -e 's/^\(.\{5\}\).*/\1/'|sed 's/ //g')
+  ACCESSTONE=$(whiptail --inputbox "Current Access Tone is $ACCESSTONE, enter new Tone with APRS QSY format. UperCase for 25 KHz bandwidth and lowercase for 12.5 KHz bandwidth.\n T/t for Tone & SQL,\n C/c for Tone up and down\n D/d for Digital tone.\nUse only 3 digits format with no decimanls (i.e. d023 C123)." 12 78 "$ACCESSTONE" --title "Repeater Access Tone" 3>&1 1>&2 2>&3)
+
+  OFFSET=$(grep '^Offset =' /$CONFIGS/config.ini | awk -F'=' '{print $2}' | sed 's/|\i//' | sed -e 's/^\(.\{5\}\).*/\1/'|sed 's/ //g')
+  OFFSET=$(whiptail --inputbox "Current Offset is $OFFSET enter new Offset preceded with sign (i.e. +500 for UHF -060 for VHF)." 8 78 "$OFFSET" --title "Offset" 3>&1 1>&2 2>&3)
+
+  NAC=$(grep '^NAC =' /$CONFIGS/config.ini | awk -F'=' '{print $2}' | sed 's/|\i//' | sed -e 's/^\(.\{4\}\).*/\1/'|sed 's/ //g')
+  NAC=$(whiptail --inputbox "Current NAC is $NAC, enter new NAC." 8 78 "$NAC" --title "NAC" 3>&1 1>&2 2>&3)
+
+  APRSCOMMENT=$(grep '^APRSComment =' /$CONFIGS/config.ini | awk -F'=' '{print $2}' | sed 's/|\i//' | sed -e 's/^\(.\{44\}\).*/\1/'|sed 's/ //g')
+  APSRCOMMENT=$(whiptail --inputbox "Current APRS Comment is $APRSCOMMENT, enter new Comment." 8 78 "$APRSCOMMENT" --title "APRS Comment" 3>&1 1>&2 2>&3)
+
+  P25LINK_RESTART=1
 }
 
-do_mode_menu() {
-  FUNA=$(whiptail --title "Physical Connection Mode" --menu "Select hardware for connection" 20 80 5 --cancel-button Back --ok-button Select \
-    "0 Serial" "Set if using serial board for v.24" \
-    "1 TCP" "Set if using Cisco router for v.24" \
-    3>&1 1>&2 2>&3)
-  RESA=$?
-  if [ $RESA -eq 1 ]; then
-    return
-  elif [ $RESA -eq 0 ]; then
-    case "$FUNA" in
-      0\ *) MODE=0 ;;
-      1\ *) MODE=1 ;;
-      *) whiptail --msgbox "Whoooops, script error: unrecognized option" 20 60 1 ;;
-    esac || whiptail --msgbox "There was an error running option $FUNM" 20 60 1
-  fi
-# Use Voice Prompts
-  FUNA=$(whiptail --title "Voice Prompts" --menu "Do you want to enable P25Link Voice Prompts?" 20 80 5 --cancel-button Back --ok-button Select \
-    "0 " "Voice Prompts Disabled" \
-    "1 " "Voice Prompts Enabled" \
-    3>&1 1>&2 2>&3)
-  RESA=$?
-  if [ $RESA -eq 1 ]; then
-    return
-  elif [ $RESA -eq 0 ]; then
-    case "$FUNA" in
-      0\ *) USEVOICEPROMPTS=0 ;;
-      1\ *) USEVOICEPROMPTS=1 ;;
-      *) whiptail --msgbox "Whoooops, script error: unrecognized option" 20 60 1 ;;
-    esac || whiptail --msgbox "There was an error running option $FUNM" 20 60 1
-  fi
-# Data
-  PRIORITYTG=$(whiptail --inputbox "Enter the Priority Talk Group number\n" 8 78 3>&1 1>&2 2>&3)
-  MUTETGTIMEOUT=$(whiptail --inputbox "Enter the Mute Timeout in seconds\n" 8 78 3>&1 1>&2 2>&3)
-  CALLSIGN=$(whiptail --inputbox "Enter the callsign for this repeater\n" 8 78 3>&1 1>&2 2>&3)
-  RADIOID=$(whiptail --inputbox "Enter the RadioID for this repeater\n" 8 78 3>&1 1>&2 2>&3)
-# Verbose
-  FUNA=$(whiptail --title "Verbose" --menu "Do you want to enable Verbose?" 20 80 5 --cancel-button Back --ok-button Select \
-    "0 " "Verbose Disabled" \
-    "1 " "Verbose Enabled" \
-    3>&1 1>&2 2>&3)
-  RESA=$?
-  if [ $RESA -eq 1 ]; then
-    return
-  elif [ $RESA -eq 0 ]; then
-    case "$FUNA" in
-      0\ *) VERBOSE=0 ;;
-      1\ *) VERBOSE=1 ;;
-      *) whiptail --msgbox "Whoooops, script error: unrecognized option" 20 60 1 ;;
-    esac || whiptail --msgbox "There was an error running option $FUNM" 20 60 1
-  fi
-  return
-}
-
-
-
-do_static_write() {
-  # write config.ini
-  cp -r $CONFIGS/config.ini $CONFIGS/config.ini.orig
-  sed -i 's/Mode.*/Mode = '$MODE'/' $CONFIGS/config.ini
-  sed -i 's/PriorityTG.*/PriorityTG = '$PRIORITYTG'/' $CONFIGS/config.ini
-  sed -i 's/MuteTGTimeout.*/MuteTGTimeout = '$MUTETGTIMEOUT'/' $CONFIGS/config.ini
-  sed -i 's/UseVoicePrompts.*/UseVoicePrompts = '$USEVOICEPROMPTS'/' $CONFIGS/config.ini
-  sed -i 's/Verbose.*/Verbose = '$VERBOSE'/' $CONFIGS/config.ini
-#  sed -i 's/Enabled.*/Enabled = '$ENABLED'/' $CONFIGS/config.ini
-  sed -i 's/Callsign.*/Callsign = '$CALLSIGN'/' $CONFIGS/config.ini
-  sed -i 's/RadioID.*/RadioID = '$RADIOID'/' $CONFIGS/config.ini
-#  sed -i 's/Enabled.*/Enabled = '$ENABLED'/' $CONFIGS/config.ini
-  whiptail --msgbox "Finished writing settings file\nChanges will take effect after restarting P25NX2 app" 10 78
-}
 
 
 #################################################################################
 # Main body here ################################################################
 #################################################################################
-do_check_if_firsttime
+#do_check_if_firsttime
 check_if_root
 if (whiptail --title "First time setup" --yesno "First time setup.\n\nDo you want to do this now?" --defaultno 15 78) then
   ANSWER=$?
@@ -147,5 +178,6 @@ then
   whiptail --msgbox "You can run this setup at any time later" 8 78
   exit 0
 else
+  calc_wt_size
   do_config
 fi
