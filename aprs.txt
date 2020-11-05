@@ -1,0 +1,9 @@
+# APRS user objects list.
+
+# Use Tabs, no Spaces.
+
+# Name (9)	Lat			Long		Speed	Course	Altitude	Symbol	Comment
+# Comented sample line:
+#IRLP-0000	17.3836		-110.1446	-1		-1		20			I0		433.650MHz C167
+
+

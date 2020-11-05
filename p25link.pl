@@ -20,41 +20,57 @@ use Time::HiRes qw(nanosleep);
 use Term::ReadKey;
 #use RPi::Pin;
 #use RPi::Const qw(:all);
+use Ham::APRS::IS;
+#use Ham::APRS::FAP;
+use Term::ANSIColor;
+
+
+use FindBin 1.51 qw( $RealBin );
+use lib $RealBin;
+
+use FAP;
 
 
 my $MaxLen =1024; # Max Socket Buffer length.
 my $StartTime = time();
 
 
-# About Message.
+# About this app.
+my $AppName = 'P25Link';
+use constant VersionInfo => 2;
+my $Version = '2.30';
 print "\n##################################################################\n";
-print "	*** P25NX v2.0.15 ***\n";
-print "	Released: July 01, 2020. Created October 17, 2019.\n";
+print "	*** $AppName v$Version ***\n";
+print "	Released: October 23, 2020. Created October 17, 2019.\n";
 print "	Created by:\n";
 print "	Juan Carlos Pérez De Castro (Wodie) KM4NNO / XE1F\n";
 print "	Bryan Fields W9CR.\n";
+print "	p25.link\n";
 print "	www.wodielite.com\n";
 print "	wodielite at mac.com\n\n";
-print "	License\n";
+print "	km4nno at yahoo.com\n\n";
+print "	License:\n";
 print "	This software is licenced under the GPL v3.\n";
 print "	If you are using it, please let me know, I will be glad to know it.\n\n";
 print "	This project is based on the work and information from:\n";
-print "	David Kraus NX4Y\n";
+print "	Juan Carlos Pérez KM4NNO / XE1F\n";
 print "	Byan Fields W9CR\n";
 print "	Jonathan Naylor G4KLX\n";
-print "	Juan Carlos Pérez KM4NNO / XE1F\n\n";
+print "	David Kraus NX4Y\n";
+print "	David Kierzkowski KD8EYF\n";
 print "##################################################################\n\n";
 
 # Load Settings ini file.
-print "Loading Settings...\n";
+print color('green'), "Loading Settings...\n", color('reset');
 my $cfg = Config::IniFiles->new( -file => "config.ini");
 # Settings:
-my $Mode = $cfg->val('Settings', 'Mode'); #0 = v.24, no other modes coded at the momment.
+my $Mode = $cfg->val('Settings', 'HardwareMode'); #0 = v.24, no other modes coded at the momment.
 my $HotKeys = $cfg->val('Settings', 'HotKeys');
 my $LocalHost = $cfg->val('Settings', 'LocalHost');
 	#my($LocalIPAddr) = inet_ntoa((gethostbyname(hostname))[4]); 
 	my($LocalHostIP) = inet_ntoa((gethostbyname($LocalHost))[4]); 
 my $PriorityTG = $cfg->val('Settings', 'PriorityTG');
+my $Hangtime = $cfg->val('Settings', 'Hangtime');
 my $MuteTGTimeout = $cfg->val('Settings', 'MuteTGTimeout');
 my $UseVoicePrompts = $cfg->val('Settings', 'UseVoicePrompts');
 my $UseLocalCourtesyTone = $cfg->val('Settings', 'UseLocalCourtesyTone');
@@ -72,18 +88,28 @@ print "----------------------------------------------------------------------\n"
 
 
 
-# TalkGroups:
-print "Loading TalkGroups...\n";
-my $TalkGroupsFile = $cfg->val('TalkGroups', 'File');
-my $TG_Verbose = $cfg->val('TalkGroups', 'Verbose');
-print "  Verbose = $TG_Verbose\n";
-print "  Talk Groups File: " . $TalkGroupsFile ."\n";
+# Data Recorder
+print color('green'), "Init data recorder...\n", color('reset');
+my $RecordEnable = $cfg->val('Settings', 'RecordEnable');
+my $RecordFile = $cfg->val('Settings', 'RecordFile');
+print "  Enable = $RecordEnable\n";
+print "  File Name = $RecordFile\n";
+open my $recfh, ">", $RecordFile || die "Can't open the recording file: $!";
+print "----------------------------------------------------------------------\n";
 
+
+
+# TalkGroups:
+print color('green'), "Init TalkGroups...\n", color('reset');
+my $TalkGroupsFile = $cfg->val('TalkGroups', 'HostsFile');
+my $TG_Verbose = $cfg->val('TalkGroups', 'Verbose');
+print "  Talk Groups File: " . $TalkGroupsFile ."\n";
+print "  Verbose = $TG_Verbose\n";
 my %TG;
 my $fh;
 print "  Loading TalkGroupsFile...\n";
 if (!open($fh, "<", $TalkGroupsFile)) {
-	print "  *** Error ***   File not found.\n";
+	warn "  *** Error ***   File $TalkGroupsFile not found.\n";
 } else {
 	print "  File Ok.\n";
 	my %result;
@@ -92,21 +118,25 @@ if (!open($fh, "<", $TalkGroupsFile)) {
 		## skip comments and blank lines and optional repeat of title line
 		next if $Line =~ /^\#/ || $Line =~ /^\s*$/ || $Line =~ /^\+/;
 		#split each line into array
-		my @Line = split(/\s+/, $Line);
+		#my @Line = split(/\s+/, $Line);
+		my @Line = split(/\t+/, $Line);
 		my $TalkGroup = $Line[0];
 		$TG{$TalkGroup}{'TalkGroup'} = $Line[0];
-		$TG{$TalkGroup}{'MMDVM_URL'} = $Line[1];
-		$TG{$TalkGroup}{'MMDVM_Port'} = $Line[2];
-		$TG{$TalkGroup}{'Scan'} = $Line[3];
+		$TG{$TalkGroup}{'Mode'} = $Line[1];
+		$TG{$TalkGroup}{'MMDVM_URL'} = $Line[2];
+		$TG{$TalkGroup}{'MMDVM_Port'} = $Line[3];
+		$TG{$TalkGroup}{'Scan'} = $Line[4];
 		$TG{$TalkGroup}{'Linked'} = 0;
 		$TG{$TalkGroup}{'P25Link_Connected'} = 0;
 		$TG{$TalkGroup}{'P25NX_Connected'} = 0;
 		$TG{$TalkGroup}{'MMDVM_Connected'} = 0;
 		if ($TG_Verbose) {
 			print "  TG Index " . $TalkGroup;
+			print ", Mode " . $TG{$TalkGroup}{'Mode'};
 			print ", URL " . $TG{$TalkGroup}{'MMDVM_URL'};
 			print ", Port " . $TG{$TalkGroup}{'MMDVM_Port'};
-			print ", Scan " . $TG{$TalkGroup}{'Scan'} . "\n";
+			print ", Scan " . $TG{$TalkGroup}{'Scan'};
+			print "\n";
 		}
 	}
 	close $fh;
@@ -122,14 +152,47 @@ if (!open($fh, "<", $TalkGroupsFile)) {
 	}
 }
 my $NumberOfTalkGroups = scalar keys %TG;
-print "\n  Total number of links is: " . $NumberOfTalkGroups . "\n";
+print "\n  Total number of Internet TGs is: " . $NumberOfTalkGroups . "\n";
+if ($NumberOfTalkGroups <= 0) {
+	warn "*** Error***\tNo hosts.\n";
+	die;
+}
+my $ValidNteworkTG = 0;
+
+print "----------------------------------------------------------------------\n";
+
+
+
+# Init Report.
+print color('green'), "Init Report.\n", color('reset');
+my %Report;
+use constant OpPollReply => 0x2100;
+my $Report_Interval = 300;
+$Report{'Timer'} = time() - $Report_Interval + 10;
+$Report{'Port'} = 30002;
+$Report{'MulticastAddress'} = P25Link_MakeMulticastAddress(100);
+#$Report{'Sock'} = IO::Socket::Multicast->new (
+#	LocalHost => $Report{'MulticastAddress'},
+#	LocalPort => $Report{'Port'},
+#	Proto => 'udp',
+#	Blocking => 0,
+#	Broadcast => 1,
+#	ReuseAddr => 1,
+#	PeerPort => $Report{'Port'}
+#) || die "Can not Bind Report Sock : $@\n";
+#$Report{'Sel'} = IO::Select->new($Report{'Sock'});
+#) || die "  cannot create Report_Sock $!\n";
+#$Report{'Sock'}->mcast_add($Report{'MulticastAddress'});
+#$Report{'Sock'}->mcast_ttl(10);
+#$Report{'Sock'}->mcast_loopback(0);
+#$Report{'Connected'} = 1;
 print "----------------------------------------------------------------------\n";
 
 
 
 # Init MMDVM.
-print "Init MMDVM.\n";
-my $MMDVM_Enabled = $cfg->val('MMDVM', 'Enabled');
+print color('green'), "Init MMDVM.\n", color('reset');
+my $MMDVM_Enabled = $cfg->val('MMDVM', 'MMDVM_Enabled');
 my $Callsign = $cfg->val('MMDVM', 'Callsign');
 my $RadioID = $cfg->val('MMDVM', 'RadioID');
 my $MMDVM_Verbose = $cfg->val('MMDVM', 'Verbose');
@@ -148,20 +211,19 @@ print "----------------------------------------------------------------------\n"
 
 
 # Init P25Link.
-print "Init P25Link.\n";
-my $P25Link_Enabled = $cfg->val('P25Link', 'Enabled');
+print color('green'), "Init P25Link.\n", color('reset');
+my $P25Link_Enabled = $cfg->val('P25Link', 'P25Link_Enabled');
 my $P25Link_Verbose =$cfg->val('P25Link', 'Verbose');
 print "  Enabled = $P25Link_Enabled\n";
 print "  Verbose = $P25Link_Verbose\n";
-my $P25Link_MulticastAddress = '239.2.40.95';
 my $P25Link_Port = 30001;
 print "----------------------------------------------------------------------\n";
 
 
 
 # Init P25NX.
-print "Init P25NX.\n";
-my $P25NX_Enabled = $cfg->val('P25NX', 'Enabled');
+print color('green'), "Init P25NX.\n", color('reset');
+my $P25NX_Enabled = $cfg->val('P25NX', 'P25NX_Enabled');
 my $P25NX_Verbose =$cfg->val('P25NX', 'Verbose');
 print "  Enabled = $P25NX_Enabled\n";
 print "  Verbose = $P25NX_Verbose\n";
@@ -171,7 +233,7 @@ print "----------------------------------------------------------------------\n"
 
 
 # Quantar HDLC Init.
-print "Init HDLC.\n";
+print color('green'), "Init HDLC.\n", color('reset');
 my $HDLC_RTRT_Enabled = $cfg->val('HDLC', 'RTRT_Enabled');
 my $HDLC_Verbose =$cfg->val('HDLC', 'Verbose');
 print "  RT/RT ENabled = $HDLC_RTRT_Enabled\n";
@@ -237,6 +299,8 @@ foreach (my $i = 0; $i < 1; $i++ ) {
 	$Quant{$i}{'Raw0x72'} = "";
 	$Quant{$i}{'Raw0x73'} = "";
 	$Quant{$i}{'SuperFrame'} = "";
+	$Quant{$i}{'Tail'} = 0;
+	$Quant{$i}{'Last'} = "";
 }
 #
 # ICW (Infrastructure Control Word).
@@ -305,7 +369,7 @@ print "----------------------------------------------------------------------\n"
 
 
 # Init Serial Port for HDLC.
-print "Init Serial Port.\n";
+print color('green'), "Init Serial Port.\n", color('reset');
 my $SerialPort;
 my $SerialPort_Configuration = "SerialConfig.cnf";
 if ($Mode == 0) {
@@ -326,42 +390,130 @@ if ($Mode == 0) {
 	#$TickCount = sprintf("%d", $SerialPort->get_tick_count());
 	#$FutureTickCount = $TickCount + 5000;
 	#print "  TickCount = $TickCount\n\n";
-	print "To use Raspberry Pi UART you need to disable Bluetooth by editing: /boot/config.txt\n" .
-	 	"Add line: dtoverlay=pi3-disable-bt-overlay\n";
+	print color('yellow'),
+		"To use Raspberry Pi UART you need to disable Bluetooth by editing: /boot/config.txt\n" .
+		"Add line: dtoverlay=pi3-disable-bt-overlay\n", color('reset'),;
+}
+print "----------------------------------------------------------------------\n";
+
+
+
+# APRS-IS:
+print color('green'), "Loading APRS-IS...\n", color('reset');
+my $APRS_Passcode = $cfg->val('APRS', 'Passcode');
+my $APRS_Suffix = $cfg->val('APRS', 'Suffix');
+my $APRS_Server= $cfg->val('APRS', 'Server');
+my $APRS_File = $cfg->val('APRS', 'APRS_File');
+my $My_Latitude = $cfg->val('APRS', 'Latitude');
+my $My_Longitude = $cfg->val('APRS', 'Longitude');
+my $My_Symbol = $cfg->val('APRS', 'Symbol');
+my $My_Altitude = $cfg->val('APRS', 'Altitude');
+my $My_Freq = $cfg->val('APRS', 'Frequency');
+my $My_Tone = $cfg->val('APRS', 'AccessTone');
+my $My_Offset = $cfg->val('APRS', 'Offset');
+my $My_NAC = $cfg->val('APRS', 'NAC');
+my $My_Comment = $cfg->val('APRS', 'APRSComment');
+my $APRS_Verbose= $cfg->val('APRS', 'Verbose');
+print "  Passcode = $APRS_Passcode\n";
+print "  Suffix = $APRS_Suffix\n";
+print "  Server = $APRS_Server\n";
+print "  APRS_File $APRS_File\n";
+print "  Latitude = $My_Latitude\n";
+print "  Longitude = $My_Longitude\n";
+print "  Symbol = $My_Symbol\n";
+print "  Altitude = $My_Altitude\n";
+print "  Freq = $My_Freq\n";
+print "  Tone = $My_Tone\n";
+print "  Offset = $My_Offset\n";
+print "  NAC = $My_NAC\n";
+print "  Comment = $My_Comment\n";
+print "  Verbose = $APRS_Verbose\n";
+my $APRS_IS;
+my %APRS;
+my $APRS_Timer = time();
+my $APRS_Interval = 1800; # Seconds
+if ($APRS_Passcode ne Ham::APRS::IS::aprspass($Callsign)) {
+	$APRS_Server = undef;
+	warn color('red'), "APRS invalid pasword.\n", color('reset');
+}
+my $APRS_Callsign = $Callsign . '-' . $APRS_Suffix;
+print "  APRS Callsign = $APRS_Callsign\n";
+if (defined $APRS_Server) {
+	$APRS_IS = new Ham::APRS::IS($APRS_Server, $APRS_Callsign,
+		'appid' => "$AppName $Version",
+		'passcode' => $APRS_Passcode,
+		'filter' => 't/m');
+	if (!$APRS_IS) {
+		warn color('red'), "Failed to create APRS-IS Server object: " . $APRS_IS->{'error'} .
+			"\n", color('reset');
+	}
+	#Ham::APRS::FAP::debug(1);
 }
 print "----------------------------------------------------------------------\n";
 
 
 
 # Voice Announce.
-print "Loading voice announcements...\n";
-my $SpeechFile = Config::IniFiles->new( -file => "Speech.ini");
+print color('green'), "Loading voice announcements...\n", color('reset');
+my $SpeechFile = $cfg->val('Settings', 'SpeechFile');
 print "  File = $SpeechFile\n";
+my $SpeechIni = Config::IniFiles->new( -file => $SpeechFile);
+my @Speech_Zero = $SpeechIni->val('Zero', 'byte');
+my @Speech_One = $SpeechIni->val('One', 'byte');
+my @Speech_Two = $SpeechIni->val('Two', 'byte');
+my @Speech_Three = $SpeechIni->val('Three', 'byte');
+my @Speech_Four = $SpeechIni->val('Four', 'byte');
+my @Speech_Five = $SpeechIni->val('Five', 'byte');
+my @Speech_Six = $SpeechIni->val('Six', 'byte');
+my @Speech_Seven = $SpeechIni->val('Seven', 'byte');
+my @Speech_Eight = $SpeechIni->val('Eight', 'byte');
+my @Speech_Nine = $SpeechIni->val('Nine', 'byte');
+my @Speech_Local = $SpeechIni->val('Local', 'byte');
+my @Speech_WW = $SpeechIni->val('WW', 'byte');
+my @Speech_WWTac1 = $SpeechIni->val('WWTac1', 'byte');
+my @Speech_WWTac2 = $SpeechIni->val('WWTac2', 'byte');
+my @Speech_WWTac3 = $SpeechIni->val('WWTac3', 'byte');
+my @Speech_NA = $SpeechIni->val('NA', 'byte');
+my @Speech_NATac1 = $SpeechIni->val('NATac1', 'byte');
+my @Speech_NATac2 = $SpeechIni->val('NATac2', 'byte');
+my @Speech_NATac3 = $SpeechIni->val('NATac3', 'byte');
+my @Speech_Europe = $SpeechIni->val('Europe', 'byte');
+my @Speech_EuTac1 = $SpeechIni->val('EuTac1', 'byte');
+my @Speech_EuTac2 = $SpeechIni->val('EuTac2', 'byte');
+my @Speech_EuTac3 = $SpeechIni->val('EuTac3', 'byte');
+my @Speech_France = $SpeechIni->val('France', 'byte');
+my @Speech_Germany = $SpeechIni->val('Germany', 'byte');
+my @Speech_Pacific = $SpeechIni->val('Pacific', 'byte');
+my @Speech_PacTac1 = $SpeechIni->val('PacTac1', 'byte');
+my @Speech_PacTac2 = $SpeechIni->val('PacTac2', 'byte');
+my @Speech_PacTac3 = $SpeechIni->val('PacTac3', 'byte');
 
-my @Speech_SystemStart = $SpeechFile->val('speech_SystemStart', 'byte');
-my @Speech_DefaultRevert = $SpeechFile->val('speech_DefaultRevert', 'byte');
-my @HDLC_TestPattern = $SpeechFile->val('HDLC_TestPattern', 'byte');
-my @Speech_WW = $SpeechFile->val('speech_WW', 'byte');
-my @Speech_WWTac1 = $SpeechFile->val('speech_WWTac1', 'byte');
-my @Speech_WWTac2 = $SpeechFile->val('speech_WWTac2', 'byte');
-my @Speech_WWTac3 = $SpeechFile->val('speech_WWTac3', 'byte');
-my @Speech_NA = $SpeechFile->val('speech_NA', 'byte');
-my @Speech_NATac1 = $SpeechFile->val('speech_NATac1', 'byte');
-my @Speech_NATac2 = $SpeechFile->val('speech_NATac2', 'byte');
-my @Speech_NATac3 = $SpeechFile->val('speech_NATac3', 'byte');
-my @Speech_Europe = $SpeechFile->val('speech_Europe', 'byte');
-my @Speech_EuTac1 = $SpeechFile->val('speech_EuTac1', 'byte');
-my @Speech_EuTac2 = $SpeechFile->val('speech_EuTac2', 'byte');
-my @Speech_EuTac3 = $SpeechFile->val('speech_EuTac3', 'byte');
-my @Speech_France = $SpeechFile->val('speech_France', 'byte');
-my @Speech_Germany = $SpeechFile->val('speech_Germany', 'byte');
-my @Speech_Pacific = $SpeechFile->val('speech_Pacific', 'byte');
-my @Speech_PacTac1 = $SpeechFile->val('speech_PacTac1', 'byte');
-my @Speech_PacTac2 = $SpeechFile->val('speech_PacTac2', 'byte');
-my @Speech_PacTac3 = $SpeechFile->val('speech_PacTac3', 'byte');
+my @Speech_CTone1 = $SpeechIni->val('CTone1', 'byte');
+my @Speech_CTone2 = $SpeechIni->val('CTone2', 'byte');
+my @Speech_QuindarToneStart = $SpeechIni->val('QuindarToneStart', 'byte');
+my @Speech_QuindarToneEnd = $SpeechIni->val('QuindarToneEnd', 'byte');
+my @Speech_3Up = $SpeechIni->val('3Up', 'byte');
+my @Speech_BeeBoo = $SpeechIni->val('BeeBoo', 'byte');
+my @Speech_BumbleBee = $SpeechIni->val('BumbleBee', 'byte');
+my @Speech_Nextel = $SpeechIni->val('Nextel', 'byte');
+my @Speech_RC210_9 = $SpeechIni->val('RC210_9', 'byte');
+my @Speech_RC210_10 = $SpeechIni->val('RC210_10', 'byte');
+my @Speech_LoBat1 = $SpeechIni->val('LoBat1', 'byte');
+my @Speech_LoBat2 = $SpeechIni->val('LoBat2', 'byte');
+my @Speech_CustomCTone = $SpeechIni->val('customCTone', 'byte');
+
+my @Speech_SystemStartP25NX = $SpeechIni->val('SystemStartP25NX', 'byte');
+my @Speech_WellcomeToP25DotLink = $SpeechIni->val('WellcomeToP25DotLink', 'byte');
+my @Speech_DefaultRevert = $SpeechIni->val('DefaultRevert', 'byte');
+my @Speech_FSG_2050 = $SpeechIni->val('FSG_2050', 'byte');
+my @Speech_Wave_4095 = $SpeechIni->val('Wave_4095', 'byte');
+
+my @Speech_TestPattern = $SpeechIni->val('TestPattern', 'byte');
+
 my $Pending_VA = 0;
 my $VA_Message = 0;
-print "Done.\n";
+my $Pending_CourtesyTone = 0;
+print "  Done.\n";
 print "----------------------------------------------------------------------\n";
 
 
@@ -372,7 +524,7 @@ my $PriorityTGActive = 0;
 my $MuteTGTimer = time();
 foreach my $key (keys %TG) {
 	if ($TG{$key}{'Scan'}) {
-		print "Scan TG " . $key . "\n";
+		print color('green'), "Scan TG " . $key . "\n", color('reset');
 		AddLinkTG($key);
 	}
 }
@@ -385,7 +537,7 @@ print "----------------------------------------------------------------------\n"
 
 
 # Prepare Startup VA Message.
-$VA_Message = 0; # 0 = Welcome to the P25NX.
+$VA_Message = 0xFFFF11; # 0 = Welcome to P25Link.
 $Pending_VA = 1; # Let the system know we wish a Voice Announce when possible.
 
 
@@ -405,7 +557,7 @@ $Pending_VA = 1; # Let the system know we wish a Voice Announce when possible.
 
 
 # Init Cisco STUN TCP
-print "Init Cisco STUN.\n";
+print color('green'), "Init Cisco STUN.\n", color('reset');
 my $STUN_ID = sprintf("%x", hex($cfg->val('STUN', 'STUN_ID')));
 my $STUN_Verbose =$cfg->val('STUN', 'Verbose');
 print "  Stun ID = 0x$STUN_ID\n";
@@ -452,6 +604,7 @@ print "----------------------------------------------------------------------\n"
 
 # Misc
 my $Run = 1;
+my $TGVar = 2044;
 
 
 
@@ -459,14 +612,14 @@ my $Run = 1;
 # MAIN ############################################################
 ###################################################################
 if ($Mode == 1) { # If Cisco STUN (Mode 1) is selected:
-	print "Cisco STUN listen for connections:\n";
+	if ($STUN_Verbose) {print "Cisco STUN listen for connections:\n";}
 	while ($Run) {
 		#if($STUN_ClientAddr = accept($STUN_ClientSocket, $STUN_ServerSocket)) {
 		if(($STUN_ClientSocket, $STUN_ClientAddr) = $STUN_ServerSocket->accept()) {
 			my ($Client_Port, $Client_IP) = sockaddr_in($STUN_ClientAddr);
 			$STUN_ClientIP = inet_ntoa($Client_IP);
-			print "STUN_Client IP " . inet_ntoa($Client_IP) . 
-				":" . $STUN_Port . "\n";
+			if ($STUN_Verbose) {print "STUN_Client IP " . inet_ntoa($Client_IP) . 
+				":" . $STUN_Port . "\n";}
 			$STUN_ClientSocket->autoflush(1);
 			$STUN_Sel = IO::Select->new($STUN_ClientSocket);
 			$STUN_Connected = 1;
@@ -483,34 +636,284 @@ ReadMode 0; # Set keys back to normal State.
 if ($Mode == 0) { # Close Serial Port:
 	$SerialPort->close || die "Failed to close SerialPort.\n";
 }
+if ($APRS_IS and $APRS_IS->connected()) {
+	$APRS_IS->disconnect();
+	print color('green'), "APRS-IS Disconected.", color('reset');
+}
 foreach my $key (keys %TG){ # Close Socket connections:
-	if ($TG{$key}{'MMDVM_Connected'}) {
-		WriteUnlink($key);
-		$TG{$key}{'Sock'}->close();
-	}
-	if ($TG{$key}{'P25NX_Connected'}) {
-		P25NX_Disconnect($key);
-	}
-	if ($TG{$key}{'P25Link_Connected'}) {
-		P25Link_Disconnect($key);
-	}
+	RemoveLinkTG($key);
 }
 print "Good bye cruel World.\n";
-print "----------------------------------------------------------------------\n";
+print "----------------------------------------------------------------------\n\n";
 exit;
+
+
 
 ##################################################################
 # Menu ###########################################################
 ##################################################################
 sub PrintMenu {
-	print "Shortcuts:\n";
+	print "Shortcuts menu:\n";
 	print "  Q/q = Quit.                      h = Help..\n";
-	print "  H/h = HDLC  show/hide verbose.   \n";
+	print "  A/a = APRS  show/hide verbose.   H/h = HDLC  show/hide verbose.  \n";
 	print "  J/j = JSON  show/hide verbose.   M/m = MMDVM   show/hide verbose.\n";
 	print "  P/p = P25NX show/hide verbose.   L/l = P25Link show/hide verbose.\n";
 	print "  S/s = STUN  show/hide verbose.   t   = Test.                   \n\n";
-
 }
+
+
+
+#################################################################################
+# Recorder ########################################################################
+#################################################################################
+sub RecorderBytes_2_HexString {
+	my ($Buffer) = @_;
+	# Display Rx Hex String.
+	#print "HDLC_Rx Buffer:              ";
+	my $x = 0;
+	if (ord(substr($Buffer, $x, 1)) < 0x10) {
+		print $recfh sprintf("byte = 0x0%x", ord(substr($Buffer, $x, 1)));
+		if ($Verbose eq 'R') { print sprintf("byte = 0x0%x", ord(substr($Buffer, $x, 1)));}
+	} else {
+		print $recfh sprintf("byte = 0x%x", ord(substr($Buffer, $x, 1)));
+		if ($Verbose eq 'R') { print sprintf("byte = 0x%x", ord(substr($Buffer, $x, 1)));}
+	}
+	for (my $x = 1; $x < length($Buffer); $x++) {
+		if (ord(substr($Buffer, $x, 1)) < 0x10) {
+			print $recfh sprintf(", 0x0%x", ord(substr($Buffer, $x, 1)));
+			if ($Verbose eq 'R') {print sprintf(", 0x0%x", ord(substr($Buffer, $x, 1)));}
+		} else {
+			print $recfh sprintf(", 0x%x", ord(substr($Buffer, $x, 1)));
+			if ($Verbose eq 'R') {print sprintf(", 0x%x", ord(substr($Buffer, $x, 1)));}
+		}
+	}
+	print $recfh "\n";
+	if ($Verbose eq 'R') {print "\n";}
+}
+
+
+
+##################################################################
+# Report to WWW ##################################################
+##################################################################
+sub Report_Tx {
+	if (($P25Link_Enabled == 0) and ($P25NX_Enabled == 0)) { return; }
+	my $Buffer;
+	$Buffer = 'P25Link' . chr(0x00);
+	$Buffer = $Buffer . chr(OpPollReply & 0xFF) . chr((OpPollReply & 0xFF00) >> 8);
+	$Buffer = $Buffer . inet_aton($LocalHost);
+	$Buffer = $Buffer . chr($Report{'Port'} & 0xFF) . chr(($Report{'Port'} & 0xFF00) >> 8);
+	$Buffer = $Buffer . chr((VersionInfo & 0xFF00) >> 8); # Firmware Version Hi
+	# 6
+	$Buffer = $Buffer . chr(VersionInfo & 0xFF); # Firmware Version Lo
+	$Buffer = $Buffer . chr($LinkedTalkGroup & 0xFF) . chr(($LinkedTalkGroup & 0xFF00) >> 8);
+	$Buffer = $Buffer . $Callsign;
+	for (my $x = length($Callsign); $x <= 10; $x++) {
+		$Buffer = $Buffer . chr(0);
+	}
+
+	#Filler 20
+	$Buffer = $Buffer . chr(0) . chr(0) . chr(0) . chr(0) . chr(0) . chr(0) . chr(0) . chr(0) . chr(0) . chr(0)
+		. chr(0) . chr(0) . chr(0) . chr(0) . chr(0) . chr(0) . chr(0) . chr(0) . chr(0) . chr(0);
+		
+	# Tx to the Network.
+	if ($Verbose >= 2) {
+		print "Report_Tx Message.\n";
+		StrToHex($Buffer);
+	}
+	my $Tx_Sock = IO::Socket::Multicast->new(
+		LocalHost => $Report{'MulticastAddress'},
+		LocalPort => $Report{'Port'},
+		Proto => 'udp',
+		Blocking => 0,
+		Broadcast => 1,
+		ReuseAddr => 1,
+		PeerPort => $Report{'Port'}
+		)
+		or die "Can not create Multicast : $@\n";
+	$Tx_Sock->mcast_ttl(10);
+	$Tx_Sock->mcast_loopback(0);
+	$Tx_Sock->mcast_send($Buffer, $Report{'MulticastAddress'} . ":" . $Report{'Port'});
+	$Tx_Sock->close;
+#	if ($Verbose) {
+		print color('green'), "Report_Tx IP Mcast " . $Report{'MulticastAddress'} . "\n", color('reset');
+#	}
+}
+
+
+
+##################################################################
+# APRS-IS ########################################################
+##################################################################
+sub APRS_connect {
+	my $ret = $APRS_IS->connect('retryuntil' => 2);
+	if (!$ret) {
+		warn color('red'), "Failed to connect APRS-IS server: " . $APRS_IS->{'error'} . "\n", color('reset');
+		return;
+	}
+	print "  APRS-IS: connected.\n";
+}
+
+sub APRS_make_pos {
+	my ($Call, $Latitude, $Longitude, $Speed, $Course, $Altitude, $Symbol, $Comment) = @_;
+	if (!$APRS_IS) {
+		warn color('red'), "  APRS-IS does not exist.\n", color('reset'); 
+		return;
+	}
+	if (!$APRS_IS->connected()) {
+		warn color('red'), "  APRS-IS not connected, trying to reconnect.\n", color('reset'); 
+		APRS_connect();
+	}
+	if (!$APRS_IS->connected()) {
+		warn color('red'), "APRS-IS can not connect.\n", color('reset'); 
+		return;
+	}
+	my %Options;
+	$Options{'timestamp'} = 0;
+	$Options{'comment'} = 'Hola';
+	
+	my $APRS_position = Ham::APRS::FAP::make_position(
+		$Latitude,
+		$Longitude,
+		$Speed, # speed
+		$Course, # course
+		$Altitude, # altitude
+		$Symbol, # symbol
+		{
+		#'compression' => 1,
+		#'ambiguity' => 1, # still can not make it work.
+		#'timestamp' => time(), # still can not make it work.
+		'comment' => $Comment,
+		#'dao' => 1
+	});
+	if ($APRS_Verbose > 1) {print color('green'), "  APRS Position is: $APRS_position\n", color('reset');}
+	#my $Packet = sprintf('%s>APTR01:!%s', $APRS_Callsign, $APRS_position);
+	my $Packet = sprintf('%s>APTR01:!%s', $Call, $APRS_position);
+	if ($APRS_Verbose > 2) {print "  APRS Packet is: $Packet\n";}
+	my $ok = $APRS_IS->sendline($Packet);
+	if (!$ok) {
+		warn color('red'), "Error sending APRS-IS Pos packet $ok\n", color('reset');
+		$APRS_IS->disconnect();
+		return;
+	}
+	print color('grey12'),"  APRS_make_pos done for $APRS_Callsign\n", color('reset');
+}
+
+sub APRS_make_obj {
+	my ($Name, $TimeStamp, $Latitude, $Longitude, $Symbol, $Speed, 
+		$Course, $Altitude, $Alive, $UseCompression, $PosAmbiguity, $Comment) = @_;
+	if (!$APRS_IS) {
+		warn color('red'), "  APRS-IS does not exist.\n", color('reset');
+		return;
+	}
+	if (!$APRS_IS->connected()) {
+		warn color('red'), "  APRS-IS not connected, trying to reconnect.\n", color('reset'); 
+		APRS_connect();
+	}
+	if (!$APRS_IS->connected()) {
+		warn color('red'), "APRS-IS can not connect.\n", color('reset'); 
+		return;
+	}
+	my $APRS_object = Ham::APRS::FAP::make_object(
+		$Name, # Name
+		$TimeStamp,
+		$Latitude,
+		$Longitude,
+		$Symbol, # symbol
+		$Speed, # speed
+		$Course,
+		$Altitude, # altitude
+		$Alive,
+		$UseCompression,
+		$PosAmbiguity,
+		$Comment);
+	if ($APRS_Verbose > 1) {print "  APRS object is: $APRS_object\n";}
+	my $Packet = sprintf('%s>APTR01:%s', $APRS_Callsign, $APRS_object);
+	if ($APRS_Verbose > 2) {print "  APRS Packet is: $Packet\n";}
+	my $ok = $APRS_IS->sendline($Packet);
+	if (!$ok) {
+		warn color('red'), "*** Error *** sending APRS-IS Obj $Name packet $ok\n", color('reset');
+		$APRS_IS->disconnect();
+		return;
+	}
+	if ($APRS_Verbose) { print color('grey12'), "  APRS_make_obj $Name sent.\n", color('reset'); }
+}
+
+sub APRS_Update {
+	# Station position
+	if ($APRS_Verbose) { print color('green'), "APRS-IS Update:\n", color('reset'); }
+	APRS_make_pos($APRS_Callsign, $My_Latitude, $My_Longitude, -1, -1, $My_Altitude, $My_Symbol,
+		$My_Freq . 'MHz ' . $My_Tone . ' ' . $My_Offset . ' NAC-' . $My_NAC . ' ' .
+		$My_Comment);
+	# Objects refresh list loading file.
+	my $fh;
+	if ($APRS_Verbose) { print color('grey12'), "  Loading APRS File...\n", color('reset'); }
+	if (!open($fh, "<", $APRS_File)) {
+		warn color('red'), "  *** Error ***   $APRS_File File not found.\n", color('reset');
+	} else {
+		if ($APRS_Verbose) { print color('grey12'), "  File Ok.\n", color('reset'); }
+		my %result;
+		while (my $Line = <$fh>) {
+			chomp $Line;
+			## skip comments and blank lines and optional repeat of title line
+			next if $Line =~ /^\#/ || $Line =~ /^\s*$/ || $Line =~ /^\+/;
+			#split each line into array
+			my @Line = split(/\t+/, $Line);
+			my $Index = $Line[0];
+			$APRS{$Index}{'Name'} = $Line[0];
+			$APRS{$Index}{'Lat'} = $Line[1];
+			$APRS{$Index}{'Long'} = $Line[2];
+			$APRS{$Index}{'Speed'} = $Line[3];
+			$APRS{$Index}{'Course'} = $Line[4];
+			$APRS{$Index}{'Altitude'} = $Line[5];
+			$APRS{$Index}{'Symbol'} = $Line[6];
+			$APRS{$Index}{'Comment'} = $Line[7];
+			for (my $x = 8; $x < 20; $x++) {
+				if ($Line[$x]) {
+					$APRS{$Index}{'Comment'} = $APRS{$Index}{'Comment'} . ' ' . $Line[$x];
+				}
+			}
+			if ($APRS_Verbose > 1) {
+				print "  APRS Index " . $Index;
+				print ", Name " . $APRS{$Index}{'Name'};
+				print ", Lat " . $APRS{$Index}{'Lat'};
+				print ", Long " . $APRS{$Index}{'Long'};
+				print ", Speed " . $APRS{$Index}{'Speed'};
+				print ", Course " . $APRS{$Index}{'Course'};
+				print ", Altitude " . $APRS{$Index}{'Altitude'};
+				print ", Symbol " . $APRS{$Index}{'Symbol'};
+				print ", Comment " . $APRS{$Index}{'Comment'};
+				print "\n";
+			}
+			APRS_make_obj(
+				$APRS{$Index}{'Name'},
+				0, # Timestamp
+				$APRS{$Index}{'Lat'},
+				$APRS{$Index}{'Long'},
+				$APRS{$Index}{'Symbol'},
+				$APRS{$Index}{'Speed'},
+				$APRS{$Index}{'Course'},
+				$APRS{$Index}{'Altitude'},
+				1, 0, 0, #Active, Compressed, PosAmbiguity
+				$APRS{$Index}{'Comment'},
+			);
+		}
+		close $fh;
+		if ($APRS_Verbose > 2) {
+			foreach my $key (keys %APRS)
+			{
+				print color('green'), "  Key field: $key\n";
+				foreach my $key2 (keys %{$APRS{$key}})
+				{
+					print "  - $key2 = $APRS{$key}{$key2}\n";
+				}
+				print color('reset');
+			}
+		}
+	}
+}
+
+
 
 ##################################################################
 # Serial #########################################################
@@ -579,7 +982,7 @@ sub HDLC_Rx {
 
 		if (substr($Buffer, 0, 7) eq "!RESET!") {
 			my $BoardID = ord(substr($Buffer, 7, 1));
-			print "*** Warning ***   HDLC_Rx Board $BoardID made a Reset!\n";
+			warn color('red'), "*** Warning ***   HDLC_Rx Board $BoardID made a Reset!\n", color('reset');
 			return;
 		}
 
@@ -593,7 +996,7 @@ sub HDLC_Rx {
 	
 		# CRC CCITT.
 		if (length($Buffer) < 2) {
-			print "*** Warning ***   HDLC_Rx Warning Buffer < 2 Bytes.\n";
+			warn color('red'), "*** Warning ***   HDLC_Rx Warning Buffer < 2 Bytes.\n", color('reset');
 			return;
 		}
 		$Message = substr($Buffer, 0, length($Buffer) - 2);
@@ -602,7 +1005,7 @@ sub HDLC_Rx {
 			ord(substr($Buffer, length($Buffer) - 1, 1));
 		#print "CRC_Rx  = $CRC_Rx\n";
 		if (length($Message) == 0) {
-			print "*** Warning ***   HDLC_Rx Message is Null.\n";
+			warn color('red'), "*** Warning ***   HDLC_Rx Message is Null.\n", color('reset');
 			return;
 		}
 		my $CRC_Gen = CRC_CCITT_Gen($Message);
@@ -611,7 +1014,8 @@ sub HDLC_Rx {
 		#print "CRCL ", sprintf("0x%x", ord(substr($CRC_Gen, 1, 1))), "\n";
 		#print "Calc CRC16 in hex: ", unpack('H*', pack('S', $Message)), "\n";
 		if ($CRC_Rx != $CRC_Gen) {
-			print "*** Warning ***   HDLC_Rx CRC does not match " . $CRC_Rx . " <> " . $CRC_Gen . ".\n";
+			warn color('red'), "*** Warning ***   HDLC_Rx CRC does not match " . $CRC_Rx . " <> " .
+			$CRC_Gen . ".\n", color('reset');
 			return;
 		}
 	} else {
@@ -622,20 +1026,23 @@ sub HDLC_Rx {
 		print "HDLC_Rx Message.\n";
 		Bytes_2_HexString($Message);
 	}
+	if ($RecordEnable == 1) { # Audio recoreder
+		RecorderBytes_2_HexString($Message);
+	}
 	# 01 Address
 	my $Address = ord(substr($Message, 0, 1));
 	#print "Address = ", sprintf("0x%x", $Address), "\n";
 	#Bytes_2_HexString($Message);
 	
 	$Quant{$Index}{'FrameType'} = ord(substr($Message, 1, 1));
-	#print "Frame Types = ", sprintf("0x%x", $FrameType), "\n";
+	#print "Frame Types = ", sprintf("0x%x", $Quant{$Index}{'FrameType'}), "\n";
 	switch ($Quant{$Index}{'FrameType'}) {
 		case 0x01 { # RR Receive Ready.
 			if ($Address == 253) {
-				$RR_Timer = 0;
-				$HDLC_Handshake = 1;
+				HDLC_Tx_RR();
+				$RR_NextTimer = $RR_TimerInterval + time();
 			} else {
-				print "*** Warning ***   HDLC_Rx RR Address 253 != $Address\n";
+				warn color('red'), "*** Warning ***   HDLC_Rx RR Address 253 != $Address\n", color('reset');
 			}
 			return;
 		}
@@ -649,7 +1056,7 @@ sub HDLC_Rx {
 					if ($HDLC_Verbose) {
 						print "UI 0x00 NID Start/Stop";
 					}
-					if (ord(substr($Message, 3, 1)) != 0x02) {print "Debug this with the XML.\n";}
+					if (ord(substr($Message, 3, 1)) != 0x02) {warn "Debug this with the XML.\n";}
 					if (ord(substr($Message, 4, 1)) == $C_RTRT_Enabled) {
 						$RTRTOn = 1;
 						if ($HDLC_Verbose) {
@@ -689,56 +1096,60 @@ sub HDLC_Rx {
 								print ", HDLC ICW Terminate";
 							}
 							$Quant{$Index}{'LocalRx'} = 0;
+							if ($Quant{$Index}{'Tail'} == 1) {
+								$Pending_CourtesyTone = 1;
+								$Quant{$Index}{'Tail'} = 0;
+								print color('green'), "HDLC Stop 0x25 Tail Rx\n", color('reset');
+							}
 						}
+					}
+					if ($HDLC_Verbose) {
+						print color('green'), ", Linked Talk Group " . $LinkedTalkGroup, color('reset');
 					}
 					switch ($OpArg) {
 						case 0x00 { # AVoice
-							if ($HDLC_Verbose) {print ", Analog Voice";}
+							if ($HDLC_Verbose) {print ", Analog Voice\n";}
 						}
 						case 0x06 { # TMS Data Payload
-							if ($HDLC_Verbose) {print ", TMS Data Payload";}
+							if ($HDLC_Verbose) {print ", TMS Data Payload\n";}
 							Tx_to_Network($Message);
 							LogDebug($Message);
 						}
 						case 0x0B { # DVoice
-							if ($HDLC_Verbose) {print ", Digital Voice";}
+							if ($HDLC_Verbose) {print ", Digital Voice\n";}
 							Tx_to_Network($Message);
 						}
 						case 0x0C { # TMS
-							if ($HDLC_Verbose) {print ", TMS";}
+							if ($HDLC_Verbose) {print ", TMS\n";}
 							Tx_to_Network($Message);
 							LogDebug($Message);
 						}
 						case 0x0D { # From Comparator Start
-							if ($HDLC_Verbose) {print ", From Comparator Start";}
-#							Tx_to_Network($Message);
+							if ($HDLC_Verbose) {print ", From Comparator Start\n";}
+							#Tx_to_Network($Message);
 							LogDebug($Message);
 						}
 						case 0x0E { # From Comprator Stop
-							if ($HDLC_Verbose) {print ", From Comparator Stop";}
-#							Tx_to_Network($Message);
+							if ($HDLC_Verbose) {print ", From Comparator Stop\n";}
+							#Tx_to_Network($Message);
 							LogDebug($Message);
 						}
 						case 0x0F { # Page
-							if ($HDLC_Verbose) {print ", Page";}
+							if ($HDLC_Verbose) {print ", Page\n";}
 							Tx_to_Network($Message);
 						}
 					}
-					if ($HDLC_Verbose) {
-						print ", Linked Talk Group " . $LinkedTalkGroup . ".\n";
-						print "\n";
-					}
 				}
 				case 0x01 {
-					print "UI 0x01 Undefined.\n";
+					warn color('yellow'), "UI 0x01 Undefined.\n", color('reset');
 				}
 				case 0x59 {
-					print "UI 0x59 Undefined.\n";
+					warn color('yellow'), "UI 0x59 Undefined.\n", color('reset');
 					return;
 				}
 				case 0x60 {
 					if ($HDLC_Verbose) {print "UI 0x60 Voice Header part 1.\n";}
-					Bytes_2_HexString($Buffer);
+					#Bytes_2_HexString($Buffer);
 					switch (ord(substr($Message, 4, 1))) {
 						case 0x02 { # RTRT_Enabled
 							$RTRTOn = 1;
@@ -801,7 +1212,7 @@ sub HDLC_Rx {
 						Bytes_2_HexString($Message);
 					}
 					#my $TGID = 256 * ord(substr($Message, 4, 1)) + ord(substr($Message, 3, 1));;
-					#print "Not true TalkGroup ID = " . $TGID . "\n";
+					#warn "Not true TalkGroup ID = " . $TGID . "\n";
 					if ( ($Quant{$Index}{'IsDigitalVoice'} == 1) or ($Quant{$Index}{'IsPage'} == 1) ) {
 						Tx_to_Network($Message);
 					}
@@ -1043,7 +1454,7 @@ sub HDLC_Rx {
 						}
 						#QSO_Log($Index, $RemoteHostIP);
 					} else {
-						if ($Verbose) {print "Misterious packet 0x66\n";}
+						if ($Verbose) {warn "Misterious packet 0x66\n";}
 					}
 					$Quant{$Index}{'Speech'} = ord(substr($Message, 7, 11));
 					$Quant{$Index}{'Raw0x66'} = $Message;
@@ -1130,6 +1541,7 @@ sub HDLC_Rx {
 					$Quant{$Index}{'Raw0x6B'} = $Message;
 					$Quant{$Index}{'SourceDev'} = ord(substr($Message, 23, 1));
 					$Quant{$Index}{'SuperFrame'} = $Message;
+					$Quant{$Index}{'Tail'} = 1;
 					Tx_to_Network($Message);
 				}
 				case 0x6C {
@@ -1194,34 +1606,43 @@ sub HDLC_Rx {
 					$Quant{$Index}{'Speech'} = ord(substr($Message, 6, 11));
 					$Quant{$Index}{'Raw0x73'} = $Message;
 					$Quant{$Index}{'SuperFrame'} = $Quant{$Index}{'SuperFrame'} . $Message;
+					$Quant{$Index}{'Tail'} = 1;
 					Tx_to_Network($Message);
 				}
 				case 0x80 {
-					print "UI 0x80.\n";
+					print color('yellow'), "UI 0x80.\n", color('reset');
 					LogDebug($Message);
+					#print "Raw " . substr($Message, 1, length($Message)) . '\n';
+					#my $MMSB = ord(substr($Message, 51, 1));
+					#my $MSB = ord(substr($Message, 52, 1));
+					#my $LSB = ord(substr($Message, 53, 1));
+					#my $SourceID = ($MMSB << 16) | ($MSB << 8) | $LSB;
+					#print "SourceID $SourceID\n";
 				}
 				case 0x85 {
-					print "UI 0x85.\n";
+					print color('yellow'), "UI 0x85.\n", color('reset');
 					LogDebug($Message);
+					#print "Raw " . substr($Message, 1, length($Message)) . '\n';
+					#print "Alias " . substr($Message, 11, 4) . substr($Message, 16, 4) . '\n';
 				}
 				case 0x87 {
-					print "UI 0x87.\n";
+					print color('yellow'), "UI 0x87.\n", color('reset');
 					LogDebug($Message);
 				}
 				case 0x88 {
-					print "UI 0x88.\n";
+					print color('yellow'), "UI 0x88.\n", color('reset');
 					LogDebug($Message);
 				}
 				case 0x8D {
-					print "UI 0x8D.\n";
+					print color('yellow'), "UI 0x8D.\n", color('reset');
 					LogDebug($Message);
 				}
 				case 0x8F {
-					print "UI 0x8F.\n";
+					print color('yellow'), "UI 0x8F.\n", color('reset');
 					LogDebug($Message);
 				}
 				case 0xA1 { # Page affliate request.
-					print "UI 0xA1 Page call.\n";
+					print color('yellow'), "UI 0xA1 Page call.\n", color('reset');
 					my $MMSB = ord(substr($Message, 15, 1));
 					my $MSB = ord(substr($Message, 16, 1));
 					my $LSB = ord(substr($Message, 17, 1));
@@ -1234,8 +1655,8 @@ sub HDLC_Rx {
 					$Quant{$Index}{'SourceRadioID'} = ($MMSB << 16) | ($MSB << 8) | $LSB;
 
 					# Leave previous line empty.
-					print "  Source " . $Quant{$Index}{'SourceRadioID'} .
-						", Dest " . $Quant{$Index}{'DestinationRadioID'};
+					print color('yellow'), "  Source " . $Quant{$Index}{'SourceRadioID'} .
+						", Dest " . $Quant{$Index}{'DestinationRadioID'}, color('reset');
 					my $Flag = ord(substr($Message, 11, 1));
 					switch ($Flag) {
 						case 0x98 { # STS
@@ -1248,7 +1669,8 @@ sub HDLC_Rx {
 						case 0xA0 { # Page Ack.
 							print " Flag = Page Ack\n";
 							#if ($Quant{$Index}{'DestinationRadioID'} == $MasterRadioID) {Then
-							#	PageAck_Tx $Quant{$Index}{'SourceRadioID'}, $Quant{$Index}{'DestinationRadioID'}, 1;
+							#	PageAck_Tx $Quant{$Index}{'SourceRadioID'},
+							#	$Quant{$Index}{'DestinationRadioID'}, 1;
 							#}
 						}
 						case 0xA7 {
@@ -1257,33 +1679,33 @@ sub HDLC_Rx {
 					}
 					switch (ord(substr($Message, 12, 1))) {
 						case 0x00 { # Individual Page
-							print "  Individual Page 12\n";
+							print color('yellow'), "  Individual Page 12\n", color('reset');
 						}
 						case 0x90 { #Group Page
-							print "  Group Page 12\n";
+							print color('yellow'), "  Group Page 12\n", color('reset');
 						}
 					}
 					switch (ord(substr($Message, 13, 1))) {
 						case 0x00 { # Individual Page
-							print "  Individual Page 13.\n";
+							print color('yellow'), "  Individual Page 13.\n", color('reset');
 						}
 						case 0x80 { # Group Page
-							print "  Group Page 13.\n";
+							print color('yellow'), "  Group Page 13.\n", color('reset');
 						}
 						case 0x9F { # Individual Page Ack
-							print "  Individual Page Ack 13.\n";
+							print color('yellow'), "  Individual Page Ack 13.\n", color('reset');
 						}
 					}
 					Tx_to_Network($Message);
 
 				} else {
-					print "UI else 0x" . ord(substr($Message, 2, 1)) . "\n";
+					print color('yellow'), "UI else 0x" . ord(substr($Message, 2, 1)) . "\n", color('reset');
 					LogDebug($Message);
 				}
 			}
 		}
 		case 0x3F { # SABM Rx
-			if ($HDLC_Verbose) {print "HDLC_Rx SABM.\n";}
+			if ($HDLC_Verbose) {print color('green'), "HDLC_Rx SABM.\n", color('reset');}
 			if ($HDLC_Verbose == 2) {Bytes_2_HexString($Message);}
 			$HDLC_Handshake = 0;
 			$RR_Timer = 0;
@@ -1296,11 +1718,11 @@ sub HDLC_Rx {
 			}
 		}
 		case 0x73 { #
-			if ($HDLC_Verbose) {print "HDLC_Rx UA (case 0x73 Unumbered Ack).\n";}
+			if ($HDLC_Verbose) {print color('green'), "HDLC_Rx UA (case 0x73 Unumbered Ack).\n", color('reset');}
 			if ($HDLC_Verbose == 2) {Bytes_2_HexString($Message);}
 		}
 		case 0xBF { # XID Quantar to DIU identification packet.
-			if ($HDLC_Verbose) {print "HDLC_Rx XID.\n";}
+			if ($HDLC_Verbose) {print color('green'), "HDLC_Rx XID.\n", color('reset');}
 			if ($HDLC_Verbose == 2) {Bytes_2_HexString($Message);}
 			$SABM_Counter = 0;
 			my $MessageType = ord(substr($Message, 2, 1));
@@ -1332,7 +1754,7 @@ sub HDLC_Tx {
 	my $MSB;
 	my $LSB;
 	if ($Mode == 0) { # Serial mode = 0;
-		if ($HDLC_Verbose) {print "HDLC_Tx.\n";}
+		if ($HDLC_Verbose) {print color('green'), "HDLC_Tx.\n", color('reset');}
 		if ($HDLC_Verbose > 1) {Bytes_2_HexString($Data);}
 		$CRC = CRC_CCITT_Gen($Data);
 		$MSB = int($CRC / 256);
@@ -1358,20 +1780,20 @@ sub HDLC_Tx_Serial_Reset {
 		#$serialport->write(chr(0x7D) . chr(0xFF));
 		$SerialPort->pulse_rts_on(50);
 		$HDLC_TxTraffic = 0; 
-		print "HDLC_Tx_Serial_Reset Sent.\n";
+		print color('yellow'), "HDLC_Tx_Serial_Reset Sent.\n", color('reset');
 	}
 }
 
 sub HDLC_Tx_UA {
 	my ($Address) = @_;
-	if ($HDLC_Verbose) {print "HDLC_Tx_UA.\n";}
+	if ($HDLC_Verbose) {print color('green'), "HDLC_Tx_UA.\n", color('reset');}
 	my $Data = chr($Address) . chr(0x73);
 	HDLC_Tx ($Data);
 }
 
 sub HDLC_Tx_XID {
 	my ($Address) = @_;
-	if ($HDLC_Verbose) {print "HDLC_Tx_XID.\n";}
+	if ($HDLC_Verbose) {print color('green'), "HDLC_Tx_XID.\n", color('reset');}
 	my $ID = 13;
 	my $Data = chr($Address) . chr(0xBF) . chr(0x01) . chr($ID * 2 + 1) . chr(0x00) . 
 		chr(0x00) . chr(0x00) . chr(0x00) . chr(0x00) . chr(0xFF);
@@ -1379,7 +1801,7 @@ sub HDLC_Tx_XID {
 }
 
 sub HDLC_Tx_RR {
-	if ($HDLC_Verbose) {print "HDLC_Tx_RR.\n";}
+	if ($HDLC_Verbose) {print color('green'), "HDLC_Tx_RR.\n", color('reset');}
 	my $Data = chr(253) . chr(0x01);
 	HDLC_Tx ($Data);
 }
@@ -1544,7 +1966,7 @@ sub ManufacturerName {
 			$ManufacturerName = "Zetron Inc";
 		}
 	}
-	print "  Manufacturer Name = " . $ManufacturerName . "\n";
+	print color('grey12'), "  Manufacturer Name = " . $ManufacturerName . "\n", color('reset');
 }
 
 sub AlgoName {
@@ -1600,10 +2022,10 @@ sub AlgoName {
 			$AlgoName = "ADP";
 		}
 	}
-	print "  Algo Name = " . $AlgoName . "\n";
+	print color('grey12'), "  Algo Name = " . $AlgoName . "\n", color('reset');
 }
 
-sub LogDebug{
+sub LogDebug {
 	my ($Message) = @_;
 	Bytes_2_HexString($Message);
 	print "----------------------------------------------------------------------\n";
@@ -1624,7 +2046,7 @@ sub STUN_Tx{
 		#$STUN_Sel->can_write(0.0001);
 		if ($HDLC_Verbose >= 1) {Bytes_2_HexString($Data);}
 		$STUN_ClientSocket->send($Data);
-		if ($STUN_Verbose) {print "STUN_Tx sent.\n";}
+		if ($STUN_Verbose) {print , color('green'), "STUN_Tx sent.\n", color('reset');}
 	}
 }
 
@@ -1717,13 +2139,24 @@ sub MMDVM_Tx{
 ##################################################################
 sub P25Link_Disconnect {
 	my ($TalkGroup) = @_;
-	if ($TalkGroup == 4095){
-		my $MulticastAddress = $P25Link_MulticastAddress;
-		$TG{$TalkGroup}{'Sock'}->mcast_drop($MulticastAddress);
-	}
+	my $MulticastAddress = P25Link_MakeMulticastAddress($TalkGroup);
+	$TG{$TalkGroup}{'Sock'}->mcast_drop($MulticastAddress);
 	$TG{$TalkGroup}{'P25Link_Connected'} = 0;
 	$TG{$TalkGroup}{'Sock'}->close();
-	print "P25Link TG " . $TalkGroup . " disconnected.\n";
+	print color('green'), "P25Link TG " . $TalkGroup . " disconnected.\n", color('reset');
+}
+
+sub P25Link_MakeMulticastAddress{
+	my ($TalkGroup) = @_;
+	my $b = 2;
+	my $c = ($TalkGroup & 0xFF00) >> 8;
+	my $d = $TalkGroup & 0x00FF;
+	my $ThisAddress = "239." . $b . "." . $c . "." . $d;
+	if ($P25Link_Verbose) {
+		#print "TalkGroup $TalkGroup\tc $c\td $d\n";
+		print "P25Link_MulticastAddress = " . $ThisAddress . "\n";
+	}
+	return $ThisAddress;
 }
 
 sub P25Link_Rx{
@@ -1746,7 +2179,7 @@ sub P25Link_Tx{ # This function expect to Rx a formed Cisco STUN Packet.
 		print "P25Link_Tx Message.\n";
 		StrToHex($Buffer);
 	}
-	my $MulticastAddress = $P25Link_MulticastAddress;
+	my $MulticastAddress = P25Link_MakeMulticastAddress($LinkedTalkGroup);
 	my $Tx_Sock = IO::Socket::Multicast->new(
 		LocalHost => $MulticastAddress,
 		LocalPort => $P25Link_Port,
@@ -1774,15 +2207,15 @@ sub P25Link_Tx{ # This function expect to Rx a formed Cisco STUN Packet.
 sub P25NX_Disconnect{
 	my ($TalkGroup) = @_;
 	if ($TalkGroup > 10099 and $TalkGroup < 10600){
-		my $MulticastAddress = makeMulticastAddress($TalkGroup);
+		my $MulticastAddress = P25NX_makeMulticastAddress($TalkGroup);
 		$TG{$TalkGroup}{'Sock'}->mcast_drop($MulticastAddress);
 	}
 	$TG{$TalkGroup}{'P25NX_Connected'} = 0;
 	$TG{$TalkGroup}{'Sock'}->close();
-	print "P25NX TG " . $TalkGroup . " disconnected.\n";
+	print color('green'), "P25NX TG " . $TalkGroup . " disconnected.\n", color('reset');
 }
 
-sub makeMulticastAddress{
+sub P25NX_makeMulticastAddress{
 	my ($TalkGroup) = @_;
 	my $x = $TalkGroup - 10099;
 	my $b = 0;
@@ -1800,15 +2233,15 @@ sub makeMulticastAddress{
 	}
 	$Region = substr($TalkGroup, 2, 1);
 	$ThisAddress = "239." . $Region . "." . $b . "." . $c;
-	#if ($Verbose) {print "makeMulticastAddress = " . $ThisAddress . "\n";}
+	#if ($Verbose) {print "P25NX_makeMulticastAddress = " . $ThisAddress . "\n";}
 	return $ThisAddress;
 }
 
 sub P25NX_Rx{
 	my ($Buffer) = @_;
 	if (length($Buffer) < 1) {return;}
-	#if ($Verbose) {print "PNX_Rx\n";} if ($Verbose) {
-		#print "PNX_Rx HexData = " . StrToHex($Buffer) . "\n";
+	#if ($Verbose) {print "P25NX_Rx\n";} if ($Verbose) {
+		#print "P25NX_Rx HexData = " . StrToHex($Buffer) . "\n";
 	#}
 	#MMDVM_Tx(substr($Buffer, 9, length($Buffer)));
 	P25NX_to_HDLC($Buffer);
@@ -1823,7 +2256,7 @@ sub P25NX_Tx{ # This function expect to Rx a formed Cisco STUN Packet.
 	if ($P25NX_Verbose) {print "P25NX Linked TG *** " . $LinkedTalkGroup . "\n";}
 	# Tx to the Network.
 	if ($P25NX_Verbose >= 2) {print "P25NX_Tx Message " . StrToHex($Buffer) . "\n";}
-	my $MulticastAddress = makeMulticastAddress($LinkedTalkGroup);
+	my $MulticastAddress = P25NX_makeMulticastAddress($LinkedTalkGroup);
 	my $Tx_Sock = IO::Socket::Multicast->new(
 		LocalHost => $MulticastAddress,
 		LocalPort => $P25NX_Port,
@@ -1859,25 +2292,31 @@ sub StrToHex{
 ##################################################################
 # Traffic control ################################################
 ##################################################################
-sub Tx_to_Network{
+sub Tx_to_Network {
 	my ($Buffer) = @_;
+	if (($LinkedTalkGroup < 4) or ($ValidNteworkTG == 0)) {
+		return;
+	}
 	Start_TG_Mute();
-	if ($P25Link_Enabled and ($LinkedTalkGroup == 4095)) {
+	if ($Verbose) {print color('grey12'),"Tx_to_Network " . $TG{$LinkedTalkGroup}{'Mode'} . 
+		" TalkGroup $LinkedTalkGroup\n", color('reset'); }
+	if ( $P25Link_Enabled and ($TG{$LinkedTalkGroup}{'Mode'} eq 'P25Link') and 
+		($LinkedTalkGroup > 10) and ($LinkedTalkGroup < 65535) ) { # Case P25Link.
 		HDLC_to_P25Link($Buffer);
 		return;
 	}
-	if ($P25NX_Enabled and (($LinkedTalkGroup >= 10100) and ($LinkedTalkGroup < 10600))) { # case P25NX.
+	if ( $P25NX_Enabled and ($TG{$LinkedTalkGroup}{'Mode'} eq 'P25NX') and
+		($LinkedTalkGroup >= 10100) and ($LinkedTalkGroup < 10600) ) { # case P25NX.
 		HDLC_to_P25NX($Buffer);
 		return;
 	}
-	if ( $MMDVM_Enabled and (((($LinkedTalkGroup > 10) and ($LinkedTalkGroup < 4095))
-		or (($LinkedTalkGroup > 4095) and ($LinkedTalkGroup < 10100))
-		or (($LinkedTalkGroup > 10599) and ($LinkedTalkGroup < 65535)))) ) { # Case MMDVM.
+	if ( $MMDVM_Enabled and ($TG{$LinkedTalkGroup}{'Mode'} eq 'MMDVM') and
+		($LinkedTalkGroup > 10) and ($LinkedTalkGroup < 65535) ) { # Case MMDVM.
 		HDLC_to_MMDVM($LinkedTalkGroup, $Buffer);
 	}
 }
 
-sub HDLC_to_MMDVM{
+sub HDLC_to_MMDVM {
 	my ($TalkGroup, $Buffer) = @_;
 	switch (ord(substr($Buffer, 2 , 1))) {
 		case 0x00 {
@@ -1904,7 +2343,7 @@ sub HDLC_to_MMDVM{
 			MMDVM_Tx($TalkGroup, $Buffer);
 		}
 		else {
-			print "HDLC_to_MMDVM Error code " . hex(ord(substr($Buffer, 2, 1))) . "\n";
+			warn "HDLC_to_MMDVM Error code " . hex(ord(substr($Buffer, 2, 1))) . "\n";
 			Bytes_2_HexString($Buffer);
 			return;
 		}
@@ -1963,6 +2402,10 @@ sub MMDVM_to_HDLC{
 			HDLC_Tx(chr($Address) . chr($C_UI) . chr(0x00) . chr(0x02). chr($RTRT) .
 				chr($C_EndTx) . chr($C_DVoice) . chr(0x00) . chr(0x00) . chr(0x00) .
 				chr(0x00) . chr(0x00));
+			print color('green'), "Network Tail_MMDVM_to_HDLC\n", color('reset');
+			if ($UseRemoteCourtesyTone) {
+				$Pending_CourtesyTone = 2;
+			}
 			$HDLC_TxTraffic = 0;
 		}
 	}
@@ -1973,6 +2416,16 @@ sub P25Link_to_HDLC{ # P25NX packet contains Cisco STUN and Quantar packet.
 	$Buffer = substr($Buffer, 7, length($Buffer)); # Here we remove Cisco STUN.
 	$HDLC_TxTraffic = 1;
 	HDLC_Tx($Buffer);
+	if (ord(substr($Buffer, 2, 1)) eq $Quant{0}{'Last'} and
+		ord(substr($Buffer, 2, 1)) eq 0x00 and
+		ord(substr($Buffer, 5, 1)) eq 0x25
+	) {
+		print color('green'), "Network Tail_P25Link\n", color('reset');
+		if ($UseRemoteCourtesyTone) {
+			$Pending_CourtesyTone = 2;
+		}
+	}
+	$Quant{0}{'Last'} = ord(substr($Buffer, 2, 1));
 # Add a 1s timer to $HDLC_TxTraffic = 0;
 }
 
@@ -1981,39 +2434,63 @@ sub P25NX_to_HDLC{ # P25NX packet contains Cisco STUN and Quantar packet.
 	$Buffer = substr($Buffer, 7, length($Buffer)); # Here we remove Cisco STUN.
 	$HDLC_TxTraffic = 1;
 	HDLC_Tx($Buffer);
+	if (ord(substr($Buffer, 2, 1)) eq $Quant{0}{'Last'} and
+		ord(substr($Buffer, 2, 1)) eq 0x00 and
+		ord(substr($Buffer, 5, 1)) eq 0x25
+	) {
+		print color('green'), "Network Tail_P25NX\n", color('reset');
+		if ($UseRemoteCourtesyTone) {
+			$Pending_CourtesyTone = 2;
+		}
+	}
+	$Quant{0}{'Last'} = ord(substr($Buffer, 2, 1));
 # Add a 1s timer to $HDLC_TxTraffic = 0;
 }
 
 
 
 ##################################################################
-sub AddLinkTG{
+sub AddLinkTG {
 	my ($TalkGroup) = @_;
-	if (length( $TG{$TalkGroup}{'Linked'} ) == '') {
-		print "Local TG.\n";
-		return;
-	} # Undefined TG.
-	if ($TG{$TalkGroup}{'Linked'} == 1 ) {
+	# Local TGs. Keep them Local.
+	if (($TalkGroup > 0) and ($TalkGroup < 4)) {
 		if ($TalkGroup != $LinkedTalkGroup) {
-			if ($UseVoicePrompts) {
-				$VA_Message = $TalkGroup; # Linked TalkGroup.
-				$Pending_VA = 1;
-			}
+			$VA_Message = $TalkGroup; # Select VA.
+			$Pending_VA = 1;
 		}
 		$LinkedTalkGroup = $TalkGroup;
+		Start_TG_Mute();
+		$ValidNteworkTG = 0;
+		print color('blue'), "Local Talk Group $TalkGroup.\n", color('reset');
+		return;
+	}
+	# Undefined TG. Keep it local only.
+	if ($TG{$TalkGroup}{'Linked'} eq '') {
+		$TG{$TalkGroup}{'Linked'} = '';
+		$ValidNteworkTG = 0;
+		print color('yellow'), "Undefined TG $TalkGroup.\n", color('reset');
+		return;
+	}
+	# Defined TG, and linked.
+	if ($TG{$TalkGroup}{'Linked'} == 1) {
+		if ($TalkGroup != $LinkedTalkGroup) {
+			$VA_Message = $TalkGroup; # Select VA.
+			$Pending_VA = 1;
+		}
+		$LinkedTalkGroup = $TalkGroup;
+		$ValidNteworkTG = 1;
 		Start_TG_Mute();
 		if ($TG{$TalkGroup}{'Scan'} == 0) {
 			$TG{$TalkGroup}{'Timer'} = time();
 		}
-		print "  System Already Linked to TG " . $TalkGroup . "\n";
+		print color('blue'), "  System already linked to TG $TalkGroup.\n", color('reset');
 		return;
 	}
-	# Now connect to a network.
-
-	if ($P25Link_Enabled and ($TalkGroup == 4095)) { # case P25Link.
-		my $MulticastAddress = $P25Link_MulticastAddress;
-		if ($Verbose) {print "  P25NX Connecting to " . $TalkGroup .
-			" Multicast Addr. " . $MulticastAddress . "\n";
+	# Defined TG but not linked, create a link by connecting to the network.
+	if ($P25Link_Enabled and ($TG{$TalkGroup}{'Mode'} eq 'P25Link')) { # Case P25Link.
+		my $MulticastAddress = P25Link_MakeMulticastAddress($TalkGroup);
+		if ($Verbose) {print color('magenta'), "  P25Link connecting to " . $TalkGroup .
+			" Multicast Addr. " . $MulticastAddress . "\n", color('reset');
 		}
 			$TG{$TalkGroup}{'Sock'} = IO::Socket::Multicast->new(
 			LocalHost => $MulticastAddress,
@@ -2032,10 +2509,11 @@ sub AddLinkTG{
 		$TG{$TalkGroup}{'P25Link_Connected'} = 1;
 	}
 
-	if ($P25NX_Enabled and ($TalkGroup >= 10100) and ($TalkGroup < 10600)) { # case P25NX.
-		my $MulticastAddress = makeMulticastAddress($TalkGroup);
-		if ($Verbose) {print "  P25NX Connecting to " . $TalkGroup .
-			" Multicast Addr. " . $MulticastAddress . "\n";
+	if ( $P25NX_Enabled and ($TalkGroup >= 10100) and ($TalkGroup < 10600)
+		and ($TG{$TalkGroup}{'Mode'} eq 'P25NX')) { # case P25NX.
+		my $MulticastAddress = P25NX_makeMulticastAddress($TalkGroup);
+		if ($Verbose) {print color('magenta'), "  P25NX connecting to " . $TalkGroup .
+			" Multicast Addr. " . $MulticastAddress . "\n", color('reset');
 		}
 			$TG{$TalkGroup}{'Sock'} = IO::Socket::Multicast->new(
 			LocalHost => $MulticastAddress,
@@ -2054,20 +2532,17 @@ sub AddLinkTG{
 		$TG{$TalkGroup}{'P25NX_Connected'} = 1;
 	}
 
-	if ( $MMDVM_Enabled and (((($LinkedTalkGroup > 10) and ($LinkedTalkGroup < 4095))
-		or (($LinkedTalkGroup > 4095) and ($LinkedTalkGroup < 10100))
-		or (($LinkedTalkGroup > 10599) and ($LinkedTalkGroup < 65535)))
-		or (!$P25Link_Enabled and ($LinkedTalkGroup == 4095))
-		or (!$P25NX_Enabled and (($LinkedTalkGroup >= 10100) and ($LinkedTalkGroup < 10600)))) ) { # Case MMDVM.
+	if ( $MMDVM_Enabled and ($TG{$TalkGroup}{'Mode'} eq 'MMDVM') ) { # Case MMDVM.
 		# Search if reflector exist
 		if (exists($TG{$TalkGroup}{'MMDVM_URL'}) != 1) {
-			if ($Verbose) {print "This is a local only TG.\n";}
+			if ($Verbose) {warn color('red'), "This is a local only TG and program shold not reach here.\n",
+			 color('reset');}
 			return;
 		}
 		# Connect to TG.
-		if ($Verbose) {print "  MMDVM Connecting to TG " . $TalkGroup .
+		if ($Verbose) {print color('magenta'), "  MMDVM connecting to TG " . $TalkGroup .
 			" IP " . $TG{$TalkGroup}{'MMDVM_URL'} .
-			" on Port " . $TG{$TalkGroup}{'MMDVM_Port'} . "\n";
+			" on Port " . $TG{$TalkGroup}{'MMDVM_Port'} . "\n", color('reset');
 		}
 		$TG{$TalkGroup}{Sock} = IO::Socket::INET->new(
 			LocalPort => $MMDVM_LocalPort,
@@ -2087,38 +2562,31 @@ sub AddLinkTG{
 	# Finalize link.
 	$TG{$TalkGroup}{'Linked'} = 1;
 	$LinkedTalkGroup = $TalkGroup;
+	$ValidNteworkTG = 1;
 	Start_TG_Mute();
 	if ($TG{$TalkGroup}{'Scan'} == 0) {
 		$TG{$TalkGroup}{'Timer'} = time();
 	}
-	if ($UseVoicePrompts) {
-		$VA_Message = $TalkGroup; # Linked TalkGroup.
-		$Pending_VA = 1;
-	}
-	print "  System Linked to TG " . $TalkGroup . "\n";
+	$VA_Message = $TalkGroup; # Linked TalkGroup.
+	$Pending_VA = 1;
+	print color('green'), "  System Linked to TG " . $TalkGroup . "\n", color('reset');
 }
 
 ##################################################################
 sub RemoveLinkTG {
 	my ($TalkGroup) = @_;
-	if ($TG{$TalkGroup}{'Linked'} == 0 ) {
+	if ($TG{$TalkGroup}{'Linked'} == 0) {
 		return;
 	}
-	print "RemoveLinkTG " . $TalkGroup . "\n";
+	print color('magenta'), "RemoveLinkTG " . $TalkGroup . "\n", color('reset');
 	# Disconnect from current network.
-	if ($TG{$TalkGroup}{'MMDVM_Connected'}) {
-		WriteUnlink($TalkGroup);
-		WriteUnlink($TalkGroup);
-		WriteUnlink($TalkGroup);
-	}
-	if ($TG{$TalkGroup}{'P25Link_Connected'}) {
-		P25Link_Disconnect($TalkGroup);
-	}
-	if ($TG{$TalkGroup}{'P25NX_Connected'}) {
-		P25NX_Disconnect($TalkGroup);
-	}
+	if ($TG{$TalkGroup}{'MMDVM_Connected'}) { WriteUnlink($TalkGroup); }
+	if ($TG{$TalkGroup}{'MMDVM_Connected'}) { WriteUnlink($TalkGroup); }
+	if ($TG{$TalkGroup}{'MMDVM_Connected'}) { WriteUnlink($TalkGroup); }
+	if ($TG{$TalkGroup}{'P25Link_Connected'}) { P25Link_Disconnect($TalkGroup); }
+	if ($TG{$TalkGroup}{'P25NX_Connected'}) { P25NX_Disconnect($TalkGroup); }
 	$TG{$TalkGroup}{'Linked'} = 0;
-	print "  System Disconnected from TG " . $TalkGroup . "\n";
+	#print "  System Disconnected from TG " . $TalkGroup . "\n";
 }
 
 sub Start_TG_Mute{
@@ -2134,86 +2602,239 @@ sub Start_TG_Mute{
 sub SaySomething{
 	my ($ThingToSay) = @_;
 	my @Speech;
-	print "Voice Announcement running.\n";
+	if ($Verbose) {print color('green'), "Voice Announcement ";}
 	$HDLC_TxTraffic = 1;
 	switch ($ThingToSay) {
 		case 0x00 {
-			@Speech = @Speech_SystemStart;
+			;#@Speech = NONE;
 		}
 		case 0x01 {
-			@Speech = @Speech_DefaultRevert;
+			print "1 Speech_Local";
+			@Speech = @Speech_Local;
 		}
 		case 0x02 {
-			@Speech = @HDLC_TestPattern;
+			print "2 Speech_Two";
+			@Speech = @Speech_Two;
+		}
+		case 0x03 {
+			print "3 Speech_Three";
+			@Speech = @Speech_Three;
+		}
+		case 0x04 {
+			print "4 Speech_Four";
+			@Speech = @Speech_Four;
+		}
+		case 0x05 {
+			print "5 Speech_Five";
+			@Speech = @Speech_Five;
+		}
+		case 0x06 {
+			print "6 Speech_Six";
+			@Speech = @Speech_Six;
+		}
+		case 0x07 {
+			print "7 Speech_Seven";
+			@Speech = @Speech_Seven;
+		}
+		case 0x08 {
+			print "8 Speech_Eight";
+			@Speech = @Speech_Eight;
+		}
+		case 0x09 {
+			print "9 Speech_Nine";
+			@Speech = @Speech_Nine;
+		}
+		case 2050 {
+			print "2050 Speech_FSG_2050";
+			@Speech = @Speech_FSG_2050;
+		}
+		case 4095 {
+			print "4095 Speech_Wave_4095";
+			@Speech = @Speech_Wave_4095;
 		}
 		case 10100 {
+			print "10100 Speech_WW";
 			@Speech = @Speech_WW;
 		}
 		case 10101 {
+			print "10101 Speech_WWTac1";
 			@Speech = @Speech_WWTac1;
 		}
 		case 10102 {
+			print "10102 Speech_WWTac2";
 			@Speech = @Speech_WWTac2;
 		}
 		case 10103 {
+			print "10103 Speech_WWTac3";
 			@Speech = @Speech_WWTac3;
 		}
 		case 10200 {
+			print "10200 Speech_NA";
 			@Speech = @Speech_NA;
 		}
 		case 10201 {
+			print "10201 Speech_NATac1";
 			@Speech = @Speech_NATac1;
 		}
 		case 10202 {
+			print "10202 Speech_NATac2";
 			@Speech = @Speech_NATac2;
 		}
 		case 10203 {
+			print "10203 Speech_NATac3";
 			@Speech = @Speech_NATac3;
 		}
 		case 10300 {
+			print "10300 Speech_Europe";
 			@Speech = @Speech_Europe;
 		}
 		case 10301 {
+			print "10301 Speech_EuTac1";
 			@Speech = @Speech_EuTac1;
 		}
 		case 10302 {
+			print "10302 Speech_EuTac2";
 			@Speech = @Speech_EuTac2;
 		}
 		case 10303 {
+			print "10303 Speech_EuTac3";
 			@Speech = @Speech_EuTac3;
 		}
 		case 10310 {
+			print "10310 Speech_France";
 			@Speech = @Speech_France;
 		}
 		case 10320 {
+			print "10320 Speech_Germany";
 			@Speech = @Speech_Germany;
 		}
 		case 10400 {
+			print "10400 Speech_Pacific";
 			@Speech = @Speech_Pacific;
 		}
 		case 10401 {
+			print "10401 Speech_PacTac1";
 			@Speech = @Speech_PacTac1;
 		}
 		case 10402 {
+			print "10402 Speech_PacTac2";
 			@Speech = @Speech_PacTac2;
 		}
 		case 10403 {
+			print "10403 Speech_PacTac3";
 			@Speech = @Speech_PacTac3;
 		}
+
+		case 0xFFFF01 {
+			print "1 Speech_3Up";
+			@Speech = @Speech_3Up;
+		}
+		case 0xFFFF02 {
+			print "2 Speech_BeeBoo";
+			@Speech = @Speech_BeeBoo;
+		}
+		case 0xFFFF03 {
+			print "3 Speech_BumbleBee";
+			@Speech = @Speech_BumbleBee;
+		}
+		case 0xFFFF04 {
+			print "4 Speech_Nextel";
+			@Speech = @Speech_Nextel;
+		}
+		case 0xFFFF05 {
+			print "5 Speech_RC210_9";
+			@Speech = @Speech_RC210_9;
+		}
+		case 0xFFFF06 {
+			print "6 Speech_RC210_10";
+			@Speech = @Speech_RC210_10;
+		}
+		case 0xFFFF07 {
+			print "7 Speech_QuindarToneStart";
+			@Speech = @Speech_QuindarToneStart;
+		}
+		case 0xFFFF08 {
+			print "8 Speech_QuindarToneEnd";
+			@Speech = @Speech_QuindarToneEnd;
+		}
+		case 0xFFFF09 {
+			print "9 Speech_CustomTone";
+			@Speech = @Speech_CustomCTone;
+		}
+
+		case 0xFFFF11 {
+			print "1 Speech_WellcomeToP25DotLink";
+			@Speech = @Speech_WellcomeToP25DotLink;
+		}
+		case 0xFFFF12 {
+			print "2 Speech_SystemStartP25NX";
+			@Speech = @Speech_SystemStartP25NX;
+		}
+		case 0xFFFF13 {
+			print "3 Speech_DefaultRevert";
+			@Speech = @Speech_DefaultRevert;
+		}
+
+		case 0xFFFF20 {
+			print "0 Speech_Zero";
+			@Speech = @Speech_Zero;
+		}
+		case 0xFFFF21 {
+			print "1 Speech_One";
+			@Speech = @Speech_One;
+		}
+		case 0xFFFF22 {
+			print "2 Speech_Two";
+			@Speech = @Speech_Two;
+		}
+		case 0xFFFF23 {
+			print "3 Speech_Three";
+			@Speech = @Speech_Three;
+		}
+		case 0xFFFF24 {
+			print "4 Speech_Four";
+			@Speech = @Speech_Four;
+		}
+		case 0xFFFF25 {
+			print "5 Speech_Five";
+			@Speech = @Speech_Five;
+		}
+		case 0xFFFF26 {
+			print "6 Speech_Six";
+			@Speech = @Speech_Six;
+		}
+		case 0xFFFF27 {
+			print "7 Speech_Seven";
+			@Speech = @Speech_Seven;
+		}
+		case 0xFFFF28 {
+			print "8 Speech_Eight";
+			@Speech = @Speech_Eight;
+		}
+		case 0xFFFF29 {
+			print "9 Speech_Nine";
+			@Speech = @Speech_Nine;
+		}
+		else {
+			print "Unknown Speech_Zero";
+			@Speech = @Speech_Zero;
+		}
+
 	}
 	for (my $x = 0; $x < scalar(@Speech); $x++) {
 		$Message = HexString_2_Bytes($Speech[$x]);
 		HDLC_Tx($Message);
-		my $SerialWait = (8.0 / 9600.0) * 1; # 1 Byte length delay for VA.
+		my $SerialWait = (8.0 / 9600.0) * 1.0; # 1 Byte length delay for VA.
 		nanosleep($SerialWait * 1000000000);
 	}
+	nanosleep(0.0001 * 1000000000); # Needed for playing complete voice announcements.
 	$HDLC_TxTraffic = 0;
-	print "  Voice Announcement done.\n";
+	if ($Verbose) {print color('grey12'), "\n  Done.\n", color('reset');}
 }
 
 sub HexString_2_Bytes{
 	my ($Buffer) = @_;
-	my $Data;
+	my $Data = "";
 	for (my $x = 0; $x < length($Buffer); $x = $x + 6) {
 		#print "Dat = " . substr($Buffer, $x, 4) . "\n";
 		#print "Dat2 = " . sprintf("%d", hex(substr($Buffer, $x, 4))) . "\n";
@@ -2238,7 +2859,7 @@ sub getTickCount {
 
 
 sub Pin5_Interrupt_Handler {
-	print "Pin5 Interrupt Handler.\n";
+	print color('yellow'), "Pin5 Interrupt Handler.\n", color('reset');
 }
 
 
@@ -2247,17 +2868,19 @@ sub Pin5_Interrupt_Handler {
 # Main Loop #####################################################################
 #################################################################################
 sub MainLoop{
+my $VA_Test = 0xFFFF00;
 	while ($Run) {
 		my $Scan = 0;
 		my $TickCount = getTickCount();
 		(my $sec, my $min, my $hour, my $mday, my $mon, my $year, my $wday, my $yday, my $isdst) = localtime();
 		# HDLC Receive Ready keep alive.
 		my $RR_Timeout = $RR_NextTimer - time();
-		if ($RR_Timer == 1 and $RR_Timeout <= 0 and $HDLC_Handshake) {
+		#print "RR_Timer $RR_Timer RR_Timeout $RR_Timeout HDLC_Handshake $HDLC_Handshake\n";
+		if (($RR_Timer == 1) and ($RR_Timeout < 0) and $HDLC_Handshake) {
 			if ($HDLC_Verbose) {print $hour . ":" . $min . ":" . $sec . " Send RR by timer.\n";} 
 			#warn "RR Timed out @{[int time - $^T]}\n";
-			if (($Mode == 1 and $STUN_Connected and $HDLC_TxTraffic == 0)
-				or ($Mode == 0 and $HDLC_TxTraffic == 0)) {
+			if ((($Mode == 1) and $STUN_Connected and ($HDLC_TxTraffic == 0))
+				or (($Mode == 0) and ($HDLC_TxTraffic == 0))) {
 				HDLC_Tx_RR();
 				if ($HDLC_Verbose) {
 					print "----------------------------------------------------------------------\n";
@@ -2290,6 +2913,13 @@ sub MainLoop{
 			}
 		}
 
+
+
+		# Status Beacon Timer.
+		if ((time() - $Report{'Timer'}) >= 300) {
+			Report_Tx();
+			$Report{'Timer'} = time();
+		}
 
 
 
@@ -2331,7 +2961,7 @@ sub MainLoop{
 					my $P25Link_RemoteHost = $P25Link_fh->recv(my $Buffer, $MaxLen);
 					$P25Link_RemoteHost = $P25Link_fh->peerhost;
 					#if ($Verbose) {print "P25Link_LocalHost = " . $PN25Link_LocalHost . "\n";}
-					my $MulticastAddress = $P25Link_MulticastAddress;
+					my $MulticastAddress = P25Link_MakeMulticastAddress($key);
 					if (($P25Link_RemoteHost cmp $MulticastAddress) != 0) {
 						if ($P25Link_Verbose) {print $hour . ":" . $min . ":" . $sec .
 							" " . $P25Link_RemoteHost .
@@ -2348,7 +2978,7 @@ sub MainLoop{
 							Start_TG_Mute();
 							last;
 						}
-					}	
+					}
 				}
 				if ($TalkGroup) {
 					P25Link_Rx($OutBuffer);
@@ -2363,8 +2993,8 @@ sub MainLoop{
 				for my $P25NX_fh ($TG{$key}{Sel}->can_read(0.0001)) {
 					my $P25NX_RemoteHost = $P25NX_fh->recv(my $Buffer, $MaxLen);
 					$P25NX_RemoteHost = $P25NX_fh->peerhost;
-					#if ($Verbose) {print "P25NX_LocalHost = " . $PNX_LocalHost . "\n";}
-					my $MulticastAddress = makeMulticastAddress($key);
+					#if ($Verbose) {print "P25NX_LocalHost = " . $P25NX_LocalHost . "\n";}
+					my $MulticastAddress = P25NX_makeMulticastAddress($key);
 					if (($P25NX_RemoteHost cmp $MulticastAddress) != 0) {
 						if ($P25NX_Verbose) {print $hour . ":" . $min . ":" . $sec .
 							" " . $P25NX_RemoteHost .
@@ -2391,21 +3021,65 @@ sub MainLoop{
 
 		# Mute non priority TGs timer.
 		if ($PriorityTGActive and ($MuteTGTimer  <=  time())) {
-			print "$PriorityTGActive Mute Timeout End.\n";
+			print color('green'), "Mute Timeout Ended.\n", color('reset');
 			$PriorityTGActive = 0;
 		}
 
-
 		# End of Tx timmer (1 sec).
-		if ($Quant{0}{'LocalRx'} and ($Quant{0}{'LocalRx_Time'} + 1000 >= $TickCount)) {
+		if (($Quant{0}{'LocalRx'} > 0) and (int($Quant{0}{'LocalRx_Time'} + 2000) <= $TickCount)) {
+			print color('green'), "Timer 1 event " . $Quant{0}{'LocalRx'} . "\n", color('reset');
+			#if (int($Quant{0}{'LocalRx_Time'} + 1000) <= $TickCount) {
+			#	print "bla\n" ;
+			#}
 			$Quant{0}{'LocalRx'} = 0;
+			$Pending_CourtesyTone = 1; # Let the system know we wish a courtesy tone when possible.
 		}
 
-
-		# Voice Announce.
+		# Voice announce.
 		if ($HDLC_Handshake and ($Quant{0}{'LocalRx'} == 0) and $Pending_VA) {
-			SaySomething($VA_Message);
+			if ($UseVoicePrompts == 1) {
+				SaySomething($VA_Message);
+			}
 			$Pending_VA = 0;
+		}
+
+		# Courtesy tone.
+		if ($HDLC_Handshake and ($Quant{0}{'LocalRx'} == 0) and ($Pending_CourtesyTone > 0)) {
+			if ($UseLocalCourtesyTone > 0 and $Pending_CourtesyTone >= 1) {
+				#if ($Verbose) {print "Courtesy tone expected " . $Pending_CourtesyTone . "\n";}
+				if ($Pending_CourtesyTone == 1){
+					SaySomething(0xFFFF00 | $UseLocalCourtesyTone);
+				}
+				if ($Pending_CourtesyTone == 2){
+					SaySomething(0xFFFF00 | $UseRemoteCourtesyTone);
+				}
+				$Pending_CourtesyTone = 0;
+			}
+		}
+
+		# Remove Dynamic Talk Group Link.
+		foreach my $key (keys %TG) {
+			if ( ($TG{$key}{'P25Link_Connected'} or $TG{$key}{'P25NX_Connected'} or 
+				$TG{$key}{'MMDVM_Connected'} ) and ($TG{$key}{'Scan'} == 0) ) {
+				if (  ($TG{$key}{'Timer'} + $Hangtime < time() ) ) {
+					RemoveLinkTG($key);
+					$VA_Message = 0XFFFF13; # Default Revert.
+					$Pending_VA = 1;
+				}
+			}
+		}
+
+		# APRS-IS
+		if ($APRS_IS) {
+			if (!$APRS_IS->connected()) {
+				APRS_connect();
+			}
+			
+			if ($APRS_IS->connected() and ($APRS_Timer <= time())) {
+				if ($APRS_Verbose) {print color('green'), "APRS-IS Timer.\n", color('reset');}
+				APRS_Update();
+				$APRS_Timer = time() + $APRS_Interval;
+			}
 		}
 
 
@@ -2418,6 +3092,24 @@ sub MainLoop{
 					case 0x1B { # Escape
 						print "EscKey Pressed.\n";
 						$Run = 0;
+					}
+
+					case ord('A') { # 'A'
+						APRS_Update();
+						$APRS_Verbose = 1;
+					}
+					case ord('a') { # 'a'
+						$APRS_Verbose = 0;
+					}
+					case ord('C') { # 'C'
+						$VA_Test = 2050;
+						$VA_Message = $VA_Test;
+						$Pending_VA = 1;
+					}
+					case ord('c') { # 'c'
+						$VA_Test++;
+						$VA_Message = $VA_Test;
+						$Pending_VA = 1;
 					}
 					case ord('H') { # 'H'
 						$HDLC_Verbose = 1;
@@ -2455,6 +3147,10 @@ sub MainLoop{
 					}
 					case ord('s') { # 's'
 						$STUN_Verbose = 0;
+					}
+					case ord('t') { # 't'
+						P25Link_MakeMulticastAddress($TGVar);
+						$TGVar++;
 					}
 					case 0x41 { # 'UpKey'
 						print "UpKey Pressed.\n";

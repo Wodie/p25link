@@ -1,24 +1,25 @@
 #!/bin/bash
-# P25NX-MENU
+# P25LINK-MENU
 ##################################################################
-#	*** P25NX v2.0.15 ***
-#	Released: June 17, 2020. Created September 04, 2019.
+#	*** P25Link v2.20-1 ***
+#	Released: October 17, 2020. Created September 04, 2019.
 #	Created by: Juan Carlos Pérez De Castro (Wodie) KM4NNO, XE1F.
 #	www.wodielite.com
 #	wodielite at mac.com
 ##################################################################
 
 # See LICENSE file for copyright and license details
+# Based on ASL modification by mod4whip N8THN
 clear
 
 # define variables
-rm -f /tmp/p25nx2-menu.log
-logfile=/tmp/p25nx2-menu.log
+rm -f /tmp/p25link-menu.log
+logfile=/tmp/p25link-menu.log
 #logfile=/dev/null
 ## all other variables defined in get_node_info
 INTERACTIVE=True
 ASK_TO_REBOOT=0
-#CONFIG=/opt/config.txt
+#CONFIG=/opt/p25link/config.txt
 
 
 #################################################################################
@@ -55,12 +56,12 @@ echo "doing calc_wt_size" >> $logfile
 #################################################################################
 get_node_info() {
 echo "get_node_info" >> $logfile
-CONFIGS=/opt/p25nx2
+CONFIGS=/opt/p25link
 WEBROOT=/var/www/html/pnx
 TMP=/tmp
 
 REBOOT_NEEDED=0
-P25NX2_RESTART=0
+P25LINK_RESTART=0
 
 #HTTPPORT=80
 #HTTPSPORT=443
@@ -77,34 +78,42 @@ HOSTNAME=$(cat /etc/hostname | tr -d " \t\n\r")
 #################################################################################
 do_run_firsttime() {
   echo "do_run_firsttime" >> $logfile
+
+  if (whiptail --title "Do you want to run update before install" --yesno --defaultno "Update Yes or No" 8 78) then
+    do_apt_get_update
+  fi
+#  if (whiptail --title "CPAN modules needed to run P25Link" --yesno "Do you want to download/update modules Yes or No" 8 78) then
+#    do_install_cpan
+#  fi
   touch $CONFIGS/firsttime
+  chmod +x $CONFIGS/first-time
   $CONFIGS/first-time
   rm -f $CONFIGS/firsttime
-  do_build_exe
+#  do_build_exe
 }
 
 do_start() {
   echo "do_start" >> $logfile
-  cp $CONFIGS/p25nx2.service /lib/systemd/system/p25nx2.service &&
-  systemctl enable p25nx2 &&
-  systemctl start p25nx2 &&
-  P25NX2_RESTART=0
-  whiptail --msgbox "P25NX v2 service has been started" 20 60 2
+  cp $CONFIGS/p25link.service /lib/systemd/system/p25link.service &&
+  systemctl enable p25link &&
+  systemctl start p25link &&
+  P25LINK_RESTART=0
+  whiptail --msgbox "P25Link service has been started" 20 60 2
 }
 
 do_restart() {
   echo "do_restart" >> $logfile
-  systemctl restart p25nx2 &&
-  P25NX2_RESTART=0
-  whiptail --msgbox "P25NX v2 service has been restarted" 20 60 2
+  systemctl restart p25link &&
+  P25LINK_RESTART=0
+  whiptail --msgbox "P25Link service has been restarted" 20 60 2
 }
 
 do_stop() {
   echo "do_stop" >> $logfile
-  systemctl stop p25nx2 &&
-  systemctl disable p25nx2 &&
-  P25NX2_RESTART=0
-  whiptail --msgbox "P25NX v2 service has been stoped" 20 60 2
+  systemctl stop p25link &&
+  systemctl disable p25link &&
+  P25LINK_RESTART=0
+  whiptail --msgbox "P25Link service has been stoped" 20 60 2
 }
 
 do_about() {
@@ -112,7 +121,7 @@ do_about() {
 Created by Juan Carlos Perez KM4NNO / XE1F.
 
 This tool provides a straight-forward way of doing initial
-configuration for P25NX v2 on Raspberry Pi. Although it can be run
+configuration for P25Link on Raspberry Pi. Although it can be run
 at any time, some of the options may have difficulties if
 you have heavily customised your installation.\
 " 20 70 1
@@ -152,8 +161,9 @@ No other symbols, punctuation characters, or blank spaces are permitted.\
 
 do_net_setup() {
   echo "do_net_setup" >> $logfile
-  if [ -x /opt/p25nx2/net-setup ]; then
+  if [ -x /opt/p25link/net-setup ]; then
     whiptail --msgbox "You can now set up the networking for the system to use\neither static or DHCP (dynamic) addressing.\nIf you choose static addressing, you will need to have 5 key IP\naddresses handy:  IP ADDRESS, NETMASK, DEFAULT GATEWAY,\nPRIMARY DNS, and SECONDARY DNS." 20 80 2
+	chmod +x $CONFIGS/net-setup
     $CONFIGS/net-setup
   fi
 }
@@ -213,7 +223,7 @@ do_ssh_port() {
 #################################################################################
 do_set_root_passwd() {
 ANSWER=1
-        if (whiptail --title "First-time" --yesno "Welcome to P25NX v2 first-time setup. \
+        if (whiptail --title "First-time" --yesno "Welcome to P25Link first-time setup. \
         \nThis script will walk you through a few of the basic system setup options. \
         \nThe root login is disabled for SSH and CONSOLE login. \
         \nBy setting the root password you will allow root to login on the console. \
@@ -252,7 +262,7 @@ apt-get update &&
 apt-get install raspi-config &&
 printf "Sleeping 5 seconds before reloading raspi-config\n" &&
 sleep 5 &&
-exec p25nx2-menu
+exec ./p25link-menu
 whiptail --msgbox "Done running apt-get update" 20 60 2
 }
 
@@ -273,6 +283,7 @@ cpan install Device::SerialPort &&
 cpan install IO::Socket::Timeout &&
 cpan install IO::Socket::Multicast &&
 cpan install Term::ReadKey &&
+cpan install Ham::APRS::IS &&
 # Used to make Exe files:
 #cpan -i PAR::Packer &&
 apt install libpar-packer-perl
@@ -280,30 +291,30 @@ whiptail --msgbox "Done running CPAN mod installations" 20 60 2
 }
 
 do_build_exe() {
-chmod +x $CONFIGS/p25nx_v2.0.14.pl &&
-pp -o $CONFIGS/p25nx2.exe $CONFIGS/p25nx_v2.0.14.pl &&
-whiptail --msgbox "Done building Exe file" 20 60 2
+  chmod +x $CONFIGS/p25link.pl &&
+  pp -o $CONFIGS/p25link.exe $CONFIGS/p25link.pl &&
+  whiptail --msgbox "Done building Exe file" 20 60 2
 }
 
-do_use_p25nx2_menu() {
-  echo "do_p25nx2_menu" >> $logfile
-  # use p25nx2-menu on login for user account
+do_use_p25link_menu() {
+  echo "do_p25link_menu" >> $logfile
+  # use p25link-menu on login for user account
   ANSWER=1
   REALID=$(who am i | awk '{print $1}')
-  if (whiptail --title "p25nx2-menu at login" --yesno "Would you like to start the p25nx2-menu script\nat login by default for user: $REALID?" --defaultno 20 80 2 3>&1 1>&2 2>&3) then
+  if (whiptail --title "p25link-menu at login" --yesno "Would you like to start the p25link-menu script\nat login by default for user: $REALID?" --defaultno 20 80 2 3>&1 1>&2 2>&3) then
   ANSWER=$?
   fi
   if [ "$ANSWER" = "0" ]; then
-        cat /home/$REALID/.bashrc |grep p25nx2-menu > /dev/null
+        cat /home/$REALID/.bashrc |grep p25link-menu > /dev/null
         if [ $? = "1" ]; then
-        echo "sudo $CONFIGS/p25nx2-menu" >> /home/$REALID/.bashrc
-        whiptail --msgbox "p25nx2-menu will start at login for user $REALID" 20 60 2
+        echo "sudo $CONFIGS/p25link-menu" >> /home/$REALID/.bashrc
+        whiptail --msgbox "p25link-menu will start at login for user $REALID" 20 60 2
         else
-        whiptail --msgbox "p25nx2-menu already starts for user $REALID at login." 20 60 2
+        whiptail --msgbox "p25link-menu already starts for user $REALID at login." 20 60 2
         fi
   else
-        sed -i '/p25nx2-menu/c\' /home/$REALID/.bashrc
-        whiptail --msgbox "the p25nx2-menu autostart at login has been disabled\nYou may run the p25nx2-menu script by typing sudo $CONFIGS/p25nx2-menu" 20 60 2
+        sed -i '/p25link-menu/c\' /home/$REALID/.bashrc
+        whiptail --msgbox "the p25link-menu autostart at login has been disabled\nYou may run the p25link-menu script by typing sudo $CONFIGS/p25link-menu" 20 60 2
   fi
 }
 
@@ -344,13 +355,13 @@ echo "do_exit" >> $logfile
 
 do_finish() {
 echo "do_finish" >> $logfile
-        if [ $P25NX2_RESTART -eq 1 ]; then
-                whiptail --title "P25NX restart required" --yesno "P25NX reload is required for changes to take effect restart P25NX now?" 8 78
+        if [ $P25LINK_RESTART -eq 1 ]; then
+                whiptail --title "P25Link restart required" --yesno "P25Link reload is required for changes to take effect restart P25Link now?" 8 78
                 if [ $? -eq 0 ]; then #yes
-                $P25NXRES
-                whiptail --msgbox "P25NX has been restarted" 20 60 2
+                $P25LINKRES
+                whiptail --msgbox "P25Link has been restarted" 20 60 2
                 else
-                whiptail --msgbox "Please restart P25NX at your convenience" 20 60 2
+                whiptail --msgbox "Please restart P25Link at your convenience" 20 60 2
                 fi
         fi
         # check if reboot needed.
@@ -379,16 +390,14 @@ do_nothing() {
 #################################################################################
 
 do_utilities_menu() {
-  FUN=$(whiptail --title "P25NX v2 Utilities menu" --menu "Utilities" $WT_HEIGHT $WT_WIDTH $WT_MENU_HEIGHT --cancel-button Back --ok-button Select \
+  FUN=$(whiptail --title "P25Link Utilities menu" --menu "Utilities" $WT_HEIGHT $WT_WIDTH $WT_MENU_HEIGHT --cancel-button Back --ok-button Select \
     "U1 " "Change Root password" \
     "U2 " "Change User password for the current user" \
     "U3 " "Run apt-get update" \
     "U4 " "Run apt-get upgrade" \
-    "U5 " "Install Perl CPAN modules" \
-    "U6 " "Build p25nx2.exe" \
-    "U7 " "Run p25nx2-menu at login" \
-    "U8 " "Restart system (Raspberry Pi)" \
-    "U9 " "Shutdown system" \
+    "U5 " "Run p25link-menu at login" \
+    "U6 " "Restart system (Raspberry Pi)" \
+    "U7 " "Shutdown system" \
     3>&1 1>&2 2>&3)
   RET=$?
   if [ $RET -eq 1 ]; then
@@ -399,18 +408,35 @@ do_utilities_menu() {
       U2\ *) do_set_my_passwd ;;
       U3\ *) do_apt_get_update ;;
       U4\ *) do_apt_get_upgrade ;;
-      U5\ *) do_install_cpan ;;
-      U6\ *) do_build_exe ;;
-      U7\ *) do_use_p25nx2_menu ;;
-      U8\ *) do_system_restart ;;
-      U9\ *) do_system_halt ;;
+      U5\ *) do_use_p25link_menu ;;
+      U6\ *) do_system_restart ;;
+      U7\ *) do_system_halt ;;
+      *) whiptail --msgbox "Programmer error: unrecognized option" 20 60 1 ;;
+    esac || whiptail --msgbox "There was an error running option $FUN" 20 60 1
+  fi
+}
+
+do_developer_menu() {
+  FUN=$(whiptail --title "P25Link Developer menu" --menu "Developer" $WT_HEIGHT $WT_WIDTH $WT_MENU_HEIGHT --cancel-button Back --ok-button Select \
+    "U1 " "Install Perl CPAN modules" \
+    "U2 " "Build p25link.exe" \
+    "U3 " "Build p25link.deb" \
+    3>&1 1>&2 2>&3)
+  RET=$?
+  if [ $RET -eq 1 ]; then
+    return 0
+  elif [ $RET -eq 0 ]; then
+    case "$FUN" in
+      U1\ *) do_install_cpan ;;
+      U2\ *) do_build_exe ;;
+      U3\ *) do_build_deb ;;
       *) whiptail --msgbox "Programmer error: unrecognized option" 20 60 1 ;;
     esac || whiptail --msgbox "There was an error running option $FUN" 20 60 1
   fi
 }
 
 do_network_menu() {
-  FUN=$(whiptail --title "P25NX v2 Network menu" --menu "Network" $WT_HEIGHT $WT_WIDTH $WT_MENU_HEIGHT --cancel-button Back --ok-button Select \
+  FUN=$(whiptail --title "P25Link Network menu" --menu "Network" $WT_HEIGHT $WT_WIDTH $WT_MENU_HEIGHT --cancel-button Back --ok-button Select \
     "N1 " "Set the Hostname for this Pi on a network" \
     "N2 " "Network configuration" \
     "N3 " "Enable/Disable remote access using SSH" \
@@ -436,31 +462,35 @@ echo "do_main_menu" >> $logfile
 RET=0
   while true; do
     calc_wt_size
-      FUN=$(whiptail --title "P25NX v2 Main Menu $HOSTNAME $ETH0IP:$SSHPORT" --backtitle "$(cat /proc/device-tree/model)" --menu "Setup Options" $WT_HEIGHT $WT_WIDTH $WT_MENU_HEIGHT --cancel-button Finish --ok-button Select \
-        "1 Initialize" "Run first-time step by step" \
+      FUN=$(whiptail --title "P25Link Main Menu $HOSTNAME $ETH0IP:$SSHPORT" --backtitle "$(cat /proc/device-tree/model)" --menu "Setup Options" $WT_HEIGHT $WT_WIDTH $WT_MENU_HEIGHT --cancel-button Finish --ok-button Select \
+        "A About p25link-menu" "Information about this configuration tool" \
+        "1 First-time setup" "Run initial step by step configuration" \
         "2 Network Menu" "Network configuration menu options" \
         "3 Utilities Menu" "Utilities and misc options" \
-        "4 config.ini" "Edit config.ini file with your settings" \
-        "5 hosts.txt" "Edit hosts.txt file with your settings" \
-        "6 Auto Start App" "Start P25NX v2 software" \
-        "7 Restart App" "Restart P25NX v2 software" \
-        "8 Stop App" "Stop P25NX v2 software" \
-        "9 About p25nx2-menu" "Information about this configuration tool" \
+        "4 Developer tools" "Advanced utilities for dev." \
+        "5 config.ini" "Edit config.ini file with your settings" \
+        "5 hosts.txt" "Edit hosts.txt file with your custom hosts" \
+        "7 APRS.txt" "Edit APRS.txt file with your objects" \
+        "8 Auto Start App" "Auto-start P25Link software on boot" \
+        "9 Restart App" "Restart P25Link software only" \
+        "S Stop Auto Start" "Disable Auto-start P25Link software on boot" \
         3>&1 1>&2 2>&3)
       RET=$?
       if [ $RET -eq 1 ]; then
         do_exit
       elif [ $RET -eq 0 ]; then
         case "$FUN" in
+          A\ *) do_about ;;
           1\ *) do_run_firsttime ;;
           2\ *) do_network_menu ;;
           3\ *) do_utilities_menu ;;
-          4\ *) nano $CONFIGS/config.ini ;;
-          5\ *) nano $CONFIGS/hosts.txt ;;
-          6\ *) do_start ;;
-          7\ *) do_restart ;;
-          8\ *) do_stop ;;
-          9\ *) do_about ;;
+          4\ *) do_developer_menu ;;
+          5\ *) nano $CONFIGS/config.ini ;;
+          6\ *) nano $CONFIGS/hosts.txt ;;
+          7\ *) nano $CONFIGS/APRS.txt ;;
+          8\ *) do_start ;;
+          9\ *) do_restart ;;
+          S\ *) do_stop ;;
           *) whiptail --msgbox "Programmer error: unrecognized option" 20 60 1 ;;
         esac || whiptail --msgbox "There was an error running option $FUN" 20 60 1
       else

@@ -1,13 +1,13 @@
 [Unit]
-Description=P25NX2 Service
+Description=P25LINK Service
 Wants=network-online.target
 After=network-online.target
 
 [Service]
-ExecStart=/opt/p25nx2/p25nx2.exe
+ExecStart=/opt/p25link/p25link.exe
 StandardOutput=null
 User=pi
-WorkingDirectory=/opt/p25nx2
+WorkingDirectory=/opt/p25link
 
 # safe_asterisk emulation
 Restart=always
@@ -15,6 +15,6 @@ RestartSec=10
 
 [Install]
 WantedBy=multi-user.target
-Alias=p25nx2.service
+Alias=p25link.service
 
 
