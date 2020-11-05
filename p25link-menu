@@ -1,8 +1,8 @@
 #!/bin/bash
 # P25LINK-MENU
 ##################################################################
-#	*** P25Link v2.20-1 ***
-#	Released: October 17, 2020. Created September 04, 2019.
+#	*** P25Link v2.30-1 ***
+#	Released: October 24, 2020. Created September 04, 2019.
 #	Created by: Juan Carlos Pérez De Castro (Wodie) KM4NNO, XE1F.
 #	www.wodielite.com
 #	wodielite at mac.com
@@ -95,6 +95,7 @@ do_run_firsttime() {
 do_start() {
   echo "do_start" >> $logfile
   cp $CONFIGS/p25link.service /lib/systemd/system/p25link.service &&
+  chmod 644 /lib/systemd/system/p25link.service &&
   systemctl enable p25link &&
   systemctl start p25link &&
   P25LINK_RESTART=0
@@ -470,7 +471,7 @@ RET=0
         "4 Developer tools" "Advanced utilities for dev." \
         "5 config.ini" "Edit config.ini file with your settings" \
         "5 hosts.txt" "Edit hosts.txt file with your custom hosts" \
-        "7 APRS.txt" "Edit APRS.txt file with your objects" \
+        "7 aprs.txt" "Edit aprs.txt file with your objects" \
         "8 Auto Start App" "Auto-start P25Link software on boot" \
         "9 Restart App" "Restart P25Link software only" \
         "S Stop Auto Start" "Disable Auto-start P25Link software on boot" \
@@ -487,7 +488,7 @@ RET=0
           4\ *) do_developer_menu ;;
           5\ *) nano $CONFIGS/config.ini ;;
           6\ *) nano $CONFIGS/hosts.txt ;;
-          7\ *) nano $CONFIGS/APRS.txt ;;
+          7\ *) nano $CONFIGS/aprs.txt ;;
           8\ *) do_start ;;
           9\ *) do_restart ;;
           S\ *) do_stop ;;
