@@ -5,8 +5,10 @@ After=network-online.target
 
 [Service]
 ExecStart=/opt/p25link/p25link.exe
-StandardOutput=null
-User=pi
+StandardOutput=syslog
+StandardError=syslog
+SyslogIdentifier=P25LINK
+User=pnx
 WorkingDirectory=/opt/p25link
 
 # safe_asterisk emulation
