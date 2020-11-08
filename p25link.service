@@ -4,7 +4,7 @@ Wants=network-online.target
 After=network-online.target
 
 [Service]
-ExecStart=/opt/p25link/p25link.exe
+ExecStart=/opt/p25link/p25link
 StandardOutput=syslog
 StandardError=syslog
 SyslogIdentifier=P25LINK
