@@ -1,5 +1,6 @@
 [Unit]
 Description=P25LINK Service
+# Description=Place this file in /lib/systemd/system
 Wants=network-online.target
 After=network-online.target
 
@@ -18,5 +19,4 @@ RestartSec=10
 [Install]
 WantedBy=multi-user.target
 Alias=p25link.service
-
 

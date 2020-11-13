@@ -1,8 +1,8 @@
 #!/bin/bash
 # P25LINK-MENU
 ##################################################################
-#	*** P25Link v2.30-2 ***
-#	Released: November 07, 2020. Created September 04, 2019.
+#	*** P25Link v2.30-3 ***
+#	Released: November 13, 2020. Created September 04, 2019.
 #	Created by: Juan Carlos Pérez De Castro (Wodie) KM4NNO, XE1F.
 #	www.wodielite.com
 #	wodielite at mac.com
@@ -22,7 +22,7 @@ ASK_TO_REBOOT=0
 #CONFIG=/opt/p25link/config.txt
 
 PERL_SOURCE=/opt/p25link/p25link_v2.30.pl
-PACKAGE_VER=p25link_2.30-2
+PACKAGE_VER=p25link_2.30-3
 DEPLOY_DIR=/opt/deploy/$PACKAGE_VER
 
 
@@ -103,6 +103,7 @@ do_run_firsttime() {
   chmod +x $CONFIGS/first-time
   $CONFIGS/first-time
   rm -f $CONFIGS/firsttime
+  whiptail --msgbox "Please do not forget to edit hosts.txt file (option 6) to add/remove available talk groups, select networks and add/remove TGs to scan list" 10 60 2
 }
 
 do_start() {
@@ -306,7 +307,8 @@ whiptail --msgbox "Done running CPAN mod installations" 20 60 2
 
 do_build_app() {
   chmod +x $CONFIGS/p25link.pl &&
-  pp -o $CONFIGS/p25link $CONFIGS/p25link.pl &&
+  # Make app
+  pp -o /opt/p25link/p25link   $PERL_SOURCE
   whiptail --msgbox "Done building executable file" 20 60 2
 }
 
@@ -322,7 +324,7 @@ do_build_deb() {
   sudo cp -r /opt/p25link/xconfig.ini   $DEPLOY_DIR/opt/p25link/config.ini
   sudo cp -r /opt/p25link/FAP.pm   $DEPLOY_DIR/opt/p25link/FAP.pm
   sudo cp -r /opt/p25link/first-time   $DEPLOY_DIR/opt/p25link/first-time
-  sudo cp -r /opt/p25link/hosts.txt   $DEPLOY_DIR/opt/p25link/hosts.txt
+  sudo cp -r /opt/p25link/xhosts.txt   $DEPLOY_DIR/opt/p25link/hosts.txt
   sudo cp -r /opt/p25link/LICENSE.txt   $DEPLOY_DIR/opt/p25link/LICENSE.txt
   sudo cp -r /opt/p25link/net-setup   $DEPLOY_DIR/opt/p25link/net-setup
   sudo cp -r /opt/p25link/p25link   $DEPLOY_DIR/opt/p25link/p25link
@@ -471,7 +473,7 @@ do_developer_menu() {
   elif [ $RET -eq 0 ]; then
     case "$FUN" in
       U1\ *) do_install_cpan ;;
-      U2\ *) do_build ;;
+      U2\ *) do_build_app ;;
       U3\ *) do_build_deb ;;
       *) whiptail --msgbox "Programmer error: unrecognized option" 20 60 1 ;;
     esac || whiptail --msgbox "There was an error running option $FUN" 20 60 1
@@ -511,9 +513,9 @@ RET=0
         "2 Network Menu" "Network configuration menu options" \
         "3 Utilities Menu" "Utilities and misc options" \
         "4 Developer tools" "Advanced utilities for dev." \
-        "5 config.ini" "Edit config.ini file with your settings" \
-        "5 hosts.txt" "Edit hosts.txt file with your custom hosts" \
-        "7 aprs.txt" "Edit aprs.txt file with your objects" \
+        "5 config.ini" "Edit config.ini file with advanced settings" \
+        "6 hosts.txt" "Edit hosts.txt file with your custom hosts" \
+        "7 aprs.txt" "Edit aprs.txt file with your own objects" \
         "8 Auto Start App" "Auto-start P25Link software on boot" \
         "9 Restart App" "Restart P25Link software only" \
         "S Stop Auto Start" "Disable Auto-start P25Link software on boot" \

@@ -1,8 +1,8 @@
 #!/bin/bash
 # first-time
 ##################################################################
-#	*** P25Link v2.20 ***
-#	Released: October 03, 2020. Created September 04, 2019.
+#	*** P25Link v2.30-3 ***
+#	Released: November 13, 2020. Created September 04, 2019.
 #	Created by: Juan Carlos Pérez De Castro (Wodie) KM4NNO, XE1F.
 #	www.wodielite.com
 #	wodielite at mac.com
@@ -69,9 +69,9 @@ do_config() {
   1 Yes (enabled)." 12 78 "$MMDVM_ENABLED" --title "MMDVM Network" 3>&1 1>&2 2>&3)
 
   P25LINK_ENABLED=$(grep '^P25Link_Enabled =' /$CONFIGS/config.ini | awk -F'=' '{print $2}' | sed 's/|\i//' | sed -e 's/^\(.\{2\}\).*/\1/'|sed 's/ //g')
-  P25LINK_ENABLED=$(whiptail --inputbox "Current P25.Link network mode is $P25LINK_ENABLED, enter new mode.\n
+  P25LINK_ENABLED=$(whiptail --inputbox "Current P25Link network mode is $P25LINK_ENABLED, enter new mode.\n
   0 No (disabled),
-  1 Yes (enabled)." 12 78 "$P25LINK_ENABLED" --title "P25.Link Network" 3>&1 1>&2 2>&3)
+  1 Yes (enabled)." 12 78 "$P25LINK_ENABLED" --title "P25Link Network" 3>&1 1>&2 2>&3)
 
   P25NX_ENABLED=$(grep '^P25NX_Enabled =' /$CONFIGS/config.ini | awk -F'=' '{print $2}' | sed 's/|\i//' | sed -e 's/^\(.\{2\}\).*/\1/'|sed 's/ //g')
   P25NX_ENABLED=$(whiptail --inputbox "Current P25NX network is $P25NX_ENABLED, enter new mode.\n
@@ -122,7 +122,7 @@ do_config() {
   RADIOID=$(whiptail --inputbox "Current RadioID is $RADIOID, enter new RadioID." 8 78 "$RADIOID" --title "RadioID" 3>&1 1>&2 2>&3)
 
   CALLSIGN=$(grep '^Callsign =' /$CONFIGS/config.ini | awk -F'=' '{print $2}' | sed 's/|\i//' | sed -e 's/^\(.\{9\}\).*/\1/'|sed 's/ //g')
-  CALLSIGN=$(whiptail --inputbox "Current Callsign is $CALLSIGN, enter new Callsign." 8 78 "$CALLSIGN" --title "Callsign" 3>&1 1>&2 2>&3)
+  CALLSIGN=$(whiptail --inputbox "Current Callsign is $CALLSIGN, enter new Callsign with no suffix." 8 78 "$CALLSIGN" --title "Callsign" 3>&1 1>&2 2>&3)
 
   SUFFIX=$(grep '^Suffix =' /$CONFIGS/config.ini | awk -F'=' '{print $2}' | sed 's/|\i//' | sed -e 's/^\(.\{3\}\).*/\1/'|sed 's/ //g')
   SUFFIX=$(whiptail --inputbox "Current APRS Suffix is $SUFFIX enter new Suffix." 8 78 "$SUFFIX" --title "APRS Suffix" 3>&1 1>&2 2>&3)
@@ -130,13 +130,14 @@ do_config() {
   PASSCODE=$(grep '^Passcode =' /$CONFIGS/config.ini | awk -F'=' '{print $2}' | sed 's/|\i//' | sed -e 's/^\(.\{9\}\).*/\1/'|sed 's/ //g')
   PASSCODE=$(whiptail --inputbox "Current APRS Passcode is $PASSCODE, enter new Passcode." 8 78 "$PASSCODE" --title "APRS Passcode" 3>&1 1>&2 2>&3)
 
-  LATITUDE=$(grep '^Latitude =' /$CONFIGS/config.ini | awk -F'=' '{print $2}' | sed 's/|\i//' | sed -e 's/^\(.\{10\}\).*/\1/'|sed 's/ //g')
+  LATITUDE=$(grep '^Latitude =' /$CONFIGS/config.ini | awk -F'=' '{print $2}' | sed 's/|\i//' | sed -e 's/^\(.\{10\}\).*/\1/')
   LATITUDE=$(whiptail --inputbox "Current Latitude is $LATITUDE, enter new Latitude in decimal degrees." 8 78 "$LATITUDE" --title "Latitude" 3>&1 1>&2 2>&3)
 
-  LONGITUDE=$(grep '^Longitude =' /$CONFIGS/config.ini | awk -F'=' '{print $2}' | sed 's/|\i//' | sed -e 's/^\(.\{11\}\).*/\1/'|sed 's/ //g')
+  #LONGITUDE=$(grep '^Longitude =' /$CONFIGS/config.ini | awk -F'=' '{print $2}' | sed 's/|\i//' | sed -e 's/^\(.\{10\}\).*/\1/')
+  LONGITUDE=$(grep '^Longitude =' /$CONFIGS/config.ini | awk -F'=' '{print $2}' | sed 's/|\i//' | sed -e 's/^\(.\{10\}\).*/\1/')
   LONGITUDE=$(whiptail --inputbox "Current Longitude is $LONGITUDE, enter new Longitude in decimal degrees." 8 78 "$LONGITUDE" --title "Longitude" 3>&1 1>&2 2>&3)
 
-  SYMBOL=$(grep '^Symbol =' /$CONFIGS/config.ini | awk -F'=' '{print $2}' | sed 's/|\i//' | sed -e 's/^\(.\{3\}\).*/\1/'|sed 's/ //g')
+  SYMBOL=$(grep '^Symbol =' /$CONFIGS/config.ini | awk -F'=' '{print $2}' | sed 's/|\i//' | sed -e 's/^\(.\{3\}\).*/\1/')
   SYMBOL=$(whiptail --inputbox "Current APRS Symbol is $SYMBOL enter new Symbol." 8 78 "$SYMBOL" --title "Symbol" 3>&1 1>&2 2>&3)
 
   ALTITUDE=$(grep '^Altitude =' /$CONFIGS/config.ini | awk -F'=' '{print $2}' | sed 's/|\i//' | sed -e 's/^\(.\{6\}\).*/\1/'|sed 's/ //g')
@@ -148,14 +149,48 @@ do_config() {
   ACCESSTONE=$(grep '^AccessTone =' /$CONFIGS/config.ini | awk -F'=' '{print $2}' | sed 's/|\i//' | sed -e 's/^\(.\{5\}\).*/\1/'|sed 's/ //g')
   ACCESSTONE=$(whiptail --inputbox "Current Access Tone is $ACCESSTONE, enter new Tone with APRS QSY format. UperCase for 25 KHz bandwidth and lowercase for 12.5 KHz bandwidth.\n T/t for Tone & SQL,\n C/c for Tone up and down\n D/d for Digital tone.\nUse only 3 digits format with no decimanls (i.e. d023 C123)." 12 78 "$ACCESSTONE" --title "Repeater Access Tone" 3>&1 1>&2 2>&3)
 
-  OFFSET=$(grep '^Offset =' /$CONFIGS/config.ini | awk -F'=' '{print $2}' | sed 's/|\i//' | sed -e 's/^\(.\{5\}\).*/\1/'|sed 's/ //g')
+  OFFSET=$(grep '^Offset =' /$CONFIGS/config.ini | awk -F'=' '{print $2}' | sed 's/|\i//' | sed -e 's/^\(.\{5\}\).*/\1/')
   OFFSET=$(whiptail --inputbox "Current Offset is $OFFSET enter new Offset preceded with sign (i.e. +500 for UHF -060 for VHF)." 8 78 "$OFFSET" --title "Offset" 3>&1 1>&2 2>&3)
 
   NAC=$(grep '^NAC =' /$CONFIGS/config.ini | awk -F'=' '{print $2}' | sed 's/|\i//' | sed -e 's/^\(.\{4\}\).*/\1/'|sed 's/ //g')
   NAC=$(whiptail --inputbox "Current NAC is $NAC, enter new NAC." 8 78 "$NAC" --title "NAC" 3>&1 1>&2 2>&3)
 
-  APRSCOMMENT=$(grep '^APRSComment =' /$CONFIGS/config.ini | awk -F'=' '{print $2}' | sed 's/|\i//' | sed -e 's/^\(.\{44\}\).*/\1/'|sed 's/ //g')
-  APSRCOMMENT=$(whiptail --inputbox "Current APRS Comment is $APRSCOMMENT, enter new Comment." 8 78 "$APRSCOMMENT" --title "APRS Comment" 3>&1 1>&2 2>&3)
+  APRSCOMMENT=$(grep '^APRSComment =' /$CONFIGS/config.ini | awk -F'=' '{print $2}' | sed 's/|\i//' | sed -e 's/^\(.\{44\}\).*/\1/' | sed 's/ //g')
+  APRSCOMMENT=$(whiptail --inputbox "Current APRS Comment is $APRSCOMMENT, enter new Comment." 8 78 "$APRSCOMMENT" --title "APRS Comment" 3>&1 1>&2 2>&3)
+
+  SITENAME=$(grep '^SiteName =' /$CONFIGS/config.ini | awk -F'=' '{print $2}' | sed 's/|\i//' | sed -e 's/^\(.\{31\}\).*/\1/'|sed 's/ //g')
+  SITENAME=$(whiptail --inputbox "Current site name is $SITENAME, enter new name (max 30 char)." 8 78 "$SITENAME" --title "Site Name" 3>&1 1>&2 2>&3)
+
+  SITEINFO=$(grep '^SiteInfo =' /$CONFIGS/config.ini | awk -F'=' '{print $2}' | sed 's/|\i//' | sed -e 's/^\(.\{31\}\).*/\1/'|sed 's/ //g')
+  SITEINFO=$(whiptail --inputbox "Current site information is $SITEINFO, enter new information (max 30 char)." 8 78 "$SITEINFO" --title "Site Name" 3>&1 1>&2 2>&3)
+
+
+
+  sed -i 's/HardwareMode.*/HardwareMode = '$HARDWAREMODE'/' $CONFIGS/config.ini
+  sed -i 's/MMDVM_Enabled.*/MMDVM_Enabled = '$MMDVM_ENABLED'/' $CONFIGS/config.ini
+  sed -i 's/P25Link_Enabled.*/P25Link_Enabled = '$P25LINK_ENABLED'/' $CONFIGS/config.ini
+  sed -i 's/P25NX_Enabled.*/P25NX_Enabled = '$P25NX_ENABLED'/' $CONFIGS/config.ini
+  sed -i 's/PriorityTG.*/PriorityTG = '$PRIORITYTG'/' $CONFIGS/config.ini
+  sed -i 's/MuteTGTimeout.*/MuteTGTimeout = '$MUTETGTIMEOUT'/' $CONFIGS/config.ini
+  sed -i 's/Hangtime.*/Hangtime = '$HANGTIME'/' $CONFIGS/config.ini
+  sed -i 's/UseVoicePrompts.*/UseVoicePrompts = '$USEVOICEPROMPTS'/' $CONFIGS/config.ini
+  sed -i 's/UseLocalCourtesyTone.*/UseLocalCourtesyTone = '$USELOCALCOURTESYTONE'/' $CONFIGS/config.ini
+  sed -i 's/UseRemoteCourtesyTone.*/UseRemoteCourtesyTone = '$USEREMOTECOURTESYTONE'/' $CONFIGS/config.ini
+  sed -i 's/RadioID.*/RadioID = '$RADIOID'/' $CONFIGS/config.ini
+  sed -i 's/Callsign.*/Callsign = '$CALLSIGN'/' $CONFIGS/config.ini
+  sed -i 's/Suffix.*/Suffix = '$SUFFIX'/' $CONFIGS/config.ini
+  sed -i 's/Passcode.*/Passcode = '$PASSCODE'/' $CONFIGS/config.ini
+  sed -i 's/Latitude.*/Latitude = '$LATITUDE'/' $CONFIGS/config.ini
+  sed -i 's/Longitude.*/Longitude = '$LONGITUDE'/' $CONFIGS/config.ini
+  sed -i 's/Symbol.*/Symbol = '$SYMBOL'/' $CONFIGS/config.ini
+  sed -i 's/Altitude.*/Altitude = '$ALTITUDE'/' $CONFIGS/config.ini
+  sed -i 's/Frequency.*/Frequency = '$FREQUENCY'/' $CONFIGS/config.ini
+  sed -i 's/AccessTone.*/AccessTone = '$ACCESSTONE'/' $CONFIGS/config.ini
+  sed -i 's/Offset.*/Offset = '$OFFSET'/' $CONFIGS/config.ini
+  sed -i 's/NAC.*/NAC = '$NAC'/' $CONFIGS/config.ini
+  sed -i 's/APRSComment.*/APRSComment = '$APRSCOMMENT'/' $CONFIGS/config.ini
+  sed -i 's/SITEINFO.*/SITEINFO = '$SITEINFO'/' $CONFIGS/config.ini
+  sed -i 's/SITEINFO.*/SITEINFO = '$SITEINFO'/' $CONFIGS/config.ini
 
   P25LINK_RESTART=1
 }

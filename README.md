@@ -3,44 +3,16 @@
 P25Link is a program that let you connect your Quantar repeater or DIU 3000 to multiple HAM networks as P25Link, P25NX, and P25-MMDVM. It use the v.24 port on Quantar/DIU 3000, a Cisco router 28xx and a Raspberry Pi. It use the same router setup as P25NX v2.
 
 
-# Current release features:
+# Current features:
 
 ## Local
-Voice talk groups 1 to 3.
-
-TMS (text messages) implemented if repeaters are on P25Link network.
-
-Page functionality implemented if repeaters are on P25Link network.
-
+Voice talk groups 1 to 10.
+P25Link network Voice talk groups 11 to 65534.
+P25NX network Voice talk groups 10100 to 10599.
+P25-MMDVM network Voice talk groups 11 to 65534.
+TMS (text messages) implemented if repeaters are on P25Link network and radios on linked TG.
+Page functionality implemented if repeaters are on P25Link network and radios on linked TG.
 Repeater scan mode with priority index for talk groups.
-
-## For P25Link network:
-Voice talk groups 4 to 65534.
-
-TMS (text messages) implemented if repeaters are on P25Link network.
-
-Page functionality implemented if repeaters are on P25Link network.
-
-Repeater scan mode with priority index for talk groups.
-
-Local and remote courtesy tones.
-
-## For P25NX network:
-Voice talk groups 10100 to 10599.
-
-Voice talk group announce as with pnxmono.
-
-TMS (text messages) implemented if repeaters are on the same TG.
-
-Page functionality implemented if repeaters are on same TG.
-
-Repeater scan mode with priority index for talk groups.
-
-Local and remote courtesy tones.
-
-## For P25-MMDVM network:
-Voice talk groups 4 to 65534.
-
 Local and remote courtesy tones.
 
 
@@ -56,15 +28,24 @@ cd /opt/p25link
 sudo chmod 755 p25link-menu
 sudo ./p25link-menu
 
-there you can make the initial setup, download libraries to get it working, etc.
+there you can make the initial setup, download Perl libraries if you want to change code, etc.
 
-Mode = 0 means use of Serial (using Quantar_P25Link board still on development/test).
-
-Mode = 1 means use of Cisco router and its STUN protocol.
-
-Modify the hosts.txt file with the Talk Groups you want lo add to the Scan list by setting the last field to a highest take precedence >= 1, 0 = No Scan.
+MRemember to modify the hosts.txt file with the Talk Groups you want lo add to the scan list by setting the last field to a highest take precedence >= 1, 0 = No scan.
 
 # History:
+
+## v2.30-3 November 13, 2020.
+New: RDAC, which used to be the Report to server draft.
+New: Site Name field.
+New: Site Info field.
+
+## v2.30-2 November 09, 2020.
+Misc: Minor APRS code fixes.
+Added: Linked Talk Group now updates on APRS-IS.
+Added: APRS objects update time can be changed on the config.ini file.
+Fixed: some .deb bugs.
+Added: Semi automatic creation of .deb file.
+Added: APRS-IS rotate server.
 
 ## v2.30 October 23, 2020.
 Lot of code updates and bugs fixed.
