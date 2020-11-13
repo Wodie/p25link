@@ -21,13 +21,12 @@ use Term::ReadKey;
 #use RPi::Pin;
 #use RPi::Const qw(:all);
 use Ham::APRS::IS;
-#use Ham::APRS::FAP;
 use Term::ANSIColor;
 
 
 use FindBin 1.51 qw( $RealBin );
 use lib $RealBin;
-
+# Use custom version of FAP:
 use FAP;
 
 
@@ -38,10 +37,12 @@ my $StartTime = time();
 # About this app.
 my $AppName = 'P25Link';
 use constant VersionInfo => 2;
-my $Version = '2.30';
+use constant MinorVersionInfo => 30;
+use constant RevisionInfo => 3;
+my $Version = VersionInfo . '.' . MinorVersionInfo . '-' . RevisionInfo;
 print "\n##################################################################\n";
 print "	*** $AppName v$Version ***\n";
-print "	Released: October 23, 2020. Created October 17, 2019.\n";
+print "	Released: November 13, 2020. Created October 17, 2019.\n";
 print "	Created by:\n";
 print "	Juan Carlos Pérez De Castro (Wodie) KM4NNO / XE1F\n";
 print "	Bryan Fields W9CR.\n";
@@ -55,10 +56,15 @@ print "	If you are using it, please let me know, I will be glad to know it.\n\n"
 print "	This project is based on the work and information from:\n";
 print "	Juan Carlos Pérez KM4NNO / XE1F\n";
 print "	Byan Fields W9CR\n";
-print "	Jonathan Naylor G4KLX\n";
-print "	David Kraus NX4Y\n";
+print "	P25-MMDVM creator Jonathan Naylor G4KLX\n";
+print "	P25NX creatorDavid Kraus NX4Y\n";
 print "	David Kierzkowski KD8EYF\n";
+print "	APRS is a registed trademark and creation of Bob Bruninga WB4APR";
 print "##################################################################\n\n";
+
+# Detect Target OS.
+my $OS = $^O;
+print "$OS\n";
 
 # Load Settings ini file.
 print color('green'), "Loading Settings...\n", color('reset');
@@ -75,6 +81,8 @@ my $MuteTGTimeout = $cfg->val('Settings', 'MuteTGTimeout');
 my $UseVoicePrompts = $cfg->val('Settings', 'UseVoicePrompts');
 my $UseLocalCourtesyTone = $cfg->val('Settings', 'UseLocalCourtesyTone');
 my $UseRemoteCourtesyTone = $cfg->val('Settings', 'UseRemoteCourtesyTone');
+my $SiteName = $cfg->val('Settings', 'SiteName');
+my $SiteInfo = $cfg->val('Settings', 'SiteInfo');
 my $Verbose = $cfg->val('Settings', 'Verbose');
 print "  Mode = $Mode\n";
 print "  HotKeys = $HotKeys\n";
@@ -83,6 +91,8 @@ print "  Mute Talk Group Timeout = $MuteTGTimeout seconds.\n";
 print "  Use Voice Prompts = $UseVoicePrompts\n";
 print "  Use Local Courtesy Tone = $UseLocalCourtesyTone\n";
 print "  Use Remote Courtesy Tone = $UseRemoteCourtesyTone\n";
+print "  Site Name = $SiteName\n";
+print "  Site Info = $SiteInfo\n";
 print "  Verbose = $Verbose\n";
 print "----------------------------------------------------------------------\n";
 
@@ -163,29 +173,32 @@ print "----------------------------------------------------------------------\n"
 
 
 
-# Init Report.
-print color('green'), "Init Report.\n", color('reset');
-my %Report;
+# Init RDAC.
+print color('green'), "Init RDAC.\n", color('reset');
+my %RDAC;
+$RDAC{'Interval'} = $cfg->val('RDAC', 'Interval');
+my $RDAC_Verbose = $cfg->val('RDAC', 'Verbose');
+print "  Interval = $RDAC{'Interval'}\n";
+print "  Verbose = $RDAC_Verbose\n";
 use constant OpPollReply => 0x2100;
-my $Report_Interval = 300;
-$Report{'Timer'} = time() - $Report_Interval + 10;
-$Report{'Port'} = 30002;
-$Report{'MulticastAddress'} = P25Link_MakeMulticastAddress(100);
-#$Report{'Sock'} = IO::Socket::Multicast->new (
-#	LocalHost => $Report{'MulticastAddress'},
-#	LocalPort => $Report{'Port'},
+$RDAC{'NextTimer'} = time(); # Make it run as soon as Mail Loop is running.
+$RDAC{'Port'} = 30002;
+$RDAC{'MulticastAddress'} = P25Link_MakeMulticastAddress(100);
+#$RDAC{'Sock'} = IO::Socket::Multicast->new (
+#	LocalHost => $RDAC{'MulticastAddress'},
+#	LocalPort => $RDAC{'Port'},
 #	Proto => 'udp',
 #	Blocking => 0,
 #	Broadcast => 1,
 #	ReuseAddr => 1,
-#	PeerPort => $Report{'Port'}
-#) || die "Can not Bind Report Sock : $@\n";
-#$Report{'Sel'} = IO::Select->new($Report{'Sock'});
-#) || die "  cannot create Report_Sock $!\n";
-#$Report{'Sock'}->mcast_add($Report{'MulticastAddress'});
-#$Report{'Sock'}->mcast_ttl(10);
-#$Report{'Sock'}->mcast_loopback(0);
-#$Report{'Connected'} = 1;
+#	PeerPort => $RDAC{'Port'}
+#) || die "Can not Bind RDAC Sock : $@\n";
+#$RDAC{'Sel'} = IO::Select->new($RDAC{'Sock'}
+#) || die "  cannot create RDAC_Sock $!\n";
+#$RDAC{'Sock'}->mcast_add($RDAC{'MulticastAddress'});
+#$RDAC{'Sock'}->mcast_ttl(10);
+#$RDAC{'Sock'}->mcast_loopback(0);
+#$RDAC{'Connected'} = 1;
 print "----------------------------------------------------------------------\n";
 
 
@@ -373,10 +386,17 @@ print color('green'), "Init Serial Port.\n", color('reset');
 my $SerialPort;
 my $SerialPort_Configuration = "SerialConfig.cnf";
 if ($Mode == 0) {
-	# For Linux:
+
+
+my $cfg;
+# For Mac:
+if ($OS eq "darwin") {
+	$SerialPort = Device::SerialPort->new('/dev/tty.usbserial') || die "Cannot Init Serial Port : $!\n";
+}
+# For Linux:
+if ($OS eq "linux") {
 	$SerialPort = Device::SerialPort->new('/dev/ttyUSB0') || die "Cannot Init Serial Port : $!\n";
-	# For Mac:
-	#my $SerialPort = Device::SerialPort->new('/dev/tty.usbserial') || die "Cannot Init Serial Port : $!\n";
+}
 	$SerialPort->baudrate(19200);
 	$SerialPort->databits(8);
 	$SerialPort->parity('none');
@@ -404,6 +424,7 @@ my $APRS_Passcode = $cfg->val('APRS', 'Passcode');
 my $APRS_Suffix = $cfg->val('APRS', 'Suffix');
 my $APRS_Server= $cfg->val('APRS', 'Server');
 my $APRS_File = $cfg->val('APRS', 'APRS_File');
+my $APRS_Interval = $cfg->val('APRS', 'APRS_Interval') * 60;
 my $My_Latitude = $cfg->val('APRS', 'Latitude');
 my $My_Longitude = $cfg->val('APRS', 'Longitude');
 my $My_Symbol = $cfg->val('APRS', 'Symbol');
@@ -417,7 +438,8 @@ my $APRS_Verbose= $cfg->val('APRS', 'Verbose');
 print "  Passcode = $APRS_Passcode\n";
 print "  Suffix = $APRS_Suffix\n";
 print "  Server = $APRS_Server\n";
-print "  APRS_File $APRS_File\n";
+print "  APRS File $APRS_File\n";
+print "  APRS Interval $APRS_Interval\n";
 print "  Latitude = $My_Latitude\n";
 print "  Longitude = $My_Longitude\n";
 print "  Symbol = $My_Symbol\n";
@@ -431,7 +453,6 @@ print "  Verbose = $APRS_Verbose\n";
 my $APRS_IS;
 my %APRS;
 my $APRS_Timer = time();
-my $APRS_Interval = 1800; # Seconds
 if ($APRS_Passcode ne Ham::APRS::IS::aprspass($Callsign)) {
 	$APRS_Server = undef;
 	warn color('red'), "APRS invalid pasword.\n", color('reset');
@@ -528,8 +549,10 @@ foreach my $key (keys %TG) {
 		AddLinkTG($key);
 	}
 }
-if ($PriorityTG > 10 and !$TG{$PriorityTG}{'Scan'}) {
-	$TG{$PriorityTG}{'Scan'} = 100;
+if ($PriorityTG > 10) {
+	if (!$TG{$PriorityTG}{'Scan'}) {
+		$TG{$PriorityTG}{'Scan'} = 100;
+	}
 	AddLinkTG($PriorityTG);
 }
 print "----------------------------------------------------------------------\n";
@@ -638,7 +661,7 @@ if ($Mode == 0) { # Close Serial Port:
 }
 if ($APRS_IS and $APRS_IS->connected()) {
 	$APRS_IS->disconnect();
-	print color('green'), "APRS-IS Disconected.", color('reset');
+	print color('green'), "APRS-IS Disconected.\n", color('reset');
 }
 foreach my $key (keys %TG){ # Close Socket connections:
 	RemoveLinkTG($key);
@@ -694,49 +717,84 @@ sub RecorderBytes_2_HexString {
 
 
 ##################################################################
-# Report to WWW ##################################################
+# RDAC ###########################################################
 ##################################################################
-sub Report_Tx {
+sub RDAC_Tx {
+	my ($Mode) = @_;
 	if (($P25Link_Enabled == 0) and ($P25NX_Enabled == 0)) { return; }
 	my $Buffer;
 	$Buffer = 'P25Link' . chr(0x00);
 	$Buffer = $Buffer . chr(OpPollReply & 0xFF) . chr((OpPollReply & 0xFF00) >> 8);
 	$Buffer = $Buffer . inet_aton($LocalHost);
-	$Buffer = $Buffer . chr($Report{'Port'} & 0xFF) . chr(($Report{'Port'} & 0xFF00) >> 8);
-	$Buffer = $Buffer . chr((VersionInfo & 0xFF00) >> 8); # Firmware Version Hi
+	$Buffer = $Buffer . chr($RDAC{'Port'} & 0xFF) . chr(($RDAC{'Port'} & 0xFF00) >> 8);
+	$Buffer = $Buffer . chr(VersionInfo); # Software Mayor Version
 	# 6
-	$Buffer = $Buffer . chr(VersionInfo & 0xFF); # Firmware Version Lo
-	$Buffer = $Buffer . chr($LinkedTalkGroup & 0xFF) . chr(($LinkedTalkGroup & 0xFF00) >> 8);
-	$Buffer = $Buffer . $Callsign;
-	for (my $x = length($Callsign); $x <= 10; $x++) {
-		$Buffer = $Buffer . chr(0);
+	$Buffer = $Buffer . chr(MinorVersionInfo); # Software Minor Version
+	$Buffer = $Buffer . chr(RevisionInfo); # Software Revision Version
+	# Flags
+	my $Index = 0;
+	my $Byte = 0;
+	if ($Quant{$Index}{'LocalRx'}) {$Byte = 0x01;} # Receive
+	if ($Quant{$Index}{'LocalRx'}) {$Byte = $Byte | 0x02;} # Transmit
+	if ($Quant{$Index}{'IsDigitalVoice'} == 1) { # Mode Digital
+		$Byte = $Byte | 0x04;
 	}
-
-	#Filler 20
-	$Buffer = $Buffer . chr(0) . chr(0) . chr(0) . chr(0) . chr(0) . chr(0) . chr(0) . chr(0) . chr(0) . chr(0)
-		. chr(0) . chr(0) . chr(0) . chr(0) . chr(0) . chr(0) . chr(0) . chr(0) . chr(0) . chr(0);
+	if ($Quant{$Index}{'IsDigitalVoice'} == 0) { # Mode Analog
+		$Byte = $Byte | 0x08;
+	}
+	if ($Quant{$Index}{'IsPage'} == 1) { # Mode Data
+		$Byte = $Byte | 0x10;
+	}
+	$Buffer = $Buffer . chr($Byte); # Flags
+	# Callsign
+	my $RDAC_Callsign = $Callsign . "/" . $APRS_Suffix;
+	$Buffer = $Buffer . $RDAC_Callsign;
+	for (my $x = length($RDAC_Callsign); $x < 10; $x++) {
+		$Buffer = $Buffer . ' ';
+	}
+	# Site Name
+	if (length($SiteName) > 30) {
+		$SiteName = substr($SiteName, 0, 30);
+	}
+	$Buffer = $Buffer . $SiteName;
+	for (my $x = length($SiteName); $x < 30; $x++) {
+		$Buffer = $Buffer . ' ';
+	}
+	# Tak Group
+	$Buffer = $Buffer . chr($LinkedTalkGroup & 0xFF) . chr(($LinkedTalkGroup & 0xFF00) >> 8);
+	# Info
+	if (length($SiteInfo) > 30) {
+		$SiteInfo = substr($SiteInfo, 0, 30);
+	}
+	$Buffer = $Buffer . $SiteInfo;
+	for (my $x = length($SiteInfo); $x < 30; $x++) {
+		$Buffer = $Buffer . ' ';
+	}
+	#Filler 10
+	$Buffer = $Buffer . chr(0) . chr(0) . chr(0) . chr(0) . chr(0) . chr(0) . chr(0) . chr(0) . chr(0) . chr(0);
+#print " Len4 " . length($Buffer) . "\n";
 		
 	# Tx to the Network.
-	if ($Verbose >= 2) {
-		print "Report_Tx Message.\n";
+	if ($RDAC_Verbose >= 2) {
+		print "RDAC_Tx Message.\n";
 		StrToHex($Buffer);
 	}
 	my $Tx_Sock = IO::Socket::Multicast->new(
-		LocalHost => $Report{'MulticastAddress'},
-		LocalPort => $Report{'Port'},
+		LocalHost => $RDAC{'MulticastAddress'},
+		LocalPort => $RDAC{'Port'},
 		Proto => 'udp',
 		Blocking => 0,
 		Broadcast => 1,
 		ReuseAddr => 1,
-		PeerPort => $Report{'Port'}
+		PeerPort => $RDAC{'Port'}
 		)
 		or die "Can not create Multicast : $@\n";
 	$Tx_Sock->mcast_ttl(10);
 	$Tx_Sock->mcast_loopback(0);
-	$Tx_Sock->mcast_send($Buffer, $Report{'MulticastAddress'} . ":" . $Report{'Port'});
+	$Tx_Sock->mcast_send($Buffer, $RDAC{'MulticastAddress'} . ":" . $RDAC{'Port'});
 	$Tx_Sock->close;
-#	if ($Verbose) {
-		print color('green'), "Report_Tx IP Mcast " . $Report{'MulticastAddress'} . "\n", color('reset');
+#	if ($RDAC_Verbose) {
+		print color('green'), "RDAC_Tx IP Mcast " . $RDAC{'MulticastAddress'} . "\n", color('reset');
 #	}
 }
 
@@ -754,7 +812,7 @@ sub APRS_connect {
 	print "  APRS-IS: connected.\n";
 }
 
-sub APRS_make_pos {
+sub APRS_Make_Pos {
 	my ($Call, $Latitude, $Longitude, $Speed, $Course, $Altitude, $Symbol, $Comment) = @_;
 	if (!$APRS_IS) {
 		warn color('red'), "  APRS-IS does not exist.\n", color('reset'); 
@@ -796,10 +854,10 @@ sub APRS_make_pos {
 		$APRS_IS->disconnect();
 		return;
 	}
-	print color('grey12'),"  APRS_make_pos done for $APRS_Callsign\n", color('reset');
+	print color('grey12'),"  APRS_Make_Pos done for $APRS_Callsign\n", color('reset');
 }
 
-sub APRS_make_obj {
+sub APRS_Make_Obj {
 	my ($Name, $TimeStamp, $Latitude, $Longitude, $Symbol, $Speed, 
 		$Course, $Altitude, $Alive, $UseCompression, $PosAmbiguity, $Comment) = @_;
 	if (!$APRS_IS) {
@@ -836,15 +894,26 @@ sub APRS_make_obj {
 		$APRS_IS->disconnect();
 		return;
 	}
-	if ($APRS_Verbose) { print color('grey12'), "  APRS_make_obj $Name sent.\n", color('reset'); }
+	if ($APRS_Verbose) { print color('grey12'), "  APRS_Make_Obj $Name sent.\n", color('reset'); }
+}
+
+sub APRS_Update_TG {
+	my ($TG) = @_;
+	APRS_Make_Obj($Callsign . '/' . $APRS_Suffix, 0, $My_Latitude, $My_Longitude, $My_Symbol, -1, -1, undef,
+		1, 0, 0, $My_Freq . 'MHz ' . $My_Tone . ' ' . $My_Offset . ' NAC-' . $My_NAC . ' ' .
+		' TG=' . $TG . ' ' . $My_Comment . ' alt ' . $My_Altitude . 'm');
 }
 
 sub APRS_Update {
-	# Station position
+	my ($TG) = @_;
+	# Station position as Object
 	if ($APRS_Verbose) { print color('green'), "APRS-IS Update:\n", color('reset'); }
-	APRS_make_pos($APRS_Callsign, $My_Latitude, $My_Longitude, -1, -1, $My_Altitude, $My_Symbol,
-		$My_Freq . 'MHz ' . $My_Tone . ' ' . $My_Offset . ' NAC-' . $My_NAC . ' ' .
-		$My_Comment);
+	APRS_Make_Obj($Callsign . '/' . $APRS_Suffix, 0, $My_Latitude, $My_Longitude, $My_Symbol, -1, -1, undef,
+		1, 0, 0, $My_Freq . 'MHz ' . $My_Tone . ' ' . $My_Offset . ' NAC-' . $My_NAC . ' ' .
+		' TG=' . $TG . ' ' . $My_Comment . ' alt ' . $My_Altitude . 'm');
+
+
+
 	# Objects refresh list loading file.
 	my $fh;
 	if ($APRS_Verbose) { print color('grey12'), "  Loading APRS File...\n", color('reset'); }
@@ -865,14 +934,13 @@ sub APRS_Update {
 			$APRS{$Index}{'Long'} = $Line[2];
 			$APRS{$Index}{'Speed'} = $Line[3];
 			$APRS{$Index}{'Course'} = $Line[4];
-			$APRS{$Index}{'Altitude'} = $Line[5];
+			if ($Line[5] == -1) {
+				$APRS{$Index}{'Altitude'} = undef;
+			} else {
+				$APRS{$Index}{'Altitude'} = $Line[5];
+			}
 			$APRS{$Index}{'Symbol'} = $Line[6];
 			$APRS{$Index}{'Comment'} = $Line[7];
-			for (my $x = 8; $x < 20; $x++) {
-				if ($Line[$x]) {
-					$APRS{$Index}{'Comment'} = $APRS{$Index}{'Comment'} . ' ' . $Line[$x];
-				}
-			}
 			if ($APRS_Verbose > 1) {
 				print "  APRS Index " . $Index;
 				print ", Name " . $APRS{$Index}{'Name'};
@@ -885,7 +953,7 @@ sub APRS_Update {
 				print ", Comment " . $APRS{$Index}{'Comment'};
 				print "\n";
 			}
-			APRS_make_obj(
+			APRS_Make_Obj(
 				$APRS{$Index}{'Name'},
 				0, # Timestamp
 				$APRS{$Index}{'Lat'},
@@ -928,9 +996,9 @@ sub Read_Serial{ # Read the serial port, look for 0x7E characters and extract da
 			if (ord(substr($SerialBuffer, $x, 1)) == 0x7E) {
 				if (length($HDLC_Buffer) > 0) {
 					HDLC_Rx($HDLC_Buffer, 0); # Process a full data stream.
-					#print "Serial Str Data Rx len() = " . length($HDLC_Buffer) . "\n";
+					print "Serial Str Data Rx len() = " . length($HDLC_Buffer) . "\n";
 				}
-				#print "Read_Serial len = ", length($HDLC_Buffer), "\n";
+				print "Read_Serial len = ", length($HDLC_Buffer), "\n";
 				$HDLC_Buffer = ""; # Clear Rx buffer.
 			} else {
 				# Add Bytes until the end of data stream (0x7E):
@@ -1109,35 +1177,50 @@ sub HDLC_Rx {
 					switch ($OpArg) {
 						case 0x00 { # AVoice
 							if ($HDLC_Verbose) {print ", Analog Voice\n";}
+							$Quant{$Index}{'IsDigitalVoice'} = 0;
+							$Quant{$Index}{'IsPage'} = 0;
+							RDAC_Tx();
 						}
 						case 0x06 { # TMS Data Payload
 							if ($HDLC_Verbose) {print ", TMS Data Payload\n";}
 							Tx_to_Network($Message);
+							#RDAC_Tx();
 							LogDebug($Message);
 						}
 						case 0x0B { # DVoice
 							if ($HDLC_Verbose) {print ", Digital Voice\n";}
+							$Quant{$Index}{'IsDigitalVoice'} = 1;
+							$Quant{$Index}{'IsPage'} = 0;
 							Tx_to_Network($Message);
+							RDAC_Tx();
 						}
 						case 0x0C { # TMS
 							if ($HDLC_Verbose) {print ", TMS\n";}
 							Tx_to_Network($Message);
+							#RDAC_Tx();
 							LogDebug($Message);
 						}
 						case 0x0D { # From Comparator Start
 							if ($HDLC_Verbose) {print ", From Comparator Start\n";}
 							#Tx_to_Network($Message);
+							#RDAC_Tx();
 							LogDebug($Message);
 						}
 						case 0x0E { # From Comprator Stop
 							if ($HDLC_Verbose) {print ", From Comparator Stop\n";}
 							#Tx_to_Network($Message);
+							#RDAC_Tx();
 							LogDebug($Message);
 						}
 						case 0x0F { # Page
 							if ($HDLC_Verbose) {print ", Page\n";}
+							$Quant{$Index}{'IsPage'} = 1;
 							Tx_to_Network($Message);
+							RDAC_Tx();
 						}
+					}
+					if ($HDLC_Verbose) {
+						print "\n";
 					}
 				}
 				case 0x01 {
@@ -1170,11 +1253,13 @@ sub HDLC_Rx {
 							if ($HDLC_Verbose) {print ", Digital Voice";}
 							$Quant{$Index}{'IsDigitalVoice'} = 1;
 							$Quant{$Index}{'IsPage'} = 0;
+#RDAC_Tx('Digital');
 						}
 						case 0x0F { # Page
 							if ($HDLC_Verbose) {print ", Page";}
 							$Quant{$Index}{'IsDigitalVoice'} = 0;
 							$Quant{$Index}{'IsPage'} = 1;
+#RDAC_Tx('Digital');
 						}
 					}
 					$SiteID = ord(substr($Message,7 ,1));
@@ -1270,7 +1355,6 @@ sub HDLC_Rx {
 					$Quant{$Index}{'SuperFrame'} = $Message;
 					$Quant{$Index}{'SourceDev'} = ord(substr($Message, 23, 1));
 					Tx_to_Network($Message);
-
 				}
 				case 0x63 {
 					if ($HDLC_Verbose) {print "UI 0x63 IMBE Voice part 2.\n";}
@@ -1489,6 +1573,7 @@ sub HDLC_Rx {
 					$Quant{$Index}{'Speech'} = ord(substr($Message, 6, 11));
 					$Quant{$Index}{'Raw0x6A'} = $Message;
 					$Quant{$Index}{'SuperFrame'} = $Quant{$Index}{'SuperFrame'} . $Message;
+					$Quant{$Index}{'Tail'} = 1;
 					Tx_to_Network($Message);
 				}
 				case 0x6B { # dBm, RSSI, BER.
@@ -1541,7 +1626,6 @@ sub HDLC_Rx {
 					$Quant{$Index}{'Raw0x6B'} = $Message;
 					$Quant{$Index}{'SourceDev'} = ord(substr($Message, 23, 1));
 					$Quant{$Index}{'SuperFrame'} = $Message;
-					$Quant{$Index}{'Tail'} = 1;
 					Tx_to_Network($Message);
 				}
 				case 0x6C {
@@ -1669,8 +1753,8 @@ sub HDLC_Rx {
 						case 0xA0 { # Page Ack.
 							print " Flag = Page Ack\n";
 							#if ($Quant{$Index}{'DestinationRadioID'} == $MasterRadioID) {Then
-							#	PageAck_Tx $Quant{$Index}{'SourceRadioID'},
-							#	$Quant{$Index}{'DestinationRadioID'}, 1;
+								#PageAck_Tx $Quant{$Index}{'SourceRadioID'},
+								#$Quant{$Index}{'DestinationRadioID'}, 1;
 							#}
 						}
 						case 0xA7 {
@@ -2055,7 +2139,7 @@ sub STUN_Tx{
 ##################################################################
 # MMDVM ##########################################################
 ##################################################################
-sub WritePoll{
+sub WritePoll {
 	my ($TalkGroup) = @_;
 	my $Filler = chr(0x20);
 	my $Data = chr(0xF0) . $Callsign;
@@ -2071,7 +2155,7 @@ sub WritePoll{
 		$TG{$TalkGroup}{'MMDVM_Connected'} = 1;
 }
 
-sub WriteUnlink{
+sub WriteUnlink {
 	my ($TalkGroup) = @_;
 	my $Filler = chr(0x20);
 	my $Data = chr(0xF1) . $Callsign;
@@ -2088,7 +2172,7 @@ sub WriteUnlink{
 	$TG{$TalkGroup}{'Sock'}->close();
 }
 
-sub MMDVM_Rx{ # Only HDLC UI Frame. Start on Quantar v.24 Byte 3.
+sub MMDVM_Rx { # Only HDLC UI Frame. Start on Quantar v.24 Byte 3.
 	my ($TalkGroup, $Buffer) = @_;
 	my $HexData = "";
 	#if ($MMDVM_Verbose) {print "MMDVM_Rx Len(Buffer) = " . length($Buffer) . "\n";}
@@ -2878,7 +2962,7 @@ my $VA_Test = 0xFFFF00;
 		#print "RR_Timer $RR_Timer RR_Timeout $RR_Timeout HDLC_Handshake $HDLC_Handshake\n";
 		if (($RR_Timer == 1) and ($RR_Timeout < 0) and $HDLC_Handshake) {
 			if ($HDLC_Verbose) {print $hour . ":" . $min . ":" . $sec . " Send RR by timer.\n";} 
-			#warn "RR Timed out @{[int time - $^T]}\n";
+			warn "RR Timed out @{[int time - $^T]}\n";
 			if ((($Mode == 1) and $STUN_Connected and ($HDLC_TxTraffic == 0))
 				or (($Mode == 0) and ($HDLC_TxTraffic == 0))) {
 				HDLC_Tx_RR();
@@ -2915,10 +2999,10 @@ my $VA_Test = 0xFFFF00;
 
 
 
-		# Status Beacon Timer.
-		if ((time() - $Report{'Timer'}) >= 300) {
-			Report_Tx();
-			$Report{'Timer'} = time();
+		# RDAC Timer.
+		if (time() >= $RDAC{'NextTimer'}) {
+			RDAC_Tx();
+			$RDAC{'NextTimer'} = time() + $RDAC{'Interval'};
 		}
 
 
@@ -3037,6 +3121,8 @@ my $VA_Test = 0xFFFF00;
 
 		# Voice announce.
 		if ($HDLC_Handshake and ($Quant{0}{'LocalRx'} == 0) and $Pending_VA) {
+			if ($VA_Message <= 0xFFFF) { APRS_Update_TG($VA_Message); }
+			if ($VA_Message == 0xFFFF13) { APRS_Update_TG($PriorityTG); }
 			if ($UseVoicePrompts == 1) {
 				SaySomething($VA_Message);
 			}
@@ -3077,7 +3163,7 @@ my $VA_Test = 0xFFFF00;
 			
 			if ($APRS_IS->connected() and ($APRS_Timer <= time())) {
 				if ($APRS_Verbose) {print color('green'), "APRS-IS Timer.\n", color('reset');}
-				APRS_Update();
+				APRS_Update($LinkedTalkGroup);
 				$APRS_Timer = time() + $APRS_Interval;
 			}
 		}
@@ -3096,6 +3182,7 @@ my $VA_Test = 0xFFFF00;
 
 					case ord('A') { # 'A'
 						APRS_Update();
+						$APRS_Timer = time() + $APRS_Interval;
 						$APRS_Verbose = 1;
 					}
 					case ord('a') { # 'a'
