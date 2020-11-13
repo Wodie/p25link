@@ -31,25 +31,35 @@ Next, log to it using SSH.
 
 Run the following coomands:
 
- cd /opt
+```
+cd /opt
+```
 
 Download the current p25link_2.xx-x.deb file using the following command:
 
- sudo wget https://github.com/Wodie/p25link/raw/master/installer/p25link_2.30-3.deb
+```
+sudo wget https://github.com/Wodie/p25link/raw/master/installer/p25link_2.30-3.deb
+```
 
 Install it with the following command:
 
- sudo apt install /opt/p25link_2.30-3.deb
+```
+sudo apt install /opt/p25link_2.30-3.deb
+```
 
 To configure, run the main menu run:
 
- sudo /opt/p25link/p25link-menu
+```
+sudo /opt/p25link/p25link-menu
+```
 
 READ what you are asked to input.
 
 To test app run:
 
- sudo /opt/p25link/p25link
+```
+sudo /opt/p25link/p25link
+```
 
 Remember to modify the hosts.txt file with the Talk Groups you want lo add to the scan list by setting the last field to a highest take precedence >= 1, 0 = No scan.
 
@@ -57,73 +67,58 @@ Remember to modify the hosts.txt file with the Talk Groups you want lo add to th
 # History:
 
 ## v2.30-3 November 13, 2020.
-New: RDAC, which used to be the Report to server draft.
-
-New: Site Name field.
-
-New: Site Info field.
+- New: RDAC, which used to be the Report to server draft.
+- New: Site Name field.
+- New: Site Info field.
 
 ## v2.30-2 November 09, 2020.
-Misc: Minor APRS code fixes.
-
-Added: Linked Talk Group now updates on APRS-IS.
-
-Added: APRS objects update time can be changed on the config.ini file.
-
-Fixed: some .deb bugs.
-
-Added: Semi automatic creation of .deb file.
-
-Added: APRS-IS rotate server.
+- Misc: Minor APRS code fixes.
+- Added: Linked Talk Group now updates on APRS-IS.
+- Added: APRS objects update time can be changed on the config.ini file.
+- Fixed: some .deb bugs.
+- Added: Semi automatic creation of .deb file.
+- Added: APRS-IS rotate server.
 
 ## v2.30 October 23, 2020.
-Lot of code updates and bugs fixed.
-
-All config files changed and been renamed.
-
-New Voice Announcements.
-
-First time menu changed, now it is very friendly.
-
-Report to server draft code implemented.
+- Lot of code updates and bugs fixed.
+- All config files changed and been renamed.
+- New Voice Announcements.
+- First time menu changed, now it is very friendly.
+- Report to server draft code implemented.
 
 ## v2.20 October 12, 2020.
-APRS-IS objects code modified.
-
-config.ini APRS-IS stanza renamed to APRS.
+- APRS-IS objects code modified.
+- config.ini APRS-IS stanza renamed to APRS.
 
 ## v2.20 October 02, 2020.
-APRS-IS objects implemented.
+- APRS-IS objects implemented.
 
 ## v2.19 September 29, 2020.
-APRS-IS implemented, now the repeater location can be posted thru APRS-IS.
+- APRS-IS implemented, now the repeater location can be posted thru APRS-IS.
 
 ## v2.00.18 September 17, 2020.
-Dynamic Talk Groups disconnect function implemented using Hangtime timer.
-
-Voice announce bug fixed, should play complete files. hosts.txt file updated.
+- Dynamic Talk Groups disconnect function implemented using Hangtime timer.
+- Voice announce bug fixed, should play complete files. hosts.txt file updated.
 
 ## v2.00.18 August 18, 2020.
-Courtesy tones implemented.
-
-Call end timer bug fixed.
+- Courtesy tones implemented.
+- Call end timer bug fixed.
 
 ## v2.0.17 September 03, 2020.
-Bug fixes.
+- Bug fixes.
 
 ## v2.0.16 August 25, 2020.
-P25Link Talk Groups now implemented for future compatibility with P25-MMDVM talk groups 11-65534.
+- P25Link Talk Groups now implemented for future compatibility with P25-MMDVM talk groups 11-65534.
 
 ## v2.0.15 July 01, 2020.
-Bug fixes.
+- Bug fixes.
 
 ## v2.0.14 June 11, 2020.
-P25Link beta implementation (TG 4095).
-
-Page and TMS implementation on P25NX and P25Link beta implementation.
+- P25Link beta implementation (TG 4095).
+- Page and TMS implementation on P25NX and P25Link beta implementation.
 
 ## v2.0.13 June 2, 2020.
-First official public release.
+- First official public release.
 
 ## v2.0.13 May 27, 2020.
 
@@ -150,7 +145,7 @@ First official public release.
 ## v2.0.2 October 29, 2019.
 
 ## v2.0.0 October 17, 2019.
-First code created.
+- First code created.
 
 # License
 This software and hardware is licenced under the GPL v3. If you are using it, please let me know, I will be glad to know it.
