@@ -1,23 +1,21 @@
 # P25Link Software
 
-P25Link is a program that let you connect your Quantar repeater or DIU 3000 to multiple HAM networks as P25Link, P25NX, and P25-MMDVM. It use the v.24 port on Quantar/DIU 3000, a Cisco router 28xx and a Raspberry Pi. It use the same router setup as P25NX v2.
+P25Link is a program that let you connect your Quantar repeater or Astro DIU 3000 to multiple HAM networks as P25Link, P25NX, and P25-MMDVM.
+It use the v.24 port on Quantar/DIU 3000, a Cisco router 28xx and a Raspberry Pi. It use the same router setup as P25NX.
 
-
-# Current features:
-
-## Local
+# Current version features:
 - Voice talk groups 1 to 10.
-- P25Link network Voice talk groups 11 to 65534.
-- P25NX network Voice talk groups 10100 to 10599.
-- P25-MMDVM network Voice talk groups 11 to 65534.
+- P25Link network Voice talk groups 11 to 65534 (each TG is network selectable).
+- P25NX network Voice talk groups 10100 to 10599 (each TG is network selectable).
+- P25-MMDVM network Voice talk groups 11 to 65534 (each TG is network selectable).
 - TMS (text messages) implemented if repeaters are on P25Link network and radios on linked TG.
 - Page functionality implemented if repeaters are on P25Link network and radios on linked TG.
 - Repeater scan mode with priority index for talk groups.
 - Local and remote courtesy tones.
-
+- RDAC for P25Link and P25NX.
 
 # Setup
-- To setup the P25Link software for yor Quantar or DIU 3000, you will need to install a fresh Debian image on your Raspberry Pi.
+- To setup the P25Link software for yor Quantar or Astro DIU 3000, you will need to install a fresh Raspbian image on your Raspberry Pi.
 - Next, log to it using SSH.
 - Run the following commands:
 ```
@@ -44,7 +42,6 @@ sudo /opt/p25link/p25link-menu
 sudo /opt/p25link/p25link
 ```
 - Remember to modify the hosts.txt file with the Talk Groups you want lo add to the scan list by setting the last field to a highest take precedence >= 1, 0 = No scan.
-
 
 # History:
 
@@ -130,4 +127,4 @@ sudo /opt/p25link/p25link
 - First code created.
 
 # License
-This software and hardware is licenced under the GPL v3. If you are using it, please let me know, I will be glad to know it.
+This software is licenced under the GPL v3. If you are using it, please let me know, I will be glad to know it.
