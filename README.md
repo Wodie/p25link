@@ -49,6 +49,7 @@ sudo /opt/p25link/p25link
 - New: RDAC, which used to be the Report to server draft.
 - New: Site Name field.
 - New: Site Info field.
+- Fixed: App was consuming a lot of CPU.
 
 ## v2.30-2 November 09, 2020.
 - Misc: Minor APRS code fixes.

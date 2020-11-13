@@ -626,6 +626,7 @@ print "----------------------------------------------------------------------\n"
 
 
 # Misc
+my $Read_Timeout = 0.005;
 my $Run = 1;
 my $TGVar = 2044;
 
@@ -2979,7 +2980,7 @@ my $VA_Test = 0xFFFF00;
 
 		# Cisco STUN TCP Receiver.
 		if (($Mode == 1) and ($STUN_Connected == 1)) {
-			for $STUN_fh ($STUN_Sel->can_read(0.00001)) {
+			for $STUN_fh ($STUN_Sel->can_read($Read_Timeout)) {
 				my $RemoteHost = $STUN_fh->recv(my $Buffer, $MaxLen);
 				if ($RemoteHost) {
 					print "RemoteHost = " . $RemoteHost . "\n";
@@ -3023,7 +3024,7 @@ my $VA_Test = 0xFFFF00;
 		# MMDVM Receiver.
 		foreach my $key (keys %TG) {
 			if ($TG{$key}{'MMDVM_Connected'}) {
-				for my $MMDVM_fh ($TG{$key}{Sel}->can_read(0.0001)) {
+				for my $MMDVM_fh ($TG{$key}{Sel}->can_read($Read_Timeout)) {
 					$MMDVM_RemoteHost = $MMDVM_fh->recv(my $Buffer, $MaxLen);
 					$MMDVM_RemoteHost = $MMDVM_fh->peerhost;
 					if ($MMDVM_Verbose) {print "MMDVM_RemoteHost = " . $MMDVM_RemoteHost . "\n";}
@@ -3041,7 +3042,7 @@ my $VA_Test = 0xFFFF00;
 			if ($TG{$key}{'P25Link_Connected'}) {
 				my $TalkGroup;
 				my $OutBuffer;
-				for my $P25Link_fh ($TG{$key}{Sel}->can_read(0.0001)) {
+				for my $P25Link_fh ($TG{$key}{Sel}->can_read($Read_Timeout)) {
 					my $P25Link_RemoteHost = $P25Link_fh->recv(my $Buffer, $MaxLen);
 					$P25Link_RemoteHost = $P25Link_fh->peerhost;
 					#if ($Verbose) {print "P25Link_LocalHost = " . $PN25Link_LocalHost . "\n";}
@@ -3074,7 +3075,7 @@ my $VA_Test = 0xFFFF00;
 			if ($TG{$key}{'P25NX_Connected'}) {
 				my $TalkGroup;
 				my $OutBuffer;
-				for my $P25NX_fh ($TG{$key}{Sel}->can_read(0.0001)) {
+				for my $P25NX_fh ($TG{$key}{Sel}->can_read($Read_Timeout)) {
 					my $P25NX_RemoteHost = $P25NX_fh->recv(my $Buffer, $MaxLen);
 					$P25NX_RemoteHost = $P25NX_fh->peerhost;
 					#if ($Verbose) {print "P25NX_LocalHost = " . $P25NX_LocalHost . "\n";}
@@ -3266,7 +3267,6 @@ my $VA_Test = 0xFFFF00;
 		if ($Verbose >= 5) {print "Looping the right way.\n";}
 		#my $NumberOfTalkGroups = scalar keys %TG;
 		#print "Total number of links is: " . $NumberOfTalkGroups . "\n\n";
-
 
 
 	}
