@@ -7,55 +7,89 @@ P25Link is a program that let you connect your Quantar repeater or DIU 3000 to m
 
 ## Local
 Voice talk groups 1 to 10.
+
+
 P25Link network Voice talk groups 11 to 65534.
+
 P25NX network Voice talk groups 10100 to 10599.
+
 P25-MMDVM network Voice talk groups 11 to 65534.
+
 TMS (text messages) implemented if repeaters are on P25Link network and radios on linked TG.
+
 Page functionality implemented if repeaters are on P25Link network and radios on linked TG.
+
 Repeater scan mode with priority index for talk groups.
+
 Local and remote courtesy tones.
 
 
 # Setup
+To setup the P25Link software for yor Quantar or DIU 3000, you will need to install a fresh Debian image on your Raspberry Pi.
 
-To configure your Cisco router, please follow the P25NX router setup. If you only want to connect to P25-MMDVM, you only need to setup STUN.
+Next, log to it using SSH.
 
-To use the p25nx2 program copy files to your Raspberry path /opt/p25nx2.
+Run the following coomands:
 
-To run the configuration menu:
+ cd /opt
 
-cd /opt/p25link
-sudo chmod 755 p25link-menu
-sudo ./p25link-menu
+Download the current p25link_2.xx-x.deb file using the following command:
 
-there you can make the initial setup, download Perl libraries if you want to change code, etc.
+ sudo wget https://github.com/Wodie/p25link/raw/master/installer/p25link_2.30-3.deb
 
-MRemember to modify the hosts.txt file with the Talk Groups you want lo add to the scan list by setting the last field to a highest take precedence >= 1, 0 = No scan.
+Install it with the following command:
+
+ sudo apt install /opt/p25link_2.30-3.deb
+
+To configure, run the main menu run:
+
+ sudo /opt/p25link/p25link-menu
+
+READ what you are asked to input.
+
+To test app run:
+
+ sudo /opt/p25link/p25link
+
+Remember to modify the hosts.txt file with the Talk Groups you want lo add to the scan list by setting the last field to a highest take precedence >= 1, 0 = No scan.
+
 
 # History:
 
 ## v2.30-3 November 13, 2020.
 New: RDAC, which used to be the Report to server draft.
+
 New: Site Name field.
+
 New: Site Info field.
 
 ## v2.30-2 November 09, 2020.
 Misc: Minor APRS code fixes.
+
 Added: Linked Talk Group now updates on APRS-IS.
+
 Added: APRS objects update time can be changed on the config.ini file.
+
 Fixed: some .deb bugs.
+
 Added: Semi automatic creation of .deb file.
+
 Added: APRS-IS rotate server.
 
 ## v2.30 October 23, 2020.
 Lot of code updates and bugs fixed.
+
 All config files changed and been renamed.
+
 New Voice Announcements.
+
 First time menu changed, now it is very friendly.
+
 Report to server draft code implemented.
 
 ## v2.20 October 12, 2020.
 APRS-IS objects code modified.
+
 config.ini APRS-IS stanza renamed to APRS.
 
 ## v2.20 October 02, 2020.
@@ -66,6 +100,7 @@ APRS-IS implemented, now the repeater location can be posted thru APRS-IS.
 
 ## v2.00.18 September 17, 2020.
 Dynamic Talk Groups disconnect function implemented using Hangtime timer.
+
 Voice announce bug fixed, should play complete files. hosts.txt file updated.
 
 ## v2.00.18 August 18, 2020.
