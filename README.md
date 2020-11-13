@@ -6,62 +6,44 @@ P25Link is a program that let you connect your Quantar repeater or DIU 3000 to m
 # Current features:
 
 ## Local
-Voice talk groups 1 to 10.
-
-
-P25Link network Voice talk groups 11 to 65534.
-
-P25NX network Voice talk groups 10100 to 10599.
-
-P25-MMDVM network Voice talk groups 11 to 65534.
-
-TMS (text messages) implemented if repeaters are on P25Link network and radios on linked TG.
-
-Page functionality implemented if repeaters are on P25Link network and radios on linked TG.
-
-Repeater scan mode with priority index for talk groups.
-
-Local and remote courtesy tones.
+- Voice talk groups 1 to 10.
+- P25Link network Voice talk groups 11 to 65534.
+- P25NX network Voice talk groups 10100 to 10599.
+- P25-MMDVM network Voice talk groups 11 to 65534.
+- TMS (text messages) implemented if repeaters are on P25Link network and radios on linked TG.
+- Page functionality implemented if repeaters are on P25Link network and radios on linked TG.
+- Repeater scan mode with priority index for talk groups.
+- Local and remote courtesy tones.
 
 
 # Setup
-To setup the P25Link software for yor Quantar or DIU 3000, you will need to install a fresh Debian image on your Raspberry Pi.
-
-Next, log to it using SSH.
-
-Run the following coomands:
-
+- To setup the P25Link software for yor Quantar or DIU 3000, you will need to install a fresh Debian image on your Raspberry Pi.
+- Next, log to it using SSH.
+- Run the following commands:
 ```
 cd /opt
 ```
-
-Download the current p25link_2.xx-x.deb file using the following command:
+- Download the current p25link_2.xx-x.deb file using the following command:
 
 ```
 sudo wget https://github.com/Wodie/p25link/raw/master/installer/p25link_2.30-3.deb
 ```
-
-Install it with the following command:
-
+- Install it with the following command:
 ```
 sudo apt install /opt/p25link_2.30-3.deb
 ```
 
-To configure, run the main menu run:
-
+- To configure, run the main menu run:
 ```
 sudo /opt/p25link/p25link-menu
 ```
+- READ what you are asked to input.
 
-READ what you are asked to input.
-
-To test app run:
-
+- To test app run:
 ```
 sudo /opt/p25link/p25link
 ```
-
-Remember to modify the hosts.txt file with the Talk Groups you want lo add to the scan list by setting the last field to a highest take precedence >= 1, 0 = No scan.
+- Remember to modify the hosts.txt file with the Talk Groups you want lo add to the scan list by setting the last field to a highest take precedence >= 1, 0 = No scan.
 
 
 # History:
