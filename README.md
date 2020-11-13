@@ -43,7 +43,7 @@ sudo /opt/p25link/p25link
 ```
 - Remember to modify the hosts.txt file with the Talk Groups you want lo add to the scan list by setting the last field to a highest take precedence >= 1, 0 = No scan.
 
-# History:
+# Version History:
 
 ## v2.30-3 November 13, 2020.
 - New: RDAC, which used to be the Report to server draft.
