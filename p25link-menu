@@ -1,8 +1,8 @@
 #!/bin/bash
 # P25LINK-MENU
 ##################################################################
-#	*** P25Link v2.30-3 ***
-#	Released: November 13, 2020. Created September 04, 2019.
+#	*** P25Link v2.30-4 ***
+#	Released: December 29, 2020. Created September 04, 2019.
 #	Created by: Juan Carlos Pérez De Castro (Wodie) KM4NNO, XE1F.
 #	www.wodielite.com
 #	wodielite at mac.com
@@ -21,8 +21,7 @@ INTERACTIVE=True
 ASK_TO_REBOOT=0
 #CONFIG=/opt/p25link/config.txt
 
-PERL_SOURCE=/opt/p25link/p25link_v2.30.pl
-PACKAGE_VER=p25link_2.30-3
+PACKAGE_VER=p25link_2.30-4
 DEPLOY_DIR=/opt/deploy/$PACKAGE_VER
 
 
@@ -268,7 +267,15 @@ if [ "$ANSWER" = "0" ]; then
 fi
 }
 
-
+do_create_new_user() {
+  if (whiptail --title "Do you want to create a new user?" --yesno --defaultno "Create Yes or No" 8 78) then
+    echo "create new user" >> $logfile
+    P25LINKUSER="p25user"
+    NEWUSER=$(whiptail --inputbox "Enter the new user name." 8 78 "$P25LINKUSER" --title "New user" 3>&1 1>&2 2>&3)
+    adduser $NEWUSER --system --home /opt/p25link &&
+    P25LINKUSER=$NEWUSER
+  fi
+}
 
 do_apt_get_update() {
 echo "do_apt_get_update" >> $logfile
@@ -308,32 +315,32 @@ whiptail --msgbox "Done running CPAN mod installations" 20 60 2
 do_build_app() {
   chmod +x $CONFIGS/p25link.pl &&
   # Make app
-  pp -o /opt/p25link/p25link   $PERL_SOURCE
+  pp -o /opt/p25link/p25link   $CONFIGS/p25link.pl
   whiptail --msgbox "Done building executable file" 20 60 2
 }
 
 do_build_deb() {
   # Make app
-  pp -o /opt/p25link/p25link   $PERL_SOURCE
+  pp -o /opt/p25link/p25link   $CONFIGS/p25link.pl
   cd /opt/deploy
   sudo mkdir $DEPLOY_DIR
   sudo mkdir $DEPLOY_DIR/opt
   sudo mkdir $DEPLOY_DIR/opt/p25link
   # Copy files
-  sudo cp -r /opt/p25link/xaprs.txt   $DEPLOY_DIR/opt/p25link/aprs.txt
-  sudo cp -r /opt/p25link/xconfig.ini   $DEPLOY_DIR/opt/p25link/config.ini
-  sudo cp -r /opt/p25link/FAP.pm   $DEPLOY_DIR/opt/p25link/FAP.pm
-  sudo cp -r /opt/p25link/first-time   $DEPLOY_DIR/opt/p25link/first-time
-  sudo cp -r /opt/p25link/xhosts.txt   $DEPLOY_DIR/opt/p25link/hosts.txt
-  sudo cp -r /opt/p25link/LICENSE.txt   $DEPLOY_DIR/opt/p25link/LICENSE.txt
-  sudo cp -r /opt/p25link/net-setup   $DEPLOY_DIR/opt/p25link/net-setup
-  sudo cp -r /opt/p25link/p25link   $DEPLOY_DIR/opt/p25link/p25link
-  sudo cp -r /opt/p25link/p25link-menu   $DEPLOY_DIR/opt/p25link/p25link-menu
-  sudo cp -r $PERL_SOURCE   $DEPLOY_DIR/opt/p25link/p25link.pl
-  sudo cp -r /opt/p25link/p25link.service   $DEPLOY_DIR/opt/p25link/p25link.service
-  sudo cp -r /opt/p25link/README.md   $DEPLOY_DIR/opt/p25link/README.md
-  sudo cp -r /opt/p25link/speech.ini   $DEPLOY_DIR/opt/p25link/speech.ini
-  sudo cp -r /opt/p25link/DEBIAN   $DEPLOY_DIR/
+  sudo cp -r $CONFIGS/xaprs.txt   $DEPLOY_DIR/opt/p25link/aprs.txt
+  sudo cp -r $CONFIGS/xconfig.ini   $DEPLOY_DIR/opt/p25link/config.ini
+  sudo cp -r $CONFIGS/FAP.pm   $DEPLOY_DIR/opt/p25link/FAP.pm
+  sudo cp -r $CONFIGS/first-time   $DEPLOY_DIR/opt/p25link/first-time
+  sudo cp -r $CONFIGS/xhosts.txt   $DEPLOY_DIR/opt/p25link/hosts.txt
+  sudo cp -r $CONFIGS/LICENSE.txt   $DEPLOY_DIR/opt/p25link/LICENSE.txt
+  sudo cp -r $CONFIGS/net-setup   $DEPLOY_DIR/opt/p25link/net-setup
+  sudo cp -r $CONFIGS/p25link   $DEPLOY_DIR/opt/p25link/p25link
+  sudo cp -r $CONFIGS/p25link-menu   $DEPLOY_DIR/opt/p25link/p25link-menu
+  sudo cp -r $CONFIGS/p25link.pl   $DEPLOY_DIR/opt/p25link/p25link.pl
+  sudo cp -r $CONFIGS/p25link.service   $DEPLOY_DIR/opt/p25link/p25link.service
+  sudo cp -r $CONFIGS/README.md   $DEPLOY_DIR/opt/p25link/README.md
+  sudo cp -r $CONFIGS/speech.ini   $DEPLOY_DIR/opt/p25link/speech.ini
+  sudo cp -r $CONFIGS/DEBIAN   $DEPLOY_DIR/
 
   # Build .deb
   cd /opt/deploy
@@ -430,19 +437,119 @@ do_nothing() {
 
 
 
+
+
+
+
+
+#################################################################################
+# Direwolf ######################################################################
+#################################################################################
+
+
+do_direwolf_install() {
+echo "do_direwolf_install" >> $logfile
+whiptail --msgbox "Grab a cup of coffee if you have not run this in a while\nUpdating repository information" 20 60 2
+cd /opt &&
+echo "* apt-get install git"
+#apt-get install git &&
+echo "* apt-get install gcc"
+#apt-get install gcc &&
+echo "* apt-get install g++"
+#apt-get install g++ &&
+echo "* apt-get make"
+#apt-get install make &&
+echo "* apt-get cmake"
+#apt-get install cmake &&
+echo "apt-get install build-essential"
+apt-get install build-essential
+echo "apt-get install alsa-utils "
+apt-get install alsa-utils
+echo "* apt-get install libasound2-dev"
+apt-get install libasound2-dev
+echo "* apt-get install libudev-dev"
+apt-get install libudev-dev
+
+
+echo "* cd ~"
+cd ~
+echo "* clone direwolf"
+#git clone https://www.github.com/wb2osz/direwolf /opt/direwolf
+cd /opt/direwolf
+#echo "* checkout dev"
+#git checkout dev
+echo "* build"
+mkdir build && cd build
+echo "* cmake"
+cmake ..
+echo "* make"
+#make -j4 &&
+echo "* make install"
+#make install &&
+echo "* make install-conf"
+#make install-conf &&
+
+echo "* apt-get update"
+#apt-get update &&
+echo "* apt-cache showpkg direwolf"
+#apt-cache showpkg direwolf &&
+echo "* apt-get install direwolf"
+#apt-get install direwolf &&
+
+whiptail --msgbox "Done Direwolf installations" 20 60 2
+}
+
+do_run_direwolf_firsttime() {
+  echo "do_run_direwolf_firsttime" >> $logfile
+  if (whiptail --title "Do you want to run update before install" --yesno --defaultno "Update Yes or No" 8 78) then
+    do_apt_get_update
+  fi
+  chmod +x $CONFIGS/direwolf-first-time
+  $CONFIGS/direwolf-first-time
+}
+
+
+
 #################################################################################
 # Menus #########################################################################
 #################################################################################
+
+do_extras_menu() {
+  FUN=$(whiptail --title "Extras menu" --menu "Extras" $WT_HEIGHT $WT_WIDTH $WT_MENU_HEIGHT --cancel-button Back --ok-button Select \
+    "A " "APRS Direwolf Install" \
+    "B " "APRS Direwolf first time configuration" \
+    "C " "Edit direwolf.conf file with advanced settings" \
+    "1 " "Auto-start Direwolf software on boot" \
+    "R " "Restart Direwolf software only" \
+    "S " "Disable Auto-start Direwolf software on boot" \
+    3>&1 1>&2 2>&3)
+  RET=$?
+  if [ $RET -eq 1 ]; then
+    return 0
+  elif [ $RET -eq 0 ]; then
+    case "$FUN" in
+      A\ *) do_direwolf_install ;;
+      B\ *) do_run_direwolf_firsttime ;;
+      C\ *) nano /root/direwolf.conf ;;
+      1\ *) do_direwold_start ;;
+      R\ *) do_direwolf_restart ;;
+      S\ *) do_direwolf_stop ;;
+      *) whiptail --msgbox "Programmer error: unrecognized option" 20 60 1 ;;
+    esac || whiptail --msgbox "There was an error running option $FUN" 20 60 1
+  fi
+}
+
 
 do_utilities_menu() {
   FUN=$(whiptail --title "P25Link Utilities menu" --menu "Utilities" $WT_HEIGHT $WT_WIDTH $WT_MENU_HEIGHT --cancel-button Back --ok-button Select \
     "U1 " "Change Root password" \
     "U2 " "Change User password for the current user" \
-    "U3 " "Run apt-get update" \
-    "U4 " "Run apt-get upgrade" \
-    "U5 " "Run p25link-menu at login" \
-    "U6 " "Restart system (Raspberry Pi)" \
-    "U7 " "Shutdown system" \
+    "U3 " "Create New User" \
+    "U4 " "Run apt-get update" \
+    "U5 " "Run apt-get upgrade" \
+    "U6 " "Run p25link-menu at login" \
+    "U7 " "Restart system (Raspberry Pi)" \
+    "U8 " "Shutdown system" \
     3>&1 1>&2 2>&3)
   RET=$?
   if [ $RET -eq 1 ]; then
@@ -451,11 +558,12 @@ do_utilities_menu() {
     case "$FUN" in
       U1\ *) do_set_root_passwd ;;
       U2\ *) do_set_my_passwd ;;
-      U3\ *) do_apt_get_update ;;
-      U4\ *) do_apt_get_upgrade ;;
-      U5\ *) do_use_p25link_menu ;;
-      U6\ *) do_system_restart ;;
-      U7\ *) do_system_halt ;;
+      U3\ *) do_create_new_user ;;
+      U4\ *) do_apt_get_update ;;
+      U5\ *) do_apt_get_upgrade ;;
+      U6\ *) do_use_p25link_menu ;;
+      U7\ *) do_system_restart ;;
+      U8\ *) do_system_halt ;;
       *) whiptail --msgbox "Programmer error: unrecognized option" 20 60 1 ;;
     esac || whiptail --msgbox "There was an error running option $FUN" 20 60 1
   fi
@@ -512,12 +620,13 @@ RET=0
         "1 First-time setup" "Run initial step by step configuration" \
         "2 Network Menu" "Network configuration menu options" \
         "3 Utilities Menu" "Utilities and misc options" \
-        "4 Developer tools" "Advanced utilities for dev." \
-        "5 config.ini" "Edit config.ini file with advanced settings" \
-        "6 hosts.txt" "Edit hosts.txt file with your custom hosts" \
-        "7 aprs.txt" "Edit aprs.txt file with your own objects" \
-        "8 Auto Start App" "Auto-start P25Link software on boot" \
-        "9 Restart App" "Restart P25Link software only" \
+        "4 Extras Menu" "Other apps installers & setup" \
+        "5 Developer tools" "Advanced utilities for dev." \
+        "6 config.ini" "Edit config.ini file with advanced settings" \
+        "7 hosts.txt" "Edit hosts.txt file with your custom hosts" \
+        "8 aprs.txt" "Edit aprs.txt file with your own objects" \
+        "9 Auto Start App" "Auto-start P25Link software on boot" \
+        "R Restart App" "Restart P25Link software only" \
         "S Stop Auto Start" "Disable Auto-start P25Link software on boot" \
         3>&1 1>&2 2>&3)
       RET=$?
@@ -529,12 +638,13 @@ RET=0
           1\ *) do_run_firsttime ;;
           2\ *) do_network_menu ;;
           3\ *) do_utilities_menu ;;
-          4\ *) do_developer_menu ;;
-          5\ *) nano $CONFIGS/config.ini ;;
-          6\ *) nano $CONFIGS/hosts.txt ;;
-          7\ *) nano $CONFIGS/aprs.txt ;;
-          8\ *) do_start ;;
-          9\ *) do_restart ;;
+          4\ *) do_extras_menu ;;
+          5\ *) do_developer_menu ;;
+          6\ *) nano $CONFIGS/config.ini ;;
+          7\ *) nano $CONFIGS/hosts.txt ;;
+          8\ *) nano $CONFIGS/aprs.txt ;;
+          9\ *) do_start ;;
+          R\ *) do_restart ;;
           S\ *) do_stop ;;
           *) whiptail --msgbox "Programmer error: unrecognized option" 20 60 1 ;;
         esac || whiptail --msgbox "There was an error running option $FUN" 20 60 1

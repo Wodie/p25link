@@ -45,6 +45,10 @@ sudo /opt/p25link/p25link
 
 # Version History:
 
+## v2.31-0 November 19, 2020.
+- Fixed: code simplification and optimisation.
+- Added: Alive column added on aprs.txt file, now objects can be killed. Please update your aprs.txt file.
+
 ## v2.30-3 November 13, 2020.
 - New: RDAC, which used to be the Report to server draft.
 - New: Site Name field.
