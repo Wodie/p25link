@@ -21,7 +21,7 @@ INTERACTIVE=True
 ASK_TO_REBOOT=0
 #CONFIG=/opt/p25link/config.txt
 
-PACKAGE_VER=p25link_2.30-4
+PACKAGE_VER=p25link_2.32-0
 DEPLOY_DIR=/opt/deploy/$PACKAGE_VER
 
 
@@ -107,6 +107,10 @@ do_run_firsttime() {
 
 do_start() {
   echo "do_start" >> $logfile
+  SCRIPTUSER=$(grep '^User=' /$CONFIGS/p25link.service | awk -F'=' '{print $2}' | sed 's/|\i//' | sed -e 's/^\(.\{9\}\).*/\1/'|sed 's/ //g')
+  SCRIPTUSER=$(whiptail --inputbox "Current P25Link user is $SCRIPTUSER enter new user name." 8 78 "$SCRIPTUSER" --title "Script User" 3>&1 1>&2 2>&3)
+  sed -i 's/User.*/User='$SCRIPTUSER'/' $CONFIGS/p25link.service
+
   cp $CONFIGS/p25link.service /lib/systemd/system/p25link.service &&
   chmod 644 /lib/systemd/system/p25link.service &&
   systemctl enable p25link &&
@@ -617,15 +621,15 @@ RET=0
     calc_wt_size
       FUN=$(whiptail --title "P25Link Main Menu $HOSTNAME $ETH0IP:$SSHPORT" --backtitle "$(cat /proc/device-tree/model)" --menu "Setup Options" $WT_HEIGHT $WT_WIDTH $WT_MENU_HEIGHT --cancel-button Finish --ok-button Select \
         "A About p25link-menu" "Information about this configuration tool" \
-        "1 First-time setup" "Run initial step by step configuration" \
-        "2 Network Menu" "Network configuration menu options" \
-        "3 Utilities Menu" "Utilities and misc options" \
-        "4 Extras Menu" "Other apps installers & setup" \
-        "5 Developer tools" "Advanced utilities for dev." \
-        "6 config.ini" "Edit config.ini file with advanced settings" \
-        "7 hosts.txt" "Edit hosts.txt file with your custom hosts" \
-        "8 aprs.txt" "Edit aprs.txt file with your own objects" \
-        "9 Auto Start App" "Auto-start P25Link software on boot" \
+        "B First-time setup" "Run initial step by step configuration" \
+        "C Network Menu" "Network configuration menu options" \
+        "D Utilities Menu" "Utilities and misc options" \
+        "E Extras Menu" "Other apps installers & setup" \
+        "F Developer tools" "Advanced utilities for dev." \
+        "G config.ini" "Edit config.ini file with advanced settings" \
+        "H hosts.txt" "Edit hosts.txt file with your custom hosts" \
+        "I aprs.txt" "Edit aprs.txt file with your own objects" \
+        "J Auto Start App" "Auto-start P25Link software on boot" \
         "R Restart App" "Restart P25Link software only" \
         "S Stop Auto Start" "Disable Auto-start P25Link software on boot" \
         3>&1 1>&2 2>&3)
@@ -635,15 +639,15 @@ RET=0
       elif [ $RET -eq 0 ]; then
         case "$FUN" in
           A\ *) do_about ;;
-          1\ *) do_run_firsttime ;;
-          2\ *) do_network_menu ;;
-          3\ *) do_utilities_menu ;;
-          4\ *) do_extras_menu ;;
-          5\ *) do_developer_menu ;;
-          6\ *) nano $CONFIGS/config.ini ;;
-          7\ *) nano $CONFIGS/hosts.txt ;;
-          8\ *) nano $CONFIGS/aprs.txt ;;
-          9\ *) do_start ;;
+          B\ *) do_run_firsttime ;;
+          C\ *) do_network_menu ;;
+          D\ *) do_utilities_menu ;;
+          E\ *) do_extras_menu ;;
+          F\ *) do_developer_menu ;;
+          G\ *) nano $CONFIGS/config.ini ;;
+          H\ *) nano $CONFIGS/hosts.txt ;;
+          I\ *) nano $CONFIGS/aprs.txt ;;
+          J\ *) do_start ;;
           R\ *) do_restart ;;
           S\ *) do_stop ;;
           *) whiptail --msgbox "Programmer error: unrecognized option" 20 60 1 ;;
