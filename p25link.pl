@@ -37,12 +37,12 @@ my $StartTime = time();
 # About this app.
 my $AppName = 'P25Link';
 use constant VersionInfo => 2;
-use constant MinorVersionInfo => 31;
+use constant MinorVersionInfo => 32;
 use constant RevisionInfo => 0;
 my $Version = VersionInfo . '.' . MinorVersionInfo . '-' . RevisionInfo;
 print "\n##################################################################\n";
 print "	*** $AppName v$Version ***\n";
-print "	Released: December 29, 2020. Created October 17, 2019.\n";
+print "	Released: Jan 03, 2021. Created October 17, 2019.\n";
 print "	Created by:\n";
 print "	Juan Carlos Pérez De Castro (Wodie) KM4NNO / XE1F\n";
 print "	Bryan Fields W9CR.\n";
@@ -59,8 +59,8 @@ print "	Byan Fields W9CR\n";
 print "	P25-MMDVM creator Jonathan Naylor G4KLX\n";
 print "	P25NX creatorDavid Kraus NX4Y\n";
 print "	David Kierzkowski KD8EYF\n";
-print "	APRS is a registed trademark and creation of Bob Bruninga WB4APR/n";
-print "##################################################################\n\n";
+print "	APRS is a registed trademark and creation of Bob Bruninga WB4APR\n";
+print "\n##################################################################\n\n";
 
 # Detect Target OS.
 my $OS = $^O;
@@ -68,7 +68,7 @@ print color('green'), "Current OS is $OS\n", color('reset');
 
 # Load Settings ini file.
 print color('green'), "Loading Settings...\n", color('reset');
-my $cfg = Config::IniFiles->new( -file => "config.ini");
+my $cfg = Config::IniFiles->new( -file => "/opt/p25link/config.ini");
 # Settings:
 my $Mode = $cfg->val('Settings', 'HardwareMode'); #0 = v.24, no other modes coded at the momment.
 my $HotKeys = $cfg->val('Settings', 'HotKeys');
@@ -2177,7 +2177,7 @@ sub STUN_Tx{
 		#$STUN_Sel->can_write(0.0001);
 		if ($HDLC_Verbose >= 1) {Bytes_2_HexString($Data);}
 		$STUN_ClientSocket->send($Data);
-		if ($STUN_Verbose) {print , color('green'), "STUN_Tx sent.\n", color('reset');}
+		if ($STUN_Verbose) {print color('green'), "STUN_Tx sent.\n", color('reset');}
 	}
 }
 
