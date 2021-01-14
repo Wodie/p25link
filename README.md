@@ -45,6 +45,12 @@ sudo /opt/p25link/p25link
 
 # Version History:
 
+## v2.32-0 January 03, 2021.
+- Fixed: config.ini file now have full file paths.
+- Fixed: autostart configuration settings that were not allowing app to autostart.
+- Fixed: autostart can be run by diferent user accounts.
+- Added: p25link-menu options to setup different user.
+
 ## v2.31-0 November 19, 2020.
 - Fixed: code simplification and optimisation.
 - Added: Alive column added on aprs.txt file, now objects can be killed. Please update your aprs.txt file.
