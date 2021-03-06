@@ -1,8 +1,8 @@
 #!/bin/bash
 # P25LINK-MENU
 ##################################################################
-#	*** P25Link v2.30-4 ***
-#	Released: December 29, 2020. Created September 04, 2019.
+#	*** P25Link v2.33-0 ***
+#	Released: Mar 06, 2021. Created September 04, 2019.
 #	Created by: Juan Carlos Pérez De Castro (Wodie) KM4NNO, XE1F.
 #	www.wodielite.com
 #	wodielite at mac.com
@@ -21,7 +21,7 @@ INTERACTIVE=True
 ASK_TO_REBOOT=0
 #CONFIG=/opt/p25link/config.txt
 
-PACKAGE_VER=p25link_2.32-0
+PACKAGE_VER=p25link_2.33-0
 DEPLOY_DIR=/opt/deploy/$PACKAGE_VER
 
 
@@ -29,28 +29,28 @@ DEPLOY_DIR=/opt/deploy/$PACKAGE_VER
 # root/sudo test ################################################################
 #################################################################################
 check_if_root() {
-echo "check_if_root" >> $logfile
-if [ `whoami` != root ]; then
-        whiptail --msgbox "This script must be run as root or with sudo" 20 60 2
-        exit 1
-fi
+	echo "check_if_root" >> $logfile
+	if [ `whoami` != root ]; then
+		whiptail --msgbox "This script must be run as root or with sudo" 20 60 2
+		exit 1
+	fi
 }
 
 #################################################################################
 # GUI ###########################################################################
 #################################################################################
 calc_wt_size() {
-echo "doing calc_wt_size" >> $logfile
-  WT_HEIGHT=22
-  WT_WIDTH=$(tput cols)
+	echo "doing calc_wt_size" >> $logfile
+	WT_HEIGHT=22
+	WT_WIDTH=$(tput cols)
 
-  if [ -z "$WT_WIDTH" ] || [ "$WT_WIDTH" -lt 60 ]; then
-    WT_WIDTH=80
-  fi
-  if [ "$WT_WIDTH" -gt 178 ]; then
-    WT_WIDTH=120
-  fi
-  WT_MENU_HEIGHT=$(($WT_HEIGHT-7))
+	if [ -z "$WT_WIDTH" ] || [ "$WT_WIDTH" -lt 60 ]; then
+		WT_WIDTH=80
+	fi
+	if [ "$WT_WIDTH" -gt 178 ]; then
+		WT_WIDTH=120
+	fi
+	WT_MENU_HEIGHT=$(($WT_HEIGHT-7))
 }
 
 
@@ -58,84 +58,83 @@ echo "doing calc_wt_size" >> $logfile
 # Functions #####################################################################
 #################################################################################
 get_node_info() {
-echo "get_node_info" >> $logfile
-CONFIGS=/opt/p25link
-WEBROOT=/var/www/html/pnx
-TMP=/tmp
+	echo "get_node_info" >> $logfile
+	CONFIGS=/opt/p25link
+	WEBROOT=/var/www/html/pnx
+	TMP=/tmp
 
-REBOOT_NEEDED=0
-P25LINK_RESTART=0
+	REBOOT_NEEDED=0
+	P25LINK_RESTART=0
 
-#HTTPPORT=80
-#HTTPSPORT=443
-RADIOID=$(grep -o '^\[[0-9]*\]' $CONFIGS/config.ini | sed 's/.*\[\([^]]*\)\].*/\1/g')
-CALLSIGN=$(grep '^idrecording =' $CONFIGS/config.ini | awk -F'=' '{print $2}' | sed 's/|\i//' | sed -e 's/^\(.\{9\}\).*/\1/')
-SSHPORT=$(grep 'Port ' /etc/ssh/sshd_config | awk -F" " '{print $2}')
-ETH0IP=$(ip addr show eth0 | grep "inet\b" | awk '{print $2}' | cut -d/ -f1)
-HOSTNAME=$(cat /etc/hostname | tr -d " \t\n\r")
-
+	#HTTPPORT=80
+	#HTTPSPORT=443
+	RADIOID=$(grep -o '^\[[0-9]*\]' $CONFIGS/config.ini | sed 's/.*\[\([^]]*\)\].*/\1/g')
+	CALLSIGN=$(grep '^idrecording =' $CONFIGS/config.ini | awk -F'=' '{print $2}' | sed 's/|\i//' | sed -e 's/^\(.\{9\}\).*/\1/')
+	SSHPORT=$(grep 'Port ' /etc/ssh/sshd_config | awk -F" " '{print $2}')
+	ETH0IP=$(ip addr show eth0 | grep "inet\b" | awk '{print $2}' | cut -d/ -f1)
+	HOSTNAME=$(cat /etc/hostname | tr -d " \t\n\r")
 }
 
 #################################################################################
 # Main menu functions ###########################################################
 #################################################################################
 do_run_firsttime() {
-  echo "do_run_firsttime" >> $logfile
-  if (whiptail --title "Do you want to run update before install" --yesno --defaultno "Update Yes or No" 8 78) then
-    do_apt_get_update
-  fi
-  if (whiptail --title "Do you want to create a new user?" --yesno --defaultno "Create Yes or No" 8 78) then
-    echo "create new user" >> $logfile
-    P25LINKUSER="p25user"
-    NEWUSER=$(whiptail --inputbox "Enter the new user name." 8 78 "$P25LINKUSER" --title "New user" 3>&1 1>&2 2>&3)
-    adduser $NEWUSER --system --home /opt/p25link &&
-    P25LINKUSER=$NEWUSER
-  fi
+	echo "do_run_firsttime" >> $logfile
+	if (whiptail --title "Do you want to run update before install" --yesno --defaultno "Update Yes or No" 8 78) then
+		do_apt_get_update
+	fi
+	if (whiptail --title "Do you want to create a new user?" --yesno --defaultno "Create Yes or No" 8 78) then
+		echo "create new user" >> $logfile
+		P25LINKUSER="p25user"
+		NEWUSER=$(whiptail --inputbox "Enter the new user name." 8 78 "$P25LINKUSER" --title "New user" 3>&1 1>&2 2>&3)
+		adduser $NEWUSER --system --home /opt/p25link &&
+		P25LINKUSER=$NEWUSER
+	fi
 
-  if (whiptail --title "Do you want to set a different user from $NEWUSER to run p25link app?" --yesno --defaultno "Change Yes or No" 8 78) then
-    P25LINKUSER=$(whiptail --inputbox "Current P25Link user is $P25LINKUSER enter new user name." 8 78 "$P25LINKUSER" --title "P25Link User" 3>&1 1>&2 2>&3)
-    sed -i 's/User.*/User='$P25LINKUSER'/' $CONFIGS/p25link.service
-    chown $P25LINKUSER /opt/p25link
-  fi
+	if (whiptail --title "Do you want to set a different user from $NEWUSER to run p25link app?" --yesno --defaultno "Change Yes or No" 8 78) then
+		P25LINKUSER=$(whiptail --inputbox "Current P25Link user is $P25LINKUSER enter new user name." 8 78 "$P25LINKUSER" --title "P25Link User" 3>&1 1>&2 2>&3)
+		sed -i 's/User.*/User='$P25LINKUSER'/' $CONFIGS/p25link.service
+		chown $P25LINKUSER /opt/p25link
+	fi
 
-  touch $CONFIGS/firsttime
-  chmod +x $CONFIGS/first-time
-  $CONFIGS/first-time
-  rm -f $CONFIGS/firsttime
-  whiptail --msgbox "Please do not forget to edit hosts.txt file (option 6) to add/remove available talk groups, select networks and add/remove TGs to scan list" 10 60 2
+	touch $CONFIGS/firsttime
+	chmod +x $CONFIGS/first-time
+	$CONFIGS/first-time
+	rm -f $CONFIGS/firsttime
+	whiptail --msgbox "Please do not forget to edit hosts.txt file (option 6) to add/remove available talk groups, select networks and add/remove TGs to scan list" 10 60 2
 }
 
 do_start() {
-  echo "do_start" >> $logfile
-  SCRIPTUSER=$(grep '^User=' /$CONFIGS/p25link.service | awk -F'=' '{print $2}' | sed 's/|\i//' | sed -e 's/^\(.\{9\}\).*/\1/'|sed 's/ //g')
-  SCRIPTUSER=$(whiptail --inputbox "Current P25Link user is $SCRIPTUSER enter new user name." 8 78 "$SCRIPTUSER" --title "Script User" 3>&1 1>&2 2>&3)
-  sed -i 's/User.*/User='$SCRIPTUSER'/' $CONFIGS/p25link.service
+	echo "do_start" >> $logfile
+	SCRIPTUSER=$(grep '^User=' /$CONFIGS/p25link.service | awk -F'=' '{print $2}' | sed 's/|\i//' | sed -e 's/^\(.\{9\}\).*/\1/'|sed 's/ //g')
+	SCRIPTUSER=$(whiptail --inputbox "Current P25Link user is $SCRIPTUSER enter new user name." 8 78 "$SCRIPTUSER" --title "Script User" 3>&1 1>&2 2>&3)
+	sed -i 's/User.*/User='$SCRIPTUSER'/' $CONFIGS/p25link.service
 
-  cp $CONFIGS/p25link.service /lib/systemd/system/p25link.service &&
-  chmod 644 /lib/systemd/system/p25link.service &&
-  systemctl enable p25link &&
-  systemctl start p25link &&
-  P25LINK_RESTART=0
-  whiptail --msgbox "P25Link service has been started" 20 60 2
+	cp $CONFIGS/p25link.service /lib/systemd/system/p25link.service &&
+	chmod 644 /lib/systemd/system/p25link.service &&
+	systemctl enable p25link &&
+	systemctl start p25link &&
+	P25LINK_RESTART=0
+	whiptail --msgbox "P25Link service has been started" 20 60 2
 }
 
 do_restart() {
-  echo "do_restart" >> $logfile
-  systemctl restart p25link &&
-  P25LINK_RESTART=0
-  whiptail --msgbox "P25Link service has been restarted" 20 60 2
+	echo "do_restart" >> $logfile
+	systemctl restart p25link &&
+	P25LINK_RESTART=0
+	whiptail --msgbox "P25Link service has been restarted" 20 60 2
 }
 
 do_stop() {
-  echo "do_stop" >> $logfile
-  systemctl stop p25link &&
-  systemctl disable p25link &&
-  P25LINK_RESTART=0
-  whiptail --msgbox "P25Link service has been stoped" 20 60 2
+	echo "do_stop" >> $logfile
+	systemctl stop p25link &&
+	systemctl disable p25link &&
+	P25LINK_RESTART=0
+	whiptail --msgbox "P25Link service has been stoped" 20 60 2
 }
 
 do_about() {
-  whiptail --msgbox "\
+	whiptail --msgbox "\
 Created by Juan Carlos Perez KM4NNO / XE1F.
 
 This tool provides a straight-forward way of doing initial
@@ -149,90 +148,90 @@ you have heavily customised your installation.\
 # Network menu functions ########################################################
 #################################################################################
 get_hostname() {
-    cat /etc/hostname | tr -d " \t\n\r"
+	cat /etc/hostname | tr -d " \t\n\r"
 }
 
 do_hostname() {
 echo "do_hostname" >> $logfile
-  if [ "$INTERACTIVE" = True ]; then
-    whiptail --msgbox "\
+	if [ "$INTERACTIVE" = True ]; then
+		whiptail --msgbox "\
 Please note: RFCs mandate that a hostname's labels \
 may contain only the ASCII letters 'a' through 'z' (case-insensitive), 
 the digits '0' through '9', and the hyphen.
 Hostname labels cannot begin or end with a hyphen. 
 No other symbols, punctuation characters, or blank spaces are permitted.\
 " 20 70 1
-  fi
-  CURRENT_HOSTNAME=`cat /etc/hostname | tr -d " \t\n\r"`
-  if [ "$INTERACTIVE" = True ]; then
-    NEW_HOSTNAME=$(whiptail --inputbox "Please enter a hostname" 20 60 "$CURRENT_HOSTNAME" 3>&1 1>&2 2>&3)
-  else
-    NEW_HOSTNAME=$1
-    true
-  fi
-  if [ $? -eq 0 ]; then
-    echo $NEW_HOSTNAME > /etc/hostname
-    sed -i "s/127.0.1.1.*$CURRENT_HOSTNAME/127.0.1.1\t$NEW_HOSTNAME/g" /etc/hosts
-    ASK_TO_REBOOT=1
-  fi
+	fi
+	CURRENT_HOSTNAME=`cat /etc/hostname | tr -d " \t\n\r"`
+	if [ "$INTERACTIVE" = True ]; then
+		NEW_HOSTNAME=$(whiptail --inputbox "Please enter a hostname" 20 60 "$CURRENT_HOSTNAME" 3>&1 1>&2 2>&3)
+	else
+		NEW_HOSTNAME=$1
+		true
+	fi
+	if [ $? -eq 0 ]; then
+		echo $NEW_HOSTNAME > /etc/hostname
+		sed -i "s/127.0.1.1.*$CURRENT_HOSTNAME/127.0.1.1\t$NEW_HOSTNAME/g" /etc/hosts
+		ASK_TO_REBOOT=1
+	fi
 }
 
 do_net_setup() {
-  echo "do_net_setup" >> $logfile
-  if [ -x /opt/p25link/net-setup ]; then
-    whiptail --msgbox "You can now set up the networking for the system to use\neither static or DHCP (dynamic) addressing.\nIf you choose static addressing, you will need to have 5 key IP\naddresses handy:  IP ADDRESS, NETMASK, DEFAULT GATEWAY,\nPRIMARY DNS, and SECONDARY DNS." 20 80 2
-	chmod +x $CONFIGS/net-setup
-    $CONFIGS/net-setup
-  fi
+	echo "do_net_setup" >> $logfile
+	if [ -x /opt/p25link/net-setup ]; then
+		whiptail --msgbox "You can now set up the networking for the system to use\neither static or DHCP (dynamic) addressing.\nIf you choose static addressing, you will need to have 5 key IP\naddresses handy:	IP ADDRESS, NETMASK, DEFAULT GATEWAY,\nPRIMARY DNS, and SECONDARY DNS." 20 80 2
+		chmod +x $CONFIGS/net-setup
+		$CONFIGS/net-setup
+	fi
 }
 
 get_ssh() {
-  if service ssh status | grep -q inactive; then
-    echo 1
-  else
-    echo 0
-  fi
+	if service ssh status | grep -q inactive; then
+		echo 1
+	else
+		echo 0
+	fi
 }
 
 do_ssh() {
-  echo "do_ssh" >> $logfile
-  if [ -e /var/log/regen_ssh_keys.log ] && ! grep -q "^finished" /var/log/regen_ssh_keys.log; then
-    whiptail --msgbox "Initial ssh key generation still running. Please wait and try again." 20 60 2
-    return 1
-  fi
-  DEFAULT=--defaultno
-  if [ $(get_ssh) -eq 0 ]; then
-    DEFAULT=
-  fi
-  if [ "$INTERACTIVE" = True ]; then
-    whiptail --yesno "Would you like the SSH server to be enabled?" $DEFAULT 20 60 2
-    RET=$?
-  else
-    RET=$1
-  fi
-  if [ $RET -eq 0 ]; then
-    update-rc.d ssh enable &&
-    invoke-rc.d ssh start &&
-    STATUS=enabled
-  elif [ $RET -eq 1 ]; then
-    update-rc.d ssh disable &&
-    invoke-rc.d ssh stop &&
-    STATUS=disabled
-  else
-    return $RET
-  fi
-  if [ "$INTERACTIVE" = True ]; then
-    whiptail --msgbox "The SSH server is $STATUS" 20 60 1
-  fi
+	echo "do_ssh" >> $logfile
+	if [ -e /var/log/regen_ssh_keys.log ] && ! grep -q "^finished" /var/log/regen_ssh_keys.log; then
+		whiptail --msgbox "Initial ssh key generation still running. Please wait and try again." 20 60 2
+		return 1
+	fi
+	DEFAULT=--defaultno
+	if [ $(get_ssh) -eq 0 ]; then
+		DEFAULT=
+	fi
+	if [ "$INTERACTIVE" = True ]; then
+		whiptail --yesno "Would you like the SSH server to be enabled?" $DEFAULT 20 60 2
+		RET=$?
+	else
+		RET=$1
+	fi
+	if [ $RET -eq 0 ]; then
+		update-rc.d ssh enable &&
+		invoke-rc.d ssh start &&
+		STATUS=enabled
+	elif [ $RET -eq 1 ]; then
+		update-rc.d ssh disable &&
+		invoke-rc.d ssh stop &&
+		STATUS=disabled
+	else
+		return $RET
+	fi
+	if [ "$INTERACTIVE" = True ]; then
+		whiptail --msgbox "The SSH server is $STATUS" 20 60 1
+	fi
 }
 
 do_ssh_port() {
-  echo "do_ssh_port" >> $logfile
-  NEWSSHPORT=$(whiptail --inputbox "Current SSH port is $SSHPORT \nEnter new SSH port to use" 8 78 "$SSHPORT" --title "SSH Port" 3>&1 1>&2 2>&3)
-  #sed -i "s/^Port $SSHPORT/Port $NEWSSHPORT/" /etc/ssh/sshd_config
-  sed -i "/Port $SSHPORT/c\Port $NEWSSHPORT" /etc/ssh/sshd_config
-  $SERVICE ssh restart
-  whiptail --msgbox "SSH port set to $NEWSSHPORT\nUpdate firewall and port forwarding." 20 60 2
+	echo "do_ssh_port" >> $logfile
+	NEWSSHPORT=$(whiptail --inputbox "Current SSH port is $SSHPORT \nEnter new SSH port to use" 8 78 "$SSHPORT" --title "SSH Port" 3>&1 1>&2 2>&3)
+	#sed -i "s/^Port $SSHPORT/Port $NEWSSHPORT/" /etc/ssh/sshd_config
+	sed -i "/Port $SSHPORT/c\Port $NEWSSHPORT" /etc/ssh/sshd_config
+	$SERVICE ssh restart
+	whiptail --msgbox "SSH port set to $NEWSSHPORT\nUpdate firewall and port forwarding." 20 60 2
 }
 
 
@@ -240,160 +239,209 @@ do_ssh_port() {
 # Settings menu functions #######################################################
 #################################################################################
 do_set_root_passwd() {
-ANSWER=1
-        if (whiptail --title "First-time" --yesno "Welcome to P25Link first-time setup. \
-        \nThis script will walk you through a few of the basic system setup options. \
-        \nThe root login is disabled for SSH and CONSOLE login. \
-        \nBy setting the root password you will allow root to login on the console. \
-        \nWould you like to set the root password?" --defaultno 20 80) then
-         ANSWER=$?
-        fi
-        if [ "$ANSWER" = "0" ]; then    # answered yes
-# no options to pretty up the display for this part
-                while ! passwd root
-                do
-                        whiptail --msgbox "ERROR: A valid password must be assigned to continue" 20 80 2
-                done
-        fi
+	ANSWER=1
+	if (whiptail --title "First-time" --yesno "Welcome to P25Link first-time setup. \
+		\nThis script will walk you through a few of the basic system setup options. \
+		\nThe root login is disabled for SSH and CONSOLE login. \
+		\nBy setting the root password you will allow root to login on the console. \
+		\nWould you like to set the root password?" --defaultno 20 80) then
+		ANSWER=$?
+	fi
+	if [ "$ANSWER" = "0" ]; then    # answered yes
+		# no options to pretty up the display for this part
+		while ! passwd root
+		do
+			whiptail --msgbox "ERROR: A valid password must be assigned to continue" 20 80 2
+		done
+	fi
 }
 
 do_set_my_passwd() {
-ANSWER=1
-REALID=$(who am i | awk '{print $1}')
-if (whiptail --title "$REALID password" --yesno "Would you like to change your password?\nUser: $REALID" 20 80 2) then
-ANSWER=$?
-fi
-if [ "$ANSWER" = "0" ]; then
-        while ! passwd $REALID
-        do
-                whiptail --msgbox "ERROR: " 20 80 2
-        done
+	ANSWER=1
+	REALID=$(who am i | awk '{print $1}')
+	if (whiptail --title "$REALID password" --yesno "Would you like to change your password?\nUser: $REALID" 20 80 2) then
+		ANSWER=$?
+	fi
+	if [ "$ANSWER" = "0" ]; then
+		while ! passwd $REALID
+		do
+			whiptail --msgbox "ERROR: " 20 80 2
+		done
 fi
 }
 
 do_create_new_user() {
-  if (whiptail --title "Do you want to create a new user?" --yesno --defaultno "Create Yes or No" 8 78) then
-    echo "create new user" >> $logfile
-    P25LINKUSER="p25user"
-    NEWUSER=$(whiptail --inputbox "Enter the new user name." 8 78 "$P25LINKUSER" --title "New user" 3>&1 1>&2 2>&3)
-    adduser $NEWUSER --system --home /opt/p25link &&
-    P25LINKUSER=$NEWUSER
-  fi
+	if (whiptail --title "Do you want to create a new user?" --yesno --defaultno "Create Yes or No" 8 78) then
+		echo "create new user" >> $logfile
+		P25LINKUSER="p25user"
+		NEWUSER=$(whiptail --inputbox "Enter the new user name." 8 78 "$P25LINKUSER" --title "New user" 3>&1 1>&2 2>&3)
+		adduser $NEWUSER --system --home /opt/p25link &&
+		P25LINKUSER=$NEWUSER
+	fi
 }
 
 do_apt_get_update() {
-echo "do_apt_get_update" >> $logfile
-whiptail --msgbox "Grab a cup of coffee if you have not run this in a while\nUpdating repository information" 20 60 2
-apt-get update &&
-apt-get install raspi-config &&
-printf "Sleeping 5 seconds before reloading raspi-config\n" &&
-sleep 5 &&
-exec ./p25link-menu
-whiptail --msgbox "Done running apt-get update" 20 60 2
+	echo "do_apt_get_update" >> $logfile
+	whiptail --msgbox "Grab a cup of coffee if you have not run this in a while\nUpdating repository information" 20 60 2
+	apt-get update &&
+	apt-get install raspi-config &&
+	printf "Sleeping 5 seconds before reloading raspi-config\n" &&
+	sleep 5 &&
+	exec ./p25link-menu
+	whiptail --msgbox "Done running apt-get update" 20 60 2
 }
 
 do_apt_get_upgrade() {
-echo "do_apt_get_upgrade" >> $logfile
-whiptail --msgbox "Might be a good time for lunch this could take a while" 20 60 2
-$APTGET -y upgrade
-whiptail --msgbox "Done running apt-get upgrade" 20 60 2
+	echo "do_apt_get_upgrade" >> $logfile
+	whiptail --msgbox "Might be a good time for lunch this could take a while" 20 60 2
+	$APTGET -y upgrade
+	whiptail --msgbox "Done running apt-get upgrade" 20 60 2
+}
+
+do_install_webserver() {
+	echo "do_install_webserver" >> $logfile
+	DO_INSTALL_WEBSERVER_TITLE=$(grep '^do_install_webserver_title_t =' /$LANGUAGEFILE | awk -F'=' '{print $2}')
+	DO_INSTALL_WEBSERVER_YESNO=$(grep '^do_install_webserver_yesno_t =' /$LANGUAGEFILE | awk -F'=' '{print $2}')
+	DO_INSTALL_WEBSERVER_YES=$(grep '^do_install_webserver_yes_t =' /$LANGUAGEFILE | awk -F'=' '{print $2}')
+	DO_INSTALL_WEBSERVER_NO=$(grep '^do_install_webserver_no_t =' /$LANGUAGEFILE | awk -F'=' '{print $2}')
+	do_is_webserver_installed
+	if (whiptail --title "$DO_INSTALL_WEBSERVER_TITLE" --yesno "$DO_INSTALL_WEBSERVER_YESNO" 20 60) then
+		if [ $WEEBSERVE_YN = "YES" ]; then
+			whiptail --msgbox "$DO_INSTALL_WEBSERVER_YES" 20 60 2
+			$APTGET -y install --only-upgrade apache2
+			$APTGET -y install --only-upgrade php libapache2-mod-php
+		else
+			whiptail --msgbox "$DO_INSTALL_WEBSERVER_NO" 20 60 2
+			$APTGET update
+			$APTGET -y install apache2
+			$APTGET -y install php libapache2-mod-php
+		fi
+	fi
 }
 
 do_install_cpan() {
-echo "do_install_cpan" >> $logfile
-whiptail --msgbox "Grab a cup of coffee if you have not run this in a while\nUpdating repository information" 20 60 2
-cpan install Switch &&
-cpan install Config::IniFiles &&
-cpan install Digest::CRC &&
-cpan install Device::SerialPort &&
-cpan install IO::Socket::Timeout &&
-cpan install IO::Socket::Multicast &&
-cpan install Term::ReadKey &&
-cpan install Ham::APRS::IS &&
-# Used to make Exe files:
-#cpan -i PAR::Packer &&
-apt install libpar-packer-perl
-whiptail --msgbox "Done running CPAN mod installations" 20 60 2
+	echo "do_install_cpan" >> $logfile
+	whiptail --msgbox "Grab a cup of coffee if you have not run this in a while\nUpdating repository information" 20 60 2
+	cpan install Switch &&
+	cpan install Config::IniFiles &&
+	cpan install Digest::CRC &&
+	cpan install Device::SerialPort &&
+	cpan install IO::Socket::Timeout &&
+	cpan install IO::Socket::Multicast &&
+	cpan install Term::ReadKey &&
+	cpan install Ham::APRS::IS &&
+
+	# For RadioID database:
+	cpan install JSON &&
+#	cpan install LWP::UserAgent &&
+#	cpan force install LWP::Protocol::https &&
+#	cpan install YAML &&
+#	sudo apt-get install libssl-dev -y &&
+#	cpan install Net::SSLeay &&
+#	cpan install IO::Socket::SSL &&
+#	cpan install IO::Socket::SSL::Utils &&
+#	cpan install Crypt::SSLeay &&
+#	sudo apt-get install libcrypt-ssleay-perl
+
+	# Used to make Exe files:
+	#cpan -i PAR::Packer &&
+	apt install libpar-packer-perl
+	whiptail --msgbox "Done running CPAN mod installations" 20 60 2
+}
+
+do_copywebfiles() {
+	rm -r /var/www/html/p25link
+	cp -r /opt/p25link/web   /var/www/html/p25link
 }
 
 do_build_app() {
-  chmod +x $CONFIGS/p25link.pl &&
-  # Make app
-  pp -o /opt/p25link/p25link   $CONFIGS/p25link.pl
-  whiptail --msgbox "Done building executable file" 20 60 2
+	chmod +x $CONFIGS/p25link.pl &&
+	# Make app
+	pp -o /opt/p25link/p25link   $CONFIGS/p25link.pl
+	whiptail --msgbox "Done building executable file" 20 60 2
 }
 
 do_build_deb() {
-  # Make app
-  pp -o /opt/p25link/p25link   $CONFIGS/p25link.pl
-  cd /opt/deploy
-  sudo mkdir $DEPLOY_DIR
-  sudo mkdir $DEPLOY_DIR/opt
-  sudo mkdir $DEPLOY_DIR/opt/p25link
-  # Copy files
-  sudo cp -r $CONFIGS/xaprs.txt   $DEPLOY_DIR/opt/p25link/aprs.txt
-  sudo cp -r $CONFIGS/xconfig.ini   $DEPLOY_DIR/opt/p25link/config.ini
-  sudo cp -r $CONFIGS/FAP.pm   $DEPLOY_DIR/opt/p25link/FAP.pm
-  sudo cp -r $CONFIGS/first-time   $DEPLOY_DIR/opt/p25link/first-time
-  sudo cp -r $CONFIGS/xhosts.txt   $DEPLOY_DIR/opt/p25link/hosts.txt
-  sudo cp -r $CONFIGS/LICENSE.txt   $DEPLOY_DIR/opt/p25link/LICENSE.txt
-  sudo cp -r $CONFIGS/net-setup   $DEPLOY_DIR/opt/p25link/net-setup
-  sudo cp -r $CONFIGS/p25link   $DEPLOY_DIR/opt/p25link/p25link
-  sudo cp -r $CONFIGS/p25link-menu   $DEPLOY_DIR/opt/p25link/p25link-menu
-  sudo cp -r $CONFIGS/p25link.pl   $DEPLOY_DIR/opt/p25link/p25link.pl
-  sudo cp -r $CONFIGS/p25link.service   $DEPLOY_DIR/opt/p25link/p25link.service
-  sudo cp -r $CONFIGS/README.md   $DEPLOY_DIR/opt/p25link/README.md
-  sudo cp -r $CONFIGS/speech.ini   $DEPLOY_DIR/opt/p25link/speech.ini
-  sudo cp -r $CONFIGS/DEBIAN   $DEPLOY_DIR/
+	# Make app
+	pp -o /opt/p25link/p25link   $CONFIGS/p25link.pl
+	mkdir /opt/deploy
+	cd /opt/deploy
+	mkdir $DEPLOY_DIR
+	mkdir $DEPLOY_DIR/opt
+	mkdir $DEPLOY_DIR/opt/p25link
+	mkdir $DEPLOY_DIR/var
+	mkdir $DEPLOY_DIR/var/www
+	mkdir $DEPLOY_DIR/var/www/html
+	mkdir $DEPLOY_DIR/var/www/html/p25link
+	# Copy files
+	cp -r $CONFIGS/xaprs.txt   $DEPLOY_DIR/opt/p25link/aprs.txt
+	cp -r $CONFIGS/xconfig.ini   $DEPLOY_DIR/opt/p25link/config.ini
+	cp -r $CONFIGS/FAP.pm   $DEPLOY_DIR/opt/p25link/FAP.pm
+	cp -r $CONFIGS/first-time   $DEPLOY_DIR/opt/p25link/first-time
+	cp -r $CONFIGS/xhosts.txt   $DEPLOY_DIR/opt/p25link/hosts.txt
+	cp -r $CONFIGS/LICENSE.txt   $DEPLOY_DIR/opt/p25link/LICENSE.txt
+	cp -r $CONFIGS/net-setup   $DEPLOY_DIR/opt/p25link/net-setup
+	cp -r $CONFIGS/p25link   $DEPLOY_DIR/opt/p25link/p25link
+	cp -r $CONFIGS/p25link-menu   $DEPLOY_DIR/opt/p25link/p25link-menu
+	cp -r $CONFIGS/p25link.pl   $DEPLOY_DIR/opt/p25link/p25link.pl
+	cp -r $CONFIGS/p25link.service   $DEPLOY_DIR/opt/p25link/p25link.service
+	cp -r $CONFIGS/README.md   $DEPLOY_DIR/opt/p25link/README.md
+	cp -r $CONFIGS/speech.ini   $DEPLOY_DIR/opt/p25link/speech.ini
+	cp -r $CONFIGS/DEBIAN   $DEPLOY_DIR/
+	cp -r $CONFIGS/web/index.html   $DEPLOY_DIR/var/www/html/p25link/index.html
+	cp -r $CONFIGS/web/P25Link_Logo_Small_Blue.jpg   $DEPLOY_DIR/var/www/html/p25link/P25Link_Logo_Small_Blue.jpg
+	cp -r $CONFIGS/web/state.php   $DEPLOY_DIR/var/www/html/p25link/state.php
+	cp -r $CONFIGS/web/style.css   $DEPLOY_DIR/var/www/html/p25link/style.css
 
-  # Build .deb
-  cd /opt/deploy
-  dpkg-deb --build   $PACKAGE_VER
 
+
+	# Build .deb
+	cd /opt/deploy
+	dpkg-deb --build   $PACKAGE_VER
 }
 
 do_use_p25link_menu() {
-  echo "do_p25link_menu" >> $logfile
-  # use p25link-menu on login for user account
-  ANSWER=1
-  REALID=$(who am i | awk '{print $1}')
-  if (whiptail --title "p25link-menu at login" --yesno "Would you like to start the p25link-menu script\nat login by default for user: $REALID?" --defaultno 20 80 2 3>&1 1>&2 2>&3) then
-  ANSWER=$?
-  fi
-  if [ "$ANSWER" = "0" ]; then
-        cat /home/$REALID/.bashrc |grep p25link-menu > /dev/null
-        if [ $? = "1" ]; then
-        echo "sudo $CONFIGS/p25link-menu" >> /home/$REALID/.bashrc
-        whiptail --msgbox "p25link-menu will start at login for user $REALID" 20 60 2
-        else
-        whiptail --msgbox "p25link-menu already starts for user $REALID at login." 20 60 2
-        fi
-  else
-        sed -i '/p25link-menu/c\' /home/$REALID/.bashrc
-        whiptail --msgbox "the p25link-menu autostart at login has been disabled\nYou may run the p25link-menu script by typing sudo $CONFIGS/p25link-menu" 20 60 2
-  fi
+	echo "do_p25link_menu" >> $logfile
+	# use p25link-menu on login for user account
+	ANSWER=1
+	REALID=$(who am i | awk '{print $1}')
+	if (whiptail --title "p25link-menu at login" --yesno "Would you like to start the p25link-menu script\nat login by default for user: $REALID?" --defaultno 20 80 2 3>&1 1>&2 2>&3) then
+	ANSWER=$?
+	fi
+	if [ "$ANSWER" = "0" ]; then
+		cat /home/$REALID/.bashrc |grep p25link-menu > /dev/null
+		if [ $? = "1" ]; then
+			echo "sudo $CONFIGS/p25link-menu" >> /home/$REALID/.bashrc
+			whiptail --msgbox "p25link-menu will start at login for user $REALID" 20 60 2
+		else
+			whiptail --msgbox "p25link-menu already starts for user $REALID at login." 20 60 2
+		fi
+	else
+		sed -i '/p25link-menu/c\' /home/$REALID/.bashrc
+		whiptail --msgbox "the p25link-menu autostart at login has been disabled\nYou may run the p25link-menu script by typing sudo $CONFIGS/p25link-menu" 20 60 2
+	fi
 }
 
 do_system_restart() {
-  ANSWER=1
-  REALID=$(who am i | awk '{print $1}')
-  if (whiptail --title "System Restart" --yesno "Would you like to restart your system?" --defaultno 20 80 2 3>&1 1>&2 2>&3) then
-  ANSWER=$?
-  fi
-  if [ "$ANSWER" = "0" ]; then
-    reboot
-  fi
+	ANSWER=1
+	REALID=$(who am i | awk '{print $1}')
+	if (whiptail --title "System Restart" --yesno "Would you like to restart your system?" --defaultno 20 80 2 3>&1 1>&2 2>&3) then
+		ANSWER=$?
+	fi
+	if [ "$ANSWER" = "0" ]; then
+		reboot
+	fi
 }
 
 do_system_halt() {
-  ANSWER=1
-  REALID=$(who am i | awk '{print $1}')
-  if (whiptail --title "System Shutdown" --yesno "Would you like to shutdown your system?" --defaultno 20 80 2 3>&1 1>&2 2>&3) then
-  ANSWER=$?
-  fi
-  if [ "$ANSWER" = "0" ]; then
-    halt
-  fi
+	ANSWER=1
+	REALID=$(who am i | awk '{print $1}')
+	if (whiptail --title "System Shutdown" --yesno "Would you like to shutdown your system?" --defaultno 20 80 2 3>&1 1>&2 2>&3) then
+		ANSWER=$?
+	fi
+	if [ "$ANSWER" = "0" ]; then
+		halt
+	fi
 }
 
 #################################################################################
@@ -402,41 +450,41 @@ do_system_halt() {
 
 do_exit() {
 echo "do_exit" >> $logfile
-        if (whiptail --title "Exit Yes or No" --yesno "Exit Yes or No" 8 78) then
-            do_finish
-        else
-            do_main_menu
-        fi
+	if (whiptail --title "Exit Yes or No" --yesno "Exit Yes or No" 8 78) then
+		do_finish
+	else
+		do_main_menu
+	fi
 }
 
 do_finish() {
 echo "do_finish" >> $logfile
-        if [ $P25LINK_RESTART -eq 1 ]; then
-                whiptail --title "P25Link restart required" --yesno "P25Link reload is required for changes to take effect restart P25Link now?" 8 78
-                if [ $? -eq 0 ]; then #yes
-                $P25LINKRES
-                whiptail --msgbox "P25Link has been restarted" 20 60 2
-                else
-                whiptail --msgbox "Please restart P25Link at your convenience" 20 60 2
-                fi
-        fi
-        # check if reboot needed.
-        if [ $REBOOT_NEEDED -eq 1 ]; then
-        whiptail --title "Reboot is required" --yesno "Reboot required for changes to take effect Reboot now?" 8 78
-                if [ $? -eq 0 ]; then # yes
-                sync
-                reboot -t 30
-                else
-                whiptail --msgbox "You may reboot the machine at your convenience" 20 60 2
-                fi
-        fi
-       exit 0
+	if [ $P25LINK_RESTART -eq 1 ]; then
+		whiptail --title "P25Link restart required" --yesno "P25Link reload is required for changes to take effect restart P25Link now?" 8 78
+		if [ $? -eq 0 ]; then #yes
+			$P25LINKRES
+			whiptail --msgbox "P25Link has been restarted" 20 60 2
+		else
+			whiptail --msgbox "Please restart P25Link at your convenience" 20 60 2
+		fi
+	fi
+	# check if reboot needed.
+	if [ $REBOOT_NEEDED -eq 1 ]; then
+		whiptail --title "Reboot is required" --yesno "Reboot required for changes to take effect Reboot now?" 8 78
+		if [ $? -eq 0 ]; then # yes
+			sync
+			reboot -t 30
+		else
+			whiptail --msgbox "You may reboot the machine at your convenience" 20 60 2
+		fi
+	fi
+	exit 0
 }
 
 do_nothing() {
-  echo "do_nothing" >> $logfile
-  # place to land the menu options that aren't done yet
-  whiptail --msgbox "Option not configured yet" 20 60 2
+	echo "do_nothing" >> $logfile
+	# place to land the menu options that aren't done yet
+	whiptail --msgbox "Option not configured yet" 20 60 2
 }
 
 
@@ -452,64 +500,64 @@ do_nothing() {
 
 
 do_direwolf_install() {
-echo "do_direwolf_install" >> $logfile
-whiptail --msgbox "Grab a cup of coffee if you have not run this in a while\nUpdating repository information" 20 60 2
-cd /opt &&
-echo "* apt-get install git"
-#apt-get install git &&
-echo "* apt-get install gcc"
-#apt-get install gcc &&
-echo "* apt-get install g++"
-#apt-get install g++ &&
-echo "* apt-get make"
-#apt-get install make &&
-echo "* apt-get cmake"
-#apt-get install cmake &&
-echo "apt-get install build-essential"
-apt-get install build-essential
-echo "apt-get install alsa-utils "
-apt-get install alsa-utils
-echo "* apt-get install libasound2-dev"
-apt-get install libasound2-dev
-echo "* apt-get install libudev-dev"
-apt-get install libudev-dev
+	echo "do_direwolf_install" >> $logfile
+	whiptail --msgbox "Grab a cup of coffee if you have not run this in a while\nUpdating repository information" 20 60 2
+	cd /opt &&
+	echo "* apt-get install git"
+	#apt-get install git &&
+	echo "* apt-get install gcc"
+	#apt-get install gcc &&
+	echo "* apt-get install g++"
+	#apt-get install g++ &&
+	echo "* apt-get make"
+	#apt-get install make &&
+	echo "* apt-get cmake"
+	#apt-get install cmake &&
+	echo "apt-get install build-essential"
+	apt-get install build-essential
+	echo "apt-get install alsa-utils "
+	apt-get install alsa-utils
+	echo "* apt-get install libasound2-dev"
+	apt-get install libasound2-dev
+	echo "* apt-get install libudev-dev"
+	apt-get install libudev-dev
 
 
-echo "* cd ~"
-cd ~
-echo "* clone direwolf"
-#git clone https://www.github.com/wb2osz/direwolf /opt/direwolf
-cd /opt/direwolf
-#echo "* checkout dev"
-#git checkout dev
-echo "* build"
-mkdir build && cd build
-echo "* cmake"
-cmake ..
-echo "* make"
-#make -j4 &&
-echo "* make install"
-#make install &&
-echo "* make install-conf"
-#make install-conf &&
+	echo "* cd ~"
+	cd ~
+	echo "* clone direwolf"
+	#git clone https://www.github.com/wb2osz/direwolf /opt/direwolf
+	cd /opt/direwolf
+	#echo "* checkout dev"
+	#git checkout dev
+	echo "* build"
+	mkdir build && cd build
+	echo "* cmake"
+	cmake ..
+	echo "* make"
+	#make -j4 &&
+	echo "* make install"
+	#make install &&
+	echo "* make install-conf"
+	#make install-conf &&
 
-echo "* apt-get update"
-#apt-get update &&
-echo "* apt-cache showpkg direwolf"
-#apt-cache showpkg direwolf &&
-echo "* apt-get install direwolf"
-#apt-get install direwolf &&
+	echo "* apt-get update"
+	#apt-get update &&
+	echo "* apt-cache showpkg direwolf"
+	#apt-cache showpkg direwolf &&
+	echo "* apt-get install direwolf"
+	#apt-get install direwolf &&
 
-whiptail --msgbox "Done Direwolf installations" 20 60 2
+	whiptail --msgbox "Done Direwolf installations" 20 60 2
 }
 
 do_run_direwolf_firsttime() {
-  echo "do_run_direwolf_firsttime" >> $logfile
-  if (whiptail --title "Do you want to run update before install" --yesno --defaultno "Update Yes or No" 8 78) then
-    do_apt_get_update
-  fi
-  chmod +x $CONFIGS/direwolf-first-time
-  $CONFIGS/direwolf-first-time
+	echo "do_run_direwolf_firsttime" >> $logfile
+	if (whiptail --title "Do you want to run update before install" --yesno --defaultno "Update Yes or No" 8 78) then
+		do_apt_get_update
+	fi
+	chmod +x $CONFIGS/direwolf-first-time
+	$CONFIGS/direwolf-first-time
 }
 
 
@@ -519,143 +567,145 @@ do_run_direwolf_firsttime() {
 #################################################################################
 
 do_extras_menu() {
-  FUN=$(whiptail --title "Extras menu" --menu "Extras" $WT_HEIGHT $WT_WIDTH $WT_MENU_HEIGHT --cancel-button Back --ok-button Select \
-    "A " "APRS Direwolf Install" \
-    "B " "APRS Direwolf first time configuration" \
-    "C " "Edit direwolf.conf file with advanced settings" \
-    "1 " "Auto-start Direwolf software on boot" \
-    "R " "Restart Direwolf software only" \
-    "S " "Disable Auto-start Direwolf software on boot" \
-    3>&1 1>&2 2>&3)
-  RET=$?
-  if [ $RET -eq 1 ]; then
-    return 0
-  elif [ $RET -eq 0 ]; then
-    case "$FUN" in
-      A\ *) do_direwolf_install ;;
-      B\ *) do_run_direwolf_firsttime ;;
-      C\ *) nano /root/direwolf.conf ;;
-      1\ *) do_direwold_start ;;
-      R\ *) do_direwolf_restart ;;
-      S\ *) do_direwolf_stop ;;
-      *) whiptail --msgbox "Programmer error: unrecognized option" 20 60 1 ;;
-    esac || whiptail --msgbox "There was an error running option $FUN" 20 60 1
-  fi
+	FUN=$(whiptail --title "Extras menu" --menu "Extras" $WT_HEIGHT $WT_WIDTH $WT_MENU_HEIGHT --cancel-button Back --ok-button Select \
+		"A " "APRS Direwolf Install" \
+		"B " "APRS Direwolf first time configuration" \
+		"C " "Edit direwolf.conf file with advanced settings" \
+		"1 " "Auto-start Direwolf software on boot" \
+		"R " "Restart Direwolf software only" \
+		"S " "Disable Auto-start Direwolf software on boot" \
+		3>&1 1>&2 2>&3)
+	RET=$?
+	if [ $RET -eq 1 ]; then
+		return 0
+	elif [ $RET -eq 0 ]; then
+		case "$FUN" in
+			A\ *) do_direwolf_install ;;
+			B\ *) do_run_direwolf_firsttime ;;
+			C\ *) nano /root/direwolf.conf ;;
+			1\ *) do_direwold_start ;;
+			R\ *) do_direwolf_restart ;;
+			S\ *) do_direwolf_stop ;;
+			*) whiptail --msgbox "Programmer error: unrecognized option" 20 60 1 ;;
+		esac || whiptail --msgbox "There was an error running option $FUN" 20 60 1
+	fi
 }
 
 
 do_utilities_menu() {
-  FUN=$(whiptail --title "P25Link Utilities menu" --menu "Utilities" $WT_HEIGHT $WT_WIDTH $WT_MENU_HEIGHT --cancel-button Back --ok-button Select \
-    "U1 " "Change Root password" \
-    "U2 " "Change User password for the current user" \
-    "U3 " "Create New User" \
-    "U4 " "Run apt-get update" \
-    "U5 " "Run apt-get upgrade" \
-    "U6 " "Run p25link-menu at login" \
-    "U7 " "Restart system (Raspberry Pi)" \
-    "U8 " "Shutdown system" \
-    3>&1 1>&2 2>&3)
-  RET=$?
-  if [ $RET -eq 1 ]; then
-    return 0
-  elif [ $RET -eq 0 ]; then
-    case "$FUN" in
-      U1\ *) do_set_root_passwd ;;
-      U2\ *) do_set_my_passwd ;;
-      U3\ *) do_create_new_user ;;
-      U4\ *) do_apt_get_update ;;
-      U5\ *) do_apt_get_upgrade ;;
-      U6\ *) do_use_p25link_menu ;;
-      U7\ *) do_system_restart ;;
-      U8\ *) do_system_halt ;;
-      *) whiptail --msgbox "Programmer error: unrecognized option" 20 60 1 ;;
-    esac || whiptail --msgbox "There was an error running option $FUN" 20 60 1
-  fi
+	FUN=$(whiptail --title "P25Link Utilities menu" --menu "Utilities" $WT_HEIGHT $WT_WIDTH $WT_MENU_HEIGHT --cancel-button Back --ok-button Select \
+		"A " "Change Root password" \
+		"B " "Change User password for the current user" \
+		"C " "Create New User" \
+		"D " "Run apt-get update" \
+		"E " "Run apt-get upgrade" \
+		"F " "Install/Update Web Server" \
+		"G " "Run p25link-menu at login" \
+		"R " "Restart system (Raspberry Pi)" \
+		"S " "Shutdown system" \
+		3>&1 1>&2 2>&3)
+	RET=$?
+	if [ $RET -eq 1 ]; then
+		return 0
+	elif [ $RET -eq 0 ]; then
+		case "$FUN" in
+			A\ *) do_set_root_passwd ;;
+			B\ *) do_set_my_passwd ;;
+			C\ *) do_create_new_user ;;
+			D\ *) do_apt_get_update ;;
+			E\ *) do_apt_get_upgrade ;;
+			F\ *) do_install_webserver ;;
+			G\ *) do_use_p25link_menu ;;
+			R\ *) do_system_restart ;;
+			S\ *) do_system_halt ;;
+			*) whiptail --msgbox "Programmer error: unrecognized option" 20 60 1 ;;
+		esac || whiptail --msgbox "There was an error running option $FUN" 20 60 1
+	fi
 }
 
 do_developer_menu() {
-  FUN=$(whiptail --title "P25Link Developer menu" --menu "Developer" $WT_HEIGHT $WT_WIDTH $WT_MENU_HEIGHT --cancel-button Back --ok-button Select \
-    "U1 " "Install Perl CPAN modules" \
-    "U2 " "Build p25link" \
-    "U3 " "Build p25link.deb" \
-    3>&1 1>&2 2>&3)
-  RET=$?
-  if [ $RET -eq 1 ]; then
-    return 0
-  elif [ $RET -eq 0 ]; then
-    case "$FUN" in
-      U1\ *) do_install_cpan ;;
-      U2\ *) do_build_app ;;
-      U3\ *) do_build_deb ;;
-      *) whiptail --msgbox "Programmer error: unrecognized option" 20 60 1 ;;
-    esac || whiptail --msgbox "There was an error running option $FUN" 20 60 1
-  fi
+	FUN=$(whiptail --title "P25Link Developer menu" --menu "Developer" $WT_HEIGHT $WT_WIDTH $WT_MENU_HEIGHT --cancel-button Back --ok-button Select \
+		"U1 " "Install Perl CPAN modules" \
+		"U2 " "Build p25link" \
+		"U3 " "Build p25link.deb" \
+		3>&1 1>&2 2>&3)
+	RET=$?
+	if [ $RET -eq 1 ]; then
+		return 0
+	elif [ $RET -eq 0 ]; then
+		case "$FUN" in
+			U1\ *) do_install_cpan ;;
+			U2\ *) do_build_app ;;
+			U3\ *) do_build_deb ;;
+			*) whiptail --msgbox "Programmer error: unrecognized option" 20 60 1 ;;
+		esac || whiptail --msgbox "There was an error running option $FUN" 20 60 1
+	fi
 }
 
 do_network_menu() {
-  FUN=$(whiptail --title "P25Link Network menu" --menu "Network" $WT_HEIGHT $WT_WIDTH $WT_MENU_HEIGHT --cancel-button Back --ok-button Select \
-    "N1 " "Set the Hostname for this Pi on a network" \
-    "N2 " "Network configuration" \
-    "N3 " "Enable/Disable remote access using SSH" \
-    "N4 " "Change SSH port number used" \
-    3>&1 1>&2 2>&3)
-  RET=$?
-  if [ $RET -eq 1 ]; then
-    return 0
-  elif [ $RET -eq 0 ]; then
-    case "$FUN" in
-      N1\ *) do_hostname ;;
-      N2\ *) do_net_setup ;;
-      N3\ *) do_ssh ;;
-      N4\ *) do_ssh_port ;;
-      *) whiptail --msgbox "Programmer error: unrecognized option" 20 60 1 ;;
-    esac || whiptail --msgbox "There was an error running option $FUN" 20 60 1
-  fi
+	FUN=$(whiptail --title "P25Link Network menu" --menu "Network" $WT_HEIGHT $WT_WIDTH $WT_MENU_HEIGHT --cancel-button Back --ok-button Select \
+		"N1 " "Set the Hostname for this Pi on a network" \
+		"N2 " "Network configuration" \
+		"N3 " "Enable/Disable remote access using SSH" \
+		"N4 " "Change SSH port number used" \
+		3>&1 1>&2 2>&3)
+	RET=$?
+	if [ $RET -eq 1 ]; then
+		return 0
+	elif [ $RET -eq 0 ]; then
+		case "$FUN" in
+			N1\ *) do_hostname ;;
+			N2\ *) do_net_setup ;;
+			N3\ *) do_ssh ;;
+			N4\ *) do_ssh_port ;;
+			*) whiptail --msgbox "Programmer error: unrecognized option" 20 60 1 ;;
+		esac || whiptail --msgbox "There was an error running option $FUN" 20 60 1
+	fi
 }
 
 
 do_main_menu() {
 echo "do_main_menu" >> $logfile
 RET=0
-  while true; do
-    calc_wt_size
-      FUN=$(whiptail --title "P25Link Main Menu $HOSTNAME $ETH0IP:$SSHPORT" --backtitle "$(cat /proc/device-tree/model)" --menu "Setup Options" $WT_HEIGHT $WT_WIDTH $WT_MENU_HEIGHT --cancel-button Finish --ok-button Select \
-        "A About p25link-menu" "Information about this configuration tool" \
-        "B First-time setup" "Run initial step by step configuration" \
-        "C Network Menu" "Network configuration menu options" \
-        "D Utilities Menu" "Utilities and misc options" \
-        "E Extras Menu" "Other apps installers & setup" \
-        "F Developer tools" "Advanced utilities for dev." \
-        "G config.ini" "Edit config.ini file with advanced settings" \
-        "H hosts.txt" "Edit hosts.txt file with your custom hosts" \
-        "I aprs.txt" "Edit aprs.txt file with your own objects" \
-        "J Auto Start App" "Auto-start P25Link software on boot" \
-        "R Restart App" "Restart P25Link software only" \
-        "S Stop Auto Start" "Disable Auto-start P25Link software on boot" \
-        3>&1 1>&2 2>&3)
-      RET=$?
-      if [ $RET -eq 1 ]; then
-        do_exit
-      elif [ $RET -eq 0 ]; then
-        case "$FUN" in
-          A\ *) do_about ;;
-          B\ *) do_run_firsttime ;;
-          C\ *) do_network_menu ;;
-          D\ *) do_utilities_menu ;;
-          E\ *) do_extras_menu ;;
-          F\ *) do_developer_menu ;;
-          G\ *) nano $CONFIGS/config.ini ;;
-          H\ *) nano $CONFIGS/hosts.txt ;;
-          I\ *) nano $CONFIGS/aprs.txt ;;
-          J\ *) do_start ;;
-          R\ *) do_restart ;;
-          S\ *) do_stop ;;
-          *) whiptail --msgbox "Programmer error: unrecognized option" 20 60 1 ;;
-        esac || whiptail --msgbox "There was an error running option $FUN" 20 60 1
-      else
-        exit 1
-      fi
-  done
+	while true; do
+		calc_wt_size
+			FUN=$(whiptail --title "P25Link Main Menu $HOSTNAME $ETH0IP:$SSHPORT" --backtitle "$(cat /proc/device-tree/model)" --menu "Setup Options" $WT_HEIGHT $WT_WIDTH $WT_MENU_HEIGHT --cancel-button Finish --ok-button Select \
+				"A About p25link-menu" "Information about this configuration tool" \
+				"B First-time setup" "Run initial step by step configuration" \
+				"C Network Menu" "Network configuration menu options" \
+				"D Utilities Menu" "Utilities and misc options" \
+				"E Extras Menu" "Other apps installers & setup" \
+				"F Developer tools" "Advanced utilities for dev." \
+				"G config.ini" "Edit config.ini file with advanced settings" \
+				"H hosts.txt" "Edit hosts.txt file with your custom hosts" \
+				"I aprs.txt" "Edit aprs.txt file with your own objects" \
+				"J Auto Start App" "Auto-start P25Link software on boot" \
+				"R Restart App" "Restart P25Link software only" \
+				"S Stop Auto Start" "Disable Auto-start P25Link software on boot" \
+				3>&1 1>&2 2>&3)
+			RET=$?
+			if [ $RET -eq 1 ]; then
+				do_exit
+			elif [ $RET -eq 0 ]; then
+				case "$FUN" in
+					A\ *) do_about ;;
+					B\ *) do_run_firsttime ;;
+					C\ *) do_network_menu ;;
+					D\ *) do_utilities_menu ;;
+					E\ *) do_extras_menu ;;
+					F\ *) do_developer_menu ;;
+					G\ *) nano $CONFIGS/config.ini ;;
+					H\ *) nano $CONFIGS/hosts.txt ;;
+					I\ *) nano $CONFIGS/aprs.txt ;;
+					J\ *) do_start ;;
+					R\ *) do_restart ;;
+					S\ *) do_stop ;;
+					*) whiptail --msgbox "Programmer error: unrecognized option" 20 60 1 ;;
+				esac || whiptail --msgbox "There was an error running option $FUN" 20 60 1
+			else
+				exit 1
+			fi
+	done
 }
 
 

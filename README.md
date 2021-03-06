@@ -4,7 +4,7 @@ P25Link is a program that let you connect your Quantar repeater or Astro DIU 300
 It use the v.24 port on Quantar/DIU 3000, a Cisco router 28xx and a Raspberry Pi. It use the same router setup as P25NX.
 
 # Current version features:
-- Voice talk groups 1 to 10.
+- Local voice talk groups 1 to 10.
 - P25Link network Voice talk groups 11 to 65534 (each TG is network selectable).
 - P25NX network Voice talk groups 10100 to 10599 (each TG is network selectable).
 - P25-MMDVM network Voice talk groups 11 to 65534 (each TG is network selectable).
@@ -21,14 +21,14 @@ It use the v.24 port on Quantar/DIU 3000, a Cisco router 28xx and a Raspberry Pi
 ```
 cd /opt
 ```
-- Download the current p25link_2.xx-x.deb file using the following command:
+- Download the current p25link_2.xx-x.deb file (where xx-x is the desired version) using the following command:
 
 ```
-sudo wget https://github.com/Wodie/p25link/raw/master/installer/p25link_2.30-3.deb
+sudo wget https://github.com/Wodie/p25link/raw/master/installer/p25link_2.xx-x.deb
 ```
 - Install it with the following command:
 ```
-sudo apt install /opt/p25link_2.30-3.deb
+sudo apt install /opt/p25link_2.xx-x.deb
 ```
 
 - To configure, run the main menu run:
@@ -43,7 +43,19 @@ sudo /opt/p25link/p25link
 ```
 - Remember to modify the hosts.txt file with the Talk Groups you want lo add to the scan list by setting the last field to a highest take precedence >= 1, 0 = No scan.
 
+Local Dashboard is a beta feature, so displayed info is limited.
+
+you can access it by pointing your browser to:
+```
+<Your_R-Pi_IP/p25link
+```
+
 # Version History:
+
+## v2.33-0 February 22, 2021.
+- Fixed: Priority to local TGs and reliable scan pause.
+- Fixed: first-time menu bugs fixed.
+- Added: Code block for local dashboard begin to be implemented.
 
 ## v2.32-0 January 03, 2021.
 - Fixed: config.ini file now have full file paths.

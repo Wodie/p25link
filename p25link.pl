@@ -13,14 +13,20 @@ use IO::Socket;
 use IO::Socket::INET;
 use IO::Socket::Timeout;
 use IO::Socket::Multicast;
-use Fcntl qw(F_GETFL F_SETFL O_NONBLOCK);
-use Errno qw(ETIMEDOUT EWOULDBLOCK);
+use JSON;
+use Data::Dumper qw(Dumper);
 use Class::Struct;
 use Time::HiRes qw(nanosleep);
-use Term::ReadKey;
+
+use Sys::Hostname;
+use LWP::Simple qw/get/;
+
+use Fcntl qw(F_GETFL F_SETFL O_NONBLOCK);
+use Errno qw(ETIMEDOUT EWOULDBLOCK);
 #use RPi::Pin;
 #use RPi::Const qw(:all);
 use Ham::APRS::IS;
+use Term::ReadKey;
 use Term::ANSIColor;
 
 
@@ -37,12 +43,12 @@ my $StartTime = time();
 # About this app.
 my $AppName = 'P25Link';
 use constant VersionInfo => 2;
-use constant MinorVersionInfo => 32;
+use constant MinorVersionInfo => 33;
 use constant RevisionInfo => 0;
 my $Version = VersionInfo . '.' . MinorVersionInfo . '-' . RevisionInfo;
 print "\n##################################################################\n";
 print "	*** $AppName v$Version ***\n";
-print "	Released: Jan 03, 2021. Created October 17, 2019.\n";
+print "	Released: Mar 06, 2021. Created October 17, 2019.\n";
 print "	Created by:\n";
 print "	Juan Carlos Pérez De Castro (Wodie) KM4NNO / XE1F\n";
 print "	Bryan Fields W9CR.\n";
@@ -382,6 +388,85 @@ print "----------------------------------------------------------------------\n"
 
 
 
+# Last Heard
+print color('green'), "Init LastHeard...\n", color('reset');
+my $NumberOfRecords = $cfg->val('JSON', 'NumberOfRecords');
+my $RadioID_URL = $cfg->val('JSON', 'RadioID_URL');
+my $UsersIDFile = $cfg->val('JSON', 'UsersIDFile');
+my $RptrsIDFile = $cfg->val('JSON', 'RptrsIDFile');
+my $StateFile = $cfg->val('JSON', 'StateFile');
+my $JSON_Verbose = $cfg->val('JSON', 'Verbose');
+print "  Number of records = $NumberOfRecords\n";
+print "  RadioID URL = $RadioID_URL\n";
+print "  Users ID File = $UsersIDFile\n";
+print "  Rptrs ID File = $RptrsIDFile\n";
+print "  State File = $StateFile\n";
+print "  JSON Verbose = $JSON_Verbose\n";
+
+my %qso_hash;
+my %RadioIDUsers;
+my %RadioIDRepeaters;
+my $UsersDBOk = 0;
+my $RepeatersDBOk = 0;
+#my $NextWebUpdate = time();
+my %State = (
+	'time' => time(),
+	'uptime' => time() - $StartTime,
+	'NumberOfRecords' => $NumberOfRecords,
+	'NumberOfRecordsHere' => $NumberOfRecords,
+	'registry' => $qso_hash{'registry'},
+);
+if ($JSON_Verbose > 1) {
+	print "State " . Dumper \%State;
+	print "qso_hash " . Dumper \%qso_hash;
+}
+
+OpenJSON($StateFile, %qso_hash);
+struct BridgeChan => {
+	'ListIndex' => '$',
+	'SourceIP' => '$',
+	'SourceRadioID' => '$',
+	'AstroTalkGroup' => '$',
+	'StartTime' => '$',
+	'Duration' => '$',
+	'State' => '$',
+	'LastHeard' => '$',
+	'FName' => '$',
+	'Callsign' => '$',
+	'Country' => '$',
+	'State' => '$',
+	'City' => '$',
+};
+my %BridgeChan;
+#foreach my $i (keys %TG) {
+	$BridgeChan{'ListIndex'} = 0;
+	$BridgeChan{'SourceIP'} = '0.0.0.0';
+	$BridgeChan{'SourceRadioID'} = 0;
+	$BridgeChan{'AstroTalkGroup'} = 0x00;
+	$BridgeChan{'StartTime'} = time();
+	$BridgeChan{'LastHeard'} = time();
+#}
+
+print "----------------------------------------------------------------------\n";
+
+
+
+# Heard IDs
+print color('green'), "Init Heard...\n", color('reset');
+my $HeardFile = $cfg->val('Heard', 'HeardFile');
+my $HeardWebFile = $cfg->val('Heard', 'HeardWebFile');
+my $Heard_Verbose = $cfg->val('Heard', 'Verbose');
+print "  Heard File = $HeardFile\n";
+print "  Heard Web File = $HeardWebFile\n";
+print "  Heard Verbose = $Heard_Verbose\n";
+my %heard_hash;
+my $NextHeardUpdate = time();
+OpenHeard($HeardFile . '.json');
+print "  Init Heard done.\n";
+print "----------------------------------------------------------------------\n";
+
+
+
 # Init Serial Port for HDLC.
 print color('green'), "Init Serial Port.\n", color('reset');
 my $SerialPort;
@@ -542,21 +627,22 @@ print "----------------------------------------------------------------------\n"
 
 
 # Connect to Priority and scan TGs.
+my $LocalActive = 0;
+my $PauseScan = 0;
+my $PauseTGScanTimer = time();
 my $LinkedTalkGroup = $PriorityTG;
-my $PriorityTGActive = 0;
-my $MuteTGTimer = time();
 
 foreach my $key (keys %TG) {
 	if ($TG{$key}{'Scan'}) {
 		print color('green'), "Scan TG " . $key . "\n", color('reset');
-		AddLinkTG($key);
+		AddLinkTG($key, 0);
 	}
 }
 if ($PriorityTG > 10) {
 	if (!$TG{$PriorityTG}{'Scan'}) {
 		$TG{$PriorityTG}{'Scan'} = 100;
 	}
-	AddLinkTG($PriorityTG);
+	AddLinkTG($PriorityTG, 0);
 }
 print "----------------------------------------------------------------------\n";
 
@@ -1542,7 +1628,7 @@ sub HDLC_Rx {
 							if ($HDLC_Verbose) {
 								print "AstroTalkGroup = $Quant{$Index}{'AstroTalkGroup'}\n";
 							}
-							AddLinkTG($Quant{$Index}{'AstroTalkGroup'});
+							AddLinkTG($Quant{$Index}{'AstroTalkGroup'}, 0);
 						}
 					}
 					$Quant{$Index}{'Speech'} = ord(substr($Message, 7, 11));
@@ -1563,7 +1649,7 @@ sub HDLC_Rx {
 						if ($HDLC_Verbose) {
 							print "HDLC SourceRadioID = $Quant{$Index}{'SourceRadioID'}\n";
 						}
-						#QSO_Log($Index, $RemoteHostIP);
+						QSO_Log($Index, $RemoteHostIP);
 					} else {
 						if ($Verbose) {warn "Misterious packet 0x66\n";}
 					}
@@ -2423,10 +2509,9 @@ sub StrToHex{
 ##################################################################
 sub Tx_to_Network {
 	my ($Buffer) = @_;
-	if (($LinkedTalkGroup < 4) or ($ValidNteworkTG == 0)) {
+	if (($LinkedTalkGroup <= 10) or ($ValidNteworkTG == 0)) {
 		return;
 	}
-	Start_TG_Mute();
 	if ($Verbose) {print color('grey12'),"Tx_to_Network $TG{$LinkedTalkGroup}{'Mode'}" . 
 		" TalkGroup $LinkedTalkGroup\n", color('reset'); }
 	if ( $P25Link_Enabled and ($TG{$LinkedTalkGroup}{'Mode'} eq 'P25Link') and 
@@ -2500,6 +2585,9 @@ sub HDLC_to_P25NX{
 sub MMDVM_to_HDLC{
 	my ($Buffer) = @_;
 	if ( ($HDLC_Handshake == 0) or (length($Buffer) < 1) ) { return; }
+		if ($LocalActive == 1) {
+			return;
+		}
 	if ($MMDVM_Verbose == 2) {
 		print "MMDVM_to_HDLC In.\n";
 		Bytes_2_HexString($Buffer);
@@ -2542,6 +2630,9 @@ sub MMDVM_to_HDLC{
 
 sub P25Link_to_HDLC{ # P25NX packet contains Cisco STUN and Quantar packet.
 	my ($Buffer) = @_;
+	if ($LocalActive == 1) {
+		return;
+	}
 	$Buffer = substr($Buffer, 7, length($Buffer)); # Here we remove Cisco STUN.
 	$HDLC_TxTraffic = 1;
 	HDLC_Tx($Buffer);
@@ -2560,6 +2651,9 @@ sub P25Link_to_HDLC{ # P25NX packet contains Cisco STUN and Quantar packet.
 
 sub P25NX_to_HDLC{ # P25NX packet contains Cisco STUN and Quantar packet.
 	my ($Buffer) = @_;
+	if ($LocalActive == 1) {
+		return;
+	}
 	$Buffer = substr($Buffer, 7, length($Buffer)); # Here we remove Cisco STUN.
 	$HDLC_TxTraffic = 1;
 	HDLC_Tx($Buffer);
@@ -2580,20 +2674,24 @@ sub P25NX_to_HDLC{ # P25NX packet contains Cisco STUN and Quantar packet.
 
 ##################################################################
 sub AddLinkTG {
-	my ($TalkGroup) = @_;
+	my ($TalkGroup, $DoPauseScan) = @_;
+	if ($DoPauseScan == 1) {
+		PauseTGScan();
+	}
 	# Local TGs. Keep them Local.
-	if (($TalkGroup > 0) and ($TalkGroup < 4)) {
+	if (($TalkGroup > 0) and ($TalkGroup <= 10)) {
 		if ($TalkGroup != $LinkedTalkGroup) {
+			RDAC_Tx($LinkedTalkGroup);
 			$VA_Message = $TalkGroup; # Select VA.
 			$Pending_VA = 1;
 		}
 		$LinkedTalkGroup = $TalkGroup;
-		Start_TG_Mute();
+#		Start_Net_Mute();
 		$ValidNteworkTG = 0;
 		print color('blue'), "Local Talk Group $TalkGroup.\n", color('reset');
 		return;
 	}
-	# Undefined TG. Keep it local only.
+	# Undefined TG > 10, keep it local only.
 	if ($TG{$TalkGroup}{'Linked'} eq '') {
 		$TG{$TalkGroup}{'Linked'} = '';
 		$ValidNteworkTG = 0;
@@ -2608,7 +2706,6 @@ sub AddLinkTG {
 		}
 		$LinkedTalkGroup = $TalkGroup;
 		$ValidNteworkTG = 1;
-		Start_TG_Mute();
 		if ($TG{$TalkGroup}{'Scan'} == 0) {
 			$TG{$TalkGroup}{'Timer'} = time();
 		}
@@ -2687,11 +2784,10 @@ sub AddLinkTG {
 		WritePoll($TalkGroup);
 	}
 
-	# Finalize link.
+	# Finalize linking new TG.
 	$TG{$TalkGroup}{'Linked'} = 1;
 	$LinkedTalkGroup = $TalkGroup;
 	$ValidNteworkTG = 1;
-	Start_TG_Mute();
 	if ($TG{$TalkGroup}{'Scan'} == 0) {
 		$TG{$TalkGroup}{'Timer'} = time();
 	}
@@ -2717,15 +2813,19 @@ sub RemoveLinkTG {
 	#print "  System Disconnected from TG $TalkGroup\n";
 }
 
-sub Start_TG_Mute {
-	$PriorityTGActive = 1;
-	$MuteTGTimer = time() + $MuteTGTimeout;
+sub PauseTGScan {
+	print color('yellow'), "PauseTGScan.\n", color('reset');
+	$PauseScan = 1;
+	$PauseTGScanTimer = time() + $MuteTGTimeout;
 }
 
-sub MuteNonPriorityTGs_Timer { # Mute non priority TGs timer.
-	if ($PriorityTGActive and ($MuteTGTimer <= time())) {
-		print color('green'), "Mute Timeout Ended.\n", color('reset');
-		$PriorityTGActive = 0;
+sub PauseTGScan_Timer {
+	if (($PauseScan == 1) and ($PauseTGScanTimer <= time())) {
+		print color('yellow'), "PauseTGScan_Timer.\n", color('reset');
+		$PauseScan = 0;
+		RDAC_Tx($LinkedTalkGroup);
+		$VA_Message = 0xFFFF13; # Default Revert.
+		$Pending_VA = 1;
 	}
 }
 
@@ -2734,6 +2834,7 @@ sub RemoveDynamicTGLink {
 		if ( ($TG{$key}{'P25Link_Connected'} or $TG{$key}{'P25NX_Connected'} or 
 			$TG{$key}{'MMDVM_Connected'} ) and ($TG{$key}{'Scan'} == 0) ) {
 			if (time() > ($TG{$key}{'Timer'} + $Hangtime)) {
+				print color('yellow'), "RemoveDinamicTGLink $key.\n", color('reset');
 				RemoveLinkTG($key);
 				RDAC_Tx($PriorityTG);
 				$VA_Message = 0xFFFF13; # Default Revert.
@@ -2756,13 +2857,434 @@ sub TxLossTimeout_Timer { # End of Tx timmer (1 sec).
 
 
 
+##################################################################
+# Last Heard #####################################################
+##################################################################
+sub NewJSON {
+	my($FileName) = @_;
+	#for (my $i = 0; $i < $NumberOfRecords; $i++) {
+	my $i = 0;
+		$qso_hash{'time'} = time();
+		$qso_hash{'uptime'} = time() - $StartTime;
+		$qso_hash{'registry'}{$i}{'LastHeard'} = time() - ($i * 10);
+		$qso_hash{'registry'}{$i}{'AstroTalkGroup'} = 0;
+		$qso_hash{'registry'}{$i}{'SourceRadioID'} = 0;
+		$qso_hash{'registry'}{$i}{'FName'} = '';
+		$qso_hash{'registry'}{$i}{'Country'} = '';
+		$qso_hash{'registry'}{$i}{'State'} = '';
+		$qso_hash{'registry'}{$i}{'City'} = '';
+		#print $qso_hash{registry}{$i}{LastHeard} . "\n";
+	#}
+	open my $fh, ">", $FileName;
+	print $fh to_json(\%qso_hash);
+	close $fh;
+	if ($JSON_Verbose > 1) {
+		print Dumper \%qso_hash;
+	}
+	if ($JSON_Verbose) {
+		print "NewJSON done.\n";
+		print "-----------------------------------------------------------------\n";
+	}
+}
+
+sub OpenJSON {
+	my($FileName) = @_;
+	my $fh;
+	if (!open($fh, "<", $FileName)) {
+		#warn "alert_me: could not open State dump " . my $c->{"data_out.json"} . " for reading: $!\n";
+		if ($JSON_Verbose) {
+			print "JSON file does not exist.\n";
+			print "-------------------------------------------------------------\n";
+		}
+		NewJSON($FileName);
+		return;
+	}
+	open($fh, "<", $FileName);
+	local $/; #Enable 'slurp' mode
+	my $json = <$fh>;
+	close $fh;
+	%qso_hash = %{from_json($json)};
+	if ($JSON_Verbose > 1) {
+		print Dumper \%qso_hash;
+	}
+	if ($JSON_Verbose) {
+		print "  OpenJSON done.\n";
+		print "-----------------------------------------------------------------\n";
+	}
+}
+
+sub SaveJSON {
+	my($FileName, %hash) = @_;
+	open my $fh, ">", $FileName;
+	print $fh encode_json(\%hash);
+	close $fh;
+	if ($JSON_Verbose) {
+		print "Saved to JSON.\n";
+		print "-----------------------------------------------------------------\n";
+	}
+}
+
+sub State_Update {
+	if ($JSON_Verbose) {print "Fill DB\n";}
+	%State = (
+		'time' => time(),
+		'uptime' => time() - $StartTime,
+		'NumberOfRecords' => $NumberOfRecords,
+		'NumberOfRecordsHere' => $NumberOfRecords,
+		'registry' => $qso_hash{'registry'},
+	);
+	if ($JSON_Verbose > 1) {
+		print "State " . Dumper \%State;
+		print "qso_hash " . Dumper \%qso_hash;
+	}
+	SaveJSON($StateFile, %State);
+}
+
+sub FindOldestReg {
+	my $OldestReg = 0;
+	for (my $i = 0; $i < $NumberOfRecords; $i++) {
+		print "Val 1 $qso_hash{registry}{$OldestReg}->{'LastHeard'}\n";
+		print "Val 2 $qso_hash{'registry'}{$i}->{'LastHeard'}\n";
+		if ($qso_hash{registry}{$OldestReg}->{'LastHeard'} > $qso_hash{'registry'}{$i}->{'LastHeard'}){
+			print "Found " . $i . " LastHeard " . $qso_hash{'registry'}{$i}->{'LastHeard'} . "\n";
+			$OldestReg = $i;
+		}
+	}
+	if ($JSON_Verbose) {print "FindOldestReg = " . $OldestReg . "\n";}
+	return $OldestReg;
+}
+
+sub QSO_Log {
+	my ($Index, $RemoteHostIP) = @_;
+	if ($JSON_Verbose) {print "QSO_Log   Index = " . $Index . "\n";}
+	if (($BridgeChan{'SourceRadioID'} != $Quant{$Index}{'SourceRadioID'}) or 
+		((time() - $BridgeChan{'LastHeard'}) > 1)) {
+		# First frame
+		$BridgeChan{'ListIndex'} = FindOldestReg();
+		if ($JSON_Verbose) {
+			print time() . "  New QSO" .  "\n";
+			print "  Record ListIndex " . $BridgeChan{'ListIndex'} . "\n";
+		}
+		$BridgeChan{'SourceRadioID'} = $Quant{$Index}{'SourceRadioID'};
+		#print "SourceRadioID " . $BridgeChan{SourceRadioID} . "\n";
+		$BridgeChan{'AstroTalkGroup'} = $Quant{$Index}{'AstroTalkGroup'};
+		$BridgeChan{'StartTime'} = time();
+		$BridgeChan{'LastHeard'} = $BridgeChan{'StartTime'};
+		# Search in cache and RadioID if not found.
+		if (exists($heard_hash{'registry'}{ $Quant{$Index}{'SourceRadioID'} }{'FName'}) != 1) {
+			if ($Heard_Verbose) {print "Heard Not exist.\n";}
+			if (SearchUser($Index, $BridgeChan{'SourceRadioID'} ) != 1) {
+				if (SearchRepeater($Index, $BridgeChan{'SourceRadioID'}) !=1 ) {
+					$heard_hash{"registry"}{ $Quant{$Index}{'SourceRadioID'} }{'FName'} = "Unknown";
+				}
+			}
+		} else {
+			if ($Heard_Verbose) {print "  Heard already exist.\n";}
+			$BridgeChan{'FName'} = $heard_hash{"registry"}{ $Quant{$Index}{'SourceRadioID'} }{'FName'};
+			$BridgeChan{'Callsign'} = $heard_hash{"registry"}{ $Quant{$Index}{'SourceRadioID'} }{'Callsign'};
+			$BridgeChan{'Country'} = $heard_hash{"registry"}{ $Quant{$Index}{'SourceRadioID'} }{'Country'};
+			$BridgeChan{'State'} = $heard_hash{"registry"}{ $Quant{$Index}{'SourceRadioID'} }{'State'};
+			$BridgeChan{'City'} = $heard_hash{"registry"}{ $Quant{$Index}{'SourceRadioID'} }{'City'};
+		}
+		# QSO initial Filler
+		$qso_hash{'registry'}{ $BridgeChan{'ListIndex'} }{'RemoteHostIP'} = $RemoteHostIP;
+		$qso_hash{'registry'}{ $BridgeChan{'ListIndex'} }{'AstroTalkGroup'} = $Quant{$Index}{'AstroTalkGroup'};
+		$qso_hash{'registry'}{ $BridgeChan{'ListIndex'} }{'SourceRadioID'} = $Quant{$Index}{'SourceRadioID'};
+		$qso_hash{'registry'}{ $BridgeChan{'ListIndex'} }{'StartTime'} = $BridgeChan{'StartTime'};
+		$qso_hash{'registry'}{ $BridgeChan{'ListIndex'} }{'LastHeard'} = $BridgeChan{'StartTime'};
+		$qso_hash{'registry'}{ $BridgeChan{'ListIndex'} }{'Duration'} = ParseMS(0);
+		$qso_hash{'registry'}{ $BridgeChan{'ListIndex'} }{'FName'} = $BridgeChan{'FName'};
+		$qso_hash{'registry'}{ $BridgeChan{'ListIndex'} }{'Callsign'} = $BridgeChan{'Callsign'};
+		$qso_hash{'registry'}{ $BridgeChan{'ListIndex'} }{'Country'} = $BridgeChan{'Country'};
+		$qso_hash{'registry'}{ $BridgeChan{'ListIndex'} }{'State'} = $BridgeChan{'State'};
+		$qso_hash{'registry'}{ $BridgeChan{'ListIndex'} }{'City'} = $BridgeChan{'City'};
+		# Save heard users
+		if (($BridgeChan{'FName'} cmp "Unknown") != 0) {
+			$heard_hash{'registry'}{ $Quant{$Index}{'SourceRadioID'} }{'FName'} = $BridgeChan{'FName'};
+			$heard_hash{'registry'}{ $Quant{$Index}{'SourceRadioID'} }{'Callsign'} = $BridgeChan{'Callsign'};
+			$heard_hash{'registry'}{ $Quant{$Index}{'SourceRadioID'} }{'Country'} = $BridgeChan{'Country'};
+			$heard_hash{'registry'}{ $Quant{$Index}{'SourceRadioID'} }{'State'} = $BridgeChan{'State'};
+			$heard_hash{'registry'}{ $Quant{$Index}{'SourceRadioID'} }{'City'} = $BridgeChan{'City'};
+			$heard_hash{'registry'}{ $Quant{$Index}{'SourceRadioID'} }{'HeardTG'} = $Quant{$Index}{'AstroTalkGroup'};
+			$heard_hash{'registry'}{ $Quant{$Index}{'SourceRadioID'} }{'FramesCount'} = 0;
+			if ($Heard_Verbose) {print "  Save Heard user\n";}
+			if ($Heard_Verbose > 1) {print "Heard " . Dumper \%heard_hash;}
+		}
+	} else {
+		if ($JSON_Verbose) {print "  Record ListIndex " . $BridgeChan{'ListIndex'} . "\n";}
+		$BridgeChan{'LastHeard'} = time();
+		#print "SourceRadioID " . $BridgeChan[$Index]->SourceRadioID . "\n";
+		$qso_hash{'registry'}{ $BridgeChan{'ListIndex'} }{'LastHeard'} = time();
+		my $Duration = time() - $qso_hash{'registry'}{ $BridgeChan{'ListIndex'} }{'StartTime'};
+		$qso_hash{'registry'}{ $BridgeChan{'ListIndex'} }{'Duration'} = ParseMS($Duration);
+
+		$heard_hash{'registry'}{ $Quant{$Index}{'SourceRadioID'} }{'HeardTG'} = $Quant{$Index}{'AstroTalkGroup'};
+		$heard_hash{'registry'}{ $Quant{$Index}{'SourceRadioID'} }{'FramesCount'}++;
+
+		#SaveJSON($StateFile, %State);
+#		State_Update();
+		if ($JSON_Verbose) {
+			print "  QSO_Log   Index $Index StartTime " . 
+				$qso_hash{'registry'}{ $BridgeChan{'ListIndex'} }{'StartTime'} .
+				" TG " . $qso_hash{'registry'}{ $BridgeChan{'ListIndex'} }->{'AstroTalkGroup'} .
+				" duration " . $qso_hash{'registry'}{ $BridgeChan{'ListIndex'} }{'Duration'} . "\n";
+			print "----------------------------------------------------------------------\n";
+		}
+	}
+}
+
+sub ParseHMS {
+	my $res = sprintf("%02d:%02d:%02d", $_[0]/3600, $_[0]/60%60, $_[0]%60);
+	return $res;
+}
+
+sub ParseMS {
+	my $res = sprintf("%02d:%02d", $_[0]/60%60, $_[0]%60);
+	return $res;
+}
+
+sub OpenRadioIDJSON {
+	my $fh;
+	print "Loading RadioID database...\n";
+	#Users DB:
+	if (!open($fh, "<", $UsersIDFile)) {
+		#warn "alert_me: could not open State dump " . my $c->{"data_out.json"} . " for reading: $!\n";
+		if ($JSON_Verbose) {
+			print "  *** Error ***   JSON file " . $UsersIDFile . " does not exist.\n";
+		}
+	} else {
+		open($fh, "<", $UsersIDFile);
+		local $/; #Enable 'slurp' mode
+		my $json = <$fh>;
+		close $fh;
+		%RadioIDUsers = %{from_json($json)};
+		if ($JSON_Verbose > 2) {
+			print Dumper \%RadioIDUsers;
+			print "  OpenJSON Users " . $UsersIDFile . " done.\n";
+		}
+		# Test to see if specify the desired key exist:
+		my $key = "users";
+		if (exists($RadioIDUsers{$key})) {
+			# if the key is found in the hash come here
+			$UsersDBOk = 1;
+			print "  Found users key.\n";
+		} else {
+			# come here if the key is not found in the hash
+			print "  *** Error ***   Could not find users key.\n";
+		}
+	}
+	################################################
+	# Repeters DB:
+	if (!open($fh, "<", $RptrsIDFile)) {
+		#warn "alert_me: could not open State dump " . my $c->{"data_out.json"} . " for reading: $!\n";
+		if ($JSON_Verbose) {
+			print "  *** Error ***   JSON file " . $RptrsIDFile . " does not exist.\n";
+		}
+	} else {
+		open($fh, "<", $RptrsIDFile);
+		local $/; #Enable 'slurp' mode
+		my $json = <$fh>;
+		close $fh;
+		%RadioIDRepeaters = %{from_json($json)};
+		if ($JSON_Verbose > 2) {
+			print Dumper \%RadioIDRepeaters;
+			print "  OpenJSON Repeaters " . $RptrsIDFile . " done.\n";
+		}
+		# Test to see if specify the desired key exist:
+		my $key = "rptrs";
+		if (exists($RadioIDRepeaters{$key})) {
+			# if the key is found in the hash come here
+			$RepeatersDBOk = 1;
+			print "  Found rptrs key.\n";
+		} else {
+			# come here if the key is not found in the hash
+			print "  *** Error ***   Could not find rptrs key.\n";
+		}
+	}
+	print "  Loading RadioID database done.\n";
+	print "-----------------------------------------------------------------\n";
+}
+
+
+
+##################################################################
+# Heard History ##################################################
+##################################################################
+sub OpenHeard {
+	my($FileName) = @_;
+	print color('green'), "OpenHeard called.\n", color('reset');
+	my $fh;
+	if (!open($fh, "<", $FileName)) {
+		#warn "alert_me: could not open State dump " . my $c->{"data_out.json"} . " for reading: $!\n";
+		if ($Heard_Verbose) {
+			print "  Heard file $FileName does not exist.\n";
+			print "-------------------------------------------------------------\n";
+		}
+		return;
+	}
+	open($fh, "<", $FileName);
+	local $/; #Enable 'slurp' mode
+	my $json = <$fh>;
+	close $fh;
+	%heard_hash = %{from_json($json)};
+	if ($Heard_Verbose > 1) {
+		print Dumper \%heard_hash;
+	}
+	if ($Heard_Verbose) {
+		print color('green'), "OpenHeard $FileName done.\n", color('reset');
+		print "-----------------------------------------------------------------\n";
+	}
+}
+
+sub HeardUpdate {
+	if ($JSON_Verbose) {print "Fill DB\n";}
+	print color('green'), "HeardUpdate called.\n", color('reset');
+	my %Heard = (
+		'registry' => $heard_hash{'registry'},
+	);
+	if ($Heard_Verbose > 1) {
+		print "Heard " . Dumper \%Heard;
+		print "heard_hash " . Dumper \%heard_hash;
+	}
+	SaveJSON($HeardFile . '.json', %Heard);
+	print color('green'), "HeardUpdate done.\n", color('reset');
+}
+
+
+
+#################################################################################
+# RadioID Poll ##################################################################
+#################################################################################
+sub SearchUser {
+	my ($Index, $ID) = @_;
+	my $Found = 0;
+	#$ID=390068; # Invalid ID causing troubles with new changes at RadioID.net api.
+	if ($JSON_Verbose) {print "Requesting RadioID for ID = " . $ID . "\n";}
+	# Get data from www:
+	my $url = $RadioID_URL . "user/?id=" . $ID; # Get data form RadioID site.
+	my $ua = LWP::UserAgent->new(ssl_opts => { verify_hostname => 0 });
+	my $Request = HTTP::Request->new(GET => $url);
+	$Request->content_type('application/json');
+	#$request->authorization_basic("admin", "secret");
+
+return; # Temporary fix due to crash with next line of code.
+
+	my $Result = $ua->request($Request);
+	if ($Result->is_success){
+		if ($Result->content eq "info, Please specify at least one parameter, see /database/api/doc/ for usage") {
+			if ($JSON_Verbose > 1) {print "  UserID not in RadioID database. " . $Result->content;}
+			return $Found;
+		}
+		if ($JSON_Verbose > 1) {print "  UserID Success " . $Result->content;}
+	} else {
+		print "  UserID Error: " . $Result->status_line . "\n";
+		return $Found;
+	}
+	#print "----------------------------------------------------------------------\n";
+	# Process web data:
+	my %json_array = %{from_json($Result->content)};
+#	if ($JSON_Verbose > 1) {
+		print "User web_data \%json_array: " . Dumper \%json_array;
+#	}
+	# Check if record was found
+	my $count = $json_array{'count'};
+	print "  User \$count = " . $count . "\n";
+
+	if ($count == 1) {
+		my @user_rec = @{$json_array{'results'}};
+		if ($JSON_Verbose) {
+			print "  ID = " . $user_rec[0]->{'id'} . "\n";
+			print "  First Name = " . $user_rec[0]->{'fname'} . "\n";
+			print "  Callsign = " . $user_rec[0]->{'callsign'} . "\n";
+		#print "----------------------------------------------------------------------\n";
+		}
+		$BridgeChan{'FName'} = $user_rec[0]->{'fname'};
+		$BridgeChan{'Callsign'} = $user_rec[0]->{'callsign'};
+		$BridgeChan{'Country'} = $user_rec[0]->{'country'};
+		$BridgeChan{'State'} = $user_rec[0]->{'state'};
+		$BridgeChan{'City'} = $user_rec[0]->{'city'};
+		$Found = 1;
+	} else {
+		$BridgeChan{'FName'} = 'Unknown';
+		$BridgeChan{'Callsign'} =  '?';
+		$BridgeChan{'Country'} = '';
+		$BridgeChan{'State'} = '';
+		$BridgeChan{'City'} = '';
+		$Found = 0;
+	}
+	return $Found
+}
+
+sub SearchRepeater {
+	my ($Index, $ID) = @_;
+	my $Found = 0;
+	# Get data from www:
+	my $url = $RadioID_URL . "repeater/?id=" . $ID; # Get data form RadioID site.
+
+	my $ua = LWP::UserAgent->new(ssl_opts => { verify_hostname => 0 });
+	my $Request = HTTP::Request->new(GET => $url);
+	$Request->content_type('application/json');
+	#$request->authorization_basic("admin", "secret");
+
+return; # Temporary fix due to crash with next line of code.
+
+	my $Result = $ua->request($Request);
+	if ($Result->is_success){
+		if ($Result->content eq "info, Please specify at least one parameter, see /database/api/doc/ for usage") {
+			if ($JSON_Verbose > 1) {print "  RepeaterID not in RadioID database. " . $Result->content;}
+			return $Found;
+		}
+		if ($JSON_Verbose > 1) {print "  RptrID Sucess: " . $Result->content;}
+	} else {
+		print "  RptrID Error: " . $Result->status_line . "\n";
+		return $Found;
+	}
+	#print "----------------------------------------------------------------------\n";
+	# Process web data:
+	my %json_array = %{from_json($Result->content)};
+	if ($JSON_Verbose > 1) {
+		print "  Rptr web data \%json_array: " . Dumper \%json_array;
+	}
+	# Check if record was found
+	my $count = $json_array{'count'};
+	print "  Rptr \$count = " . $count . "\n";
+
+	if ($count == 1) {
+		my @rptr_rec = @{$json_array{'results'}};
+		if ($JSON_Verbose == 1) {
+			print "  ID = " . $rptr_rec[0]->{'id'} . "\n";
+			print "  Trustee = " . $rptr_rec[0]->{'trustee'} . "\n";
+			print "  Callsign = " . $rptr_rec[0]->{'callsign'} . "\n";
+			#print "----------------------------------------------------------------------\n";
+		}
+		$BridgeChan{'FName'} = $rptr_rec[0]->{'trustee'};
+		$BridgeChan{'Callsign'} = $rptr_rec[0]->{'callsign'};
+		$BridgeChan{'Country'} = $rptr_rec[0]->{'country'};
+		$BridgeChan{'State'} = $rptr_rec[0]->{'state'};
+		$BridgeChan{'City'} = $rptr_rec[0]->{'city'};
+		$Found = 1;
+	} else {
+		$BridgeChan{'FName'} = 'Unknown';
+		$BridgeChan{'Callsign'} = '?';
+		$BridgeChan{'Country'} = '';
+		$BridgeChan{'State'} = '';
+		$BridgeChan{'City'} = '';	
+		#print "daa " . $BridgeChan{City} . "\n";
+		$Found = 0;
+	}
+	print "----------------------------------------------------------------------\n";
+	return $Found;
+}
+
+
+
 #################################################################################
 # Voice Announce ################################################################
 #################################################################################
 sub SaySomething{
 	my ($ThingToSay) = @_;
 	my @Speech;
-	if ($Verbose) {print color('green'), "Voice Announcement ";}
+	if ($Verbose) {print color('green'), "Voice Announcement: ", color('reset');}
 	$HDLC_TxTraffic = 1;
 	switch ($ThingToSay) {
 		case 0x00 {
@@ -2989,7 +3511,7 @@ sub SaySomething{
 	}
 	nanosleep(0.0001 * 1000000000); # Needed for playing complete voice announcements.
 	$HDLC_TxTraffic = 0;
-	if ($Verbose) {print color('grey12'), "\n  Done.\n", color('reset');}
+	if ($Verbose) {print " done.\n";}
 }
 
 sub HexString_2_Bytes{
@@ -3051,6 +3573,10 @@ sub HotKeys {
 					$VA_Test++;
 					$VA_Message = $VA_Test;
 					$Pending_VA = 1;
+				}
+				case ord('f') {
+					SearchUser(0, 3341010);
+#					SearchRepeater(0, 334004);
 				}
 				case ord('H') { # 'H'
 					$HDLC_Verbose = 1;
@@ -3218,7 +3744,7 @@ sub MainLoop {
 						if ($P25Link_Verbose) {print "$hour:$min:$sec $P25Link_RemoteHost" .
 							" P25Link Data len(" . length($Buffer) . ")\n";
 						}
-						if (!$PriorityTGActive and ($TG{$key}{'Scan'} > $Scan)) {
+						if (($PauseScan == 0) and ($TG{$key}{'Scan'} > $Scan)) {
 							$TalkGroup = $key;
 							$OutBuffer = $Buffer;
 							$Scan = $TG{$key}{'Scan'};
@@ -3226,7 +3752,6 @@ sub MainLoop {
 						if ($key == $LinkedTalkGroup) {
 							$TalkGroup = $key;
 							$OutBuffer = $Buffer;
-							Start_TG_Mute();
 							last;
 						}
 					}
@@ -3250,7 +3775,7 @@ sub MainLoop {
 						if ($P25NX_Verbose) {print "$hour:$min:$sec $P25NX_RemoteHost" .
 							" P25NX Data len(" . length($Buffer) . ")\n";
 						}
-						if (!$PriorityTGActive and ($TG{$key}{'Scan'} > $Scan)) {
+						if (($PauseScan == 0) and ($TG{$key}{'Scan'} > $Scan)) {
 							$TalkGroup = $key;
 							$OutBuffer = $Buffer;
 							$Scan = $TG{$key}{'Scan'};
@@ -3258,10 +3783,9 @@ sub MainLoop {
 						if ($key == $LinkedTalkGroup) {
 							$TalkGroup = $key;
 							$OutBuffer = $Buffer;
-							Start_TG_Mute();
 							last;
 						}
-					}	
+					}
 				}
 				if ($TalkGroup) {
 					P25NX_Rx($OutBuffer);
@@ -3269,7 +3793,7 @@ sub MainLoop {
 			}
 		}
 
-		MuteNonPriorityTGs_Timer(); # Mute non priority TGs timer.
+		PauseTGScan_Timer();
 		TxLossTimeout_Timer(); # End of Tx timmer (1 sec).
 		Announcements_Player();
 		RemoveDynamicTGLink(); # Remove Dynamic Talk Group Link.
