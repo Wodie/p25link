@@ -52,7 +52,7 @@ you can access it by pointing your browser to:
 
 # Version History:
 
-## v2.33-0 February 22, 2021.
+## v2.33-0 March 06, 2021.
 - Fixed: Priority to local TGs and reliable scan pause.
 - Fixed: first-time menu bugs fixed.
 - Added: Code block for local dashboard begin to be implemented.
