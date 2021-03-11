@@ -58,8 +58,8 @@
 # 994 The Online Radio Club (Bridged to XLX994)
 994		MMDVM	misc.openreflector.com			41000		0
 
-# 2050 KM4NNO AllStarLink (Bridged to the P25Link Network).
-2050	P25Link	reflector.p25.link				41009		9
+# 2050 KM4NNO PTTLink (Bridged to the P25Link Network).
+2050	P25Link	reflector.p25.link				41009		0
 
 # 2140 P25 Reflector BM DMR+ Multi 
 2140	MMDVM	94.177.235.81					41000		0
@@ -98,7 +98,7 @@
 3300	MMDVM	3300p25.from-pr.com				41000		0
 
 # 4095 KM4NNO Wave (Bridged to the P25Link Network).
-4095	P25Link	reflector.p25.link				41010		10
+4095	P25Link	reflector.p25.link				41010		0
 
 # 5057 VK7 TAS
 5057	MMDVM	45.248.50.37					41000		0
