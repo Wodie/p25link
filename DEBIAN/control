@@ -1,11 +1,12 @@
 Package: p25link
-Version: 2.30-2
+Version: 2.33-2
 Section: base
 Priority: optional
 Architecture: armhf
 Depends:
 Maintainer: P25Link <km4nno@yahoo.com>
 Description: P25Link client for Quantar
+ Released March 18, 2021.
  Software for amateur radio only.
  Provided as is.
  (the space before each line in the description is important)
