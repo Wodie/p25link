@@ -1,8 +1,8 @@
 #!/bin/bash
 # P25LINK-MENU
 ##################################################################
-#	*** P25Link v2.33-0 ***
-#	Released: Mar 06, 2021. Created September 04, 2019.
+#	*** P25Link v2.33-2 ***
+#	Released: Mar 18, 2021. Created September 04, 2019.
 #	Created by: Juan Carlos Pérez De Castro (Wodie) KM4NNO, XE1F.
 #	www.wodielite.com
 #	wodielite at mac.com
@@ -21,7 +21,7 @@ INTERACTIVE=True
 ASK_TO_REBOOT=0
 #CONFIG=/opt/p25link/config.txt
 
-PACKAGE_VER=p25link_2.33-0
+PACKAGE_VER=p25link_2.33-2
 DEPLOY_DIR=/opt/deploy/$PACKAGE_VER
 
 
@@ -101,7 +101,7 @@ do_run_firsttime() {
 	chmod +x $CONFIGS/first-time
 	$CONFIGS/first-time
 	rm -f $CONFIGS/firsttime
-	whiptail --msgbox "Please do not forget to edit hosts.txt file (option 6) to add/remove available talk groups, select networks and add/remove TGs to scan list" 10 60 2
+	whiptail --msgbox "Please do not forget to edit hosts.txt file (option H) to add/remove available talk groups, select networks and add/remove TGs to scan list" 10 60 2
 }
 
 do_start() {

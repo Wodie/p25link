@@ -52,6 +52,14 @@ you can access it by pointing your browser to:
 
 # Version History:
 
+## v2.33-2 March 18, 2021.
+- Bug Fixed: Warble sound removed (Read_Timeout decreased).
+- Bug Fixed: Audio loss on QSOs larger than 1 min (Read_Timeout).
+- Bug Fixed: HDLC RR sent while audio is sent to HDLC causing audio drops.
+
+## v2.33-1 March 10, 2021.
+- Fixed: App does not crash when unable to reach MMDVM reflector.
+
 ## v2.33-0 March 06, 2021.
 - Fixed: Priority to local TGs and reliable scan pause.
 - Fixed: first-time menu bugs fixed.

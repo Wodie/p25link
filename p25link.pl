@@ -29,7 +29,6 @@ use Ham::APRS::IS;
 use Term::ReadKey;
 use Term::ANSIColor;
 
-
 use FindBin 1.51 qw( $RealBin );
 use lib $RealBin;
 # Use custom version of FAP:
@@ -44,11 +43,11 @@ my $StartTime = time();
 my $AppName = 'P25Link';
 use constant VersionInfo => 2;
 use constant MinorVersionInfo => 33;
-use constant RevisionInfo => 0;
+use constant RevisionInfo => 2;
 my $Version = VersionInfo . '.' . MinorVersionInfo . '-' . RevisionInfo;
 print "\n##################################################################\n";
 print "	*** $AppName v$Version ***\n";
-print "	Released: Mar 06, 2021. Created October 17, 2019.\n";
+print "	Released: Mar 18, 2021. Created October 17, 2019.\n";
 print "	Created by:\n";
 print "	Juan Carlos Pérez De Castro (Wodie) KM4NNO / XE1F\n";
 print "	Bryan Fields W9CR.\n";
@@ -715,7 +714,7 @@ print "----------------------------------------------------------------------\n"
 
 
 # Misc
-my $Read_Timeout = 0.005;
+my $Read_Timeout = 0.003;
 my $Run = 1;
 my $TGVar = 2044;
 
@@ -1222,7 +1221,11 @@ sub HDLC_Rx {
 	switch ($Quant{$Index}{'FrameType'}) {
 		case 0x01 { # RR Receive Ready.
 			if ($Address == 253) {
-				HDLC_Tx_RR();
+				if ((($Mode == 1) and $STUN_Connected and ($HDLC_TxTraffic == 0))
+					or (($Mode == 0) and ($HDLC_TxTraffic == 0))) {
+					if ($HDLC_Verbose) {print color('green'), "  0x01 calling HDLC_Tx_RR\n", color('reset');}
+					HDLC_Tx_RR();
+				}
 				$RR_NextTimer = time() + $RR_TimerInterval;
 			} else {
 				warn color('red'), "*** Warning ***   HDLC_Rx RR Address 253 != $Address\n", color('reset');
@@ -1649,7 +1652,7 @@ sub HDLC_Rx {
 						if ($HDLC_Verbose) {
 							print "HDLC SourceRadioID = $Quant{$Index}{'SourceRadioID'}\n";
 						}
-						QSO_Log($Index, $RemoteHostIP);
+#						QSO_Log($Index, $RemoteHostIP);
 					} else {
 						if ($Verbose) {warn "Misterious packet 0x66\n";}
 					}
@@ -1931,11 +1934,11 @@ sub HDLC_Rx {
 			if ($StationType == $C_DIU3000) {
 				if ($HDLC_Verbose > 1) {print "  Station type = DIU3000.\n";}
 			}
-			if ($HDLC_Verbose > 1) {print "  Calling HDLC_Tx_XID\n";}
+			if ($HDLC_Verbose) {print color('yellow'), "  0x0B calling HDLC_Tx_XID\n", color('reset');}
 			HDLC_Tx_XID(0x0B);
 			$HDLC_Handshake = 1;
 			$RR_TimerEnabled = 1;
-			if ($HDLC_Verbose > 1) {print "  Calling HDLC_Tx_RR\n";}
+			if ($HDLC_Verbose) {print color('yellow'), "  0x0B calling HDLC_Tx_RR\n", color('reset');}
 			HDLC_Tx_RR();
 		}
 	}
@@ -1957,6 +1960,7 @@ sub RR_Timer { # HDLC Receive Ready keep alive.
 				or (($Mode == 0) and ($HDLC_TxTraffic == 0))) {
 				HDLC_Tx_RR();
 				if ($HDLC_Verbose) {
+					print "Mode = $Mode, STUN_Connected = $STUN_Connected, and HDLC_TxTraffic = $HDLC_TxTraffic\n";
 					print "----------------------------------------------------------------------\n";
 				}
 			}
@@ -2686,7 +2690,6 @@ sub AddLinkTG {
 			$Pending_VA = 1;
 		}
 		$LinkedTalkGroup = $TalkGroup;
-#		Start_Net_Mute();
 		$ValidNteworkTG = 0;
 		print color('blue'), "Local Talk Group $TalkGroup.\n", color('reset');
 		return;
@@ -2777,7 +2780,15 @@ sub AddLinkTG {
 			ReuseAddr => 1,
 			PeerHost => $TG{$TalkGroup}{'MMDVM_URL'},
 			PeerPort => $TG{$TalkGroup}{'MMDVM_Port'}
-		) || die "Can not Bind MMDVM : $@\n";
+		) || MMDVM_Sock_Error($TalkGroup);
+
+		# Test Socket
+		if ($TG{$TalkGroup}{'Linked'} == -1) {
+			$LinkedTalkGroup = $TalkGroup;
+			$ValidNteworkTG = 0;
+			return;
+		}
+
 		$TG{$TalkGroup}{'Sel'} = IO::Select->new($TG{$TalkGroup}{'Sock'});
 		WritePoll($TalkGroup);
 		WritePoll($TalkGroup);
@@ -2794,6 +2805,12 @@ sub AddLinkTG {
 	$VA_Message = $TalkGroup; # Linked TalkGroup.
 	$Pending_VA = 1;
 	print color('green'), "  System Linked to TG $TalkGroup\n", color('reset');
+}
+
+sub MMDVM_Sock_Error {
+	my ($TalkGroup) = @_;
+	warn color('yellow'), "Can not Bind MMDVM : $@\n",  color('reset');
+	$TG{$TalkGroup}{'Linked'} = -1;
 }
 
 ##################################################################
