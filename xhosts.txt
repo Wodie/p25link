@@ -1,5 +1,7 @@
 # hosts.txt
 #
+# Last update March 21, 2021.
+#
 # The format of this file is:
 # 1 Number of the Talk Group,
 # 2 Link Mode, can be P25Link, MMDVM or P25NX,
@@ -97,6 +99,9 @@
 # 3300 PRadise
 3300	MMDVM	3300p25.from-pr.com				41000		0
 
+# 3345 Mexico Multimode (Bridged to the P25Link Network).
+3345	P25Link	reflector.p25.link				41008		0
+
 # 4095 KM4NNO Wave (Bridged to the P25Link Network).
 4095	P25Link	reflector.p25.link				41010		0
 
@@ -121,15 +126,6 @@
 # 10100 World Wide	http://www.george-smart.co.uk/p25/ (Bridged to the P25NX Network).
 10100	P25NX	m1geo.com						41000		0
 
-# 10101 World Wide TAC 1 (Bridged to the P25NX Network).
-10101	P25NX	reflector.p25.link				41000		0
-
-# 10102 World Wide TAC 2 (Bridged to the P25NX Network).
-10102	P25NX	reflector.p25.link				41001		0
-
-# 10103 World Wide TAC 3 (Bridged to the P25NX Network).
-10103	P25NX	reflector.p25.link				41002		0
-
 # 10120 CQ-UK
 10120	MMDVM	81.150.10.62					41000		0
 
@@ -138,12 +134,6 @@
 
 # 10201 North America TAC 1 (Bridged to the P25NX Network).
 10201	P25NX	dvswitch.org					41010		0
-
-# 10202 North America TAC 2 (Bridged to the P25NX Network).
-10202	P25NX	reflector.p25.link				41003		0
-
-# 10203 North America TAC 3 (Bridged to the P25NX Network).
-10203	P25NX	reflector.p25.link				41004		0
 
 # P25 France
 10208	MMDVM	m55.evxonline.net				41000		0
@@ -162,12 +152,6 @@
 
 # 10301	Europe TAC 1
 10301	MMDVM	ea5gvk.duckdns.org				41000		0
-
-# 10302 Europe TAC 2 (Bridged to the P25NX Network).
-10302	P25NX	reflector.p25.link				41005		0
-
-# 10303 Europe TAC 3 (Bridged to the P25NX Network).
-10303	P25NX	reflector.p25.link				41006		0
 
 # 10310 Germany HAMNET (Bridge to 10320)	http://44.148.230.100/
 10310	MMDVM	44.148.230.100					41000		0
@@ -216,6 +200,18 @@
 
 # 10444 VK64 P25 Group
 10444	MMDVM	vk64.chiffers.com				41000		0
+
+# 10500 World Wide Bridged to the P25NX Network.
+10500	P25NX	reflector.p25.link				41000		0
+
+# 10501 TAC 1 Bridge to the P25NX Network.
+10501	P25NX	reflector.p25.link				41001		0
+
+# 10502 TAC 2 Bridge to the P25NX Network.
+10502	P25NX	reflector.p25.link				41002		0
+
+# 10503 TAC 3 Bridged to the P25NX Network.
+10503	P25NX	reflector.p25.link				41003		0
 
 # 10700 Australia NSW Bridge to AU NSW YSF
 10700	MMDVM	p25nsw.gustotech.net			41000		0
