@@ -43,11 +43,11 @@ my $StartTime = time();
 my $AppName = 'P25Link';
 use constant VersionInfo => 2;
 use constant MinorVersionInfo => 33;
-use constant RevisionInfo => 2;
+use constant RevisionInfo => 3;
 my $Version = VersionInfo . '.' . MinorVersionInfo . '-' . RevisionInfo;
 print "\n##################################################################\n";
 print "	*** $AppName v$Version ***\n";
-print "	Released: Mar 18, 2021. Created October 17, 2019.\n";
+print "	Released: Mar 29, 2021. Created October 17, 2019.\n";
 print "	Created by:\n";
 print "	Juan Carlos Pérez De Castro (Wodie) KM4NNO / XE1F\n";
 print "	Bryan Fields W9CR.\n";
@@ -2831,18 +2831,18 @@ sub RemoveLinkTG {
 }
 
 sub PauseTGScan {
-	print color('yellow'), "PauseTGScan.\n", color('reset');
+	print color('yellow'), "PauseTGScan starting.\n", color('reset');
 	$PauseScan = 1;
 	$PauseTGScanTimer = time() + $MuteTGTimeout;
 }
 
 sub PauseTGScan_Timer {
 	if (($PauseScan == 1) and ($PauseTGScanTimer <= time())) {
-		print color('yellow'), "PauseTGScan_Timer.\n", color('reset');
+		print color('yellow'), "PauseTGScan_Timer expired.\n", color('reset');
 		$PauseScan = 0;
 		RDAC_Tx($LinkedTalkGroup);
-		$VA_Message = 0xFFFF13; # Default Revert.
-		$Pending_VA = 1;
+		#$VA_Message = 0xFFFF13; # Default Revert.
+		#$Pending_VA = 1;
 	}
 }
 
