@@ -7,8 +7,8 @@
 # 2 Link Mode, can be P25Link, MMDVM or P25NX,
 # 3 MMDVM host name, or address,
 # 4 MMDVM port number,
-# "scan" index, which 0 = no scan, if using a number > 0,  it enables 
-# scan with different priority, the greater the number, the higher priority it haves.
+# 5 "scan" index, which 0 = no scan, if using a number > 0,  it enables 
+# scan with different priority for P25Link and P25NX modes only. The greater the number, the higher priority it haves.
 # By default local QSO priority is = 100, so it is recommended to use values < 100.
 #
 # If you want to disable/black-list a Talk Group to/from the network just
