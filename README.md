@@ -10,7 +10,7 @@ It use the v.24 port on Quantar/DIU 3000, a Cisco router 28xx and a Raspberry Pi
 - P25-MMDVM network Voice talk groups 11 to 65534 (each TG is network selectable).
 - TMS (text messages) implemented if repeaters are on P25Link network and radios on linked TG.
 - Page functionality implemented if repeaters are on P25Link network and radios on linked TG.
-- Repeater scan mode with priority index for talk groups.
+- Repeater scan mode with priority index for talk groups for P25Link and P25NX modes.
 - Local and remote courtesy tones.
 - RDAC for P25Link and P25NX.
 
