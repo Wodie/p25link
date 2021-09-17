@@ -10,7 +10,7 @@ It use the v.24 port on Quantar/DIU 3000, a Cisco router 28xx and a Raspberry Pi
 - P25-MMDVM network Voice talk groups 11 to 65534 (each TG is network selectable).
 - TMS (text messages) implemented if repeaters are on P25Link network and radios on linked TG.
 - Page functionality implemented if repeaters are on P25Link network and radios on linked TG.
-- Repeater scan mode with priority index for talk groups for P25Link and P25NX modes.
+- Repeater scan mode with priority index for talk groups on P25Link and P25NX modes.
 - Local and remote courtesy tones.
 - RDAC for P25Link and P25NX.
 
@@ -43,14 +43,30 @@ sudo /opt/p25link/p25link
 ```
 - Remember to modify the hosts.txt file with the Talk Groups you want lo add to the scan list by setting the last field to a highest take precedence >= 1, 0 = No scan.
 
-Local Dashboard is a beta feature, so displayed info is limited.
+Local Dashboard is a beta feature, so displayed info is limited (still under development).
 
-you can access it by pointing your browser to:
+You will access it by pointing your browser to:
 ```
 <Your_R-Pi_IP/p25link
 ```
 
 # Version History:
+
+## v2.33-6 September 16, 2021.
+- Bug Fixed: MMDVM Dynamic connection.
+- Bug Fixed: MMDVM dis-connect TG when new TG is requested.
+
+## v2.33-5 June 01, 2021.
+- Added: Voice Announce "Alarm".
+- Added: Emergency Page.
+- Added: Talk Group 65535 is now a valid local TG.
+- Bug Fixed: P25NX and P25Link network Courtesy tone played multiple times on every Tx end..
+
+## v2.33-4 March 31, 2021.
+- Bug Fixed: MMDVM ICW Terminate was never sent.
+
+## v2.33-3 March 29, 2021.
+- Fixed: Multiple architecture now supported.
 
 ## v2.33-2 March 18, 2021.
 - Bug Fixed: Warble sound removed (Read_Timeout decreased).
