@@ -1,5 +1,7 @@
 package Ham::APRS::FAP;
 
+# File modified by Juan Carlos Perez De Castro (Wodie) KM4NNO/XE1F.
+
 =head1 NAME
 Ham::APRS::FAP - Finnish APRS Parser (Fabulous APRS Parser)
 =head1 SYNOPSIS
@@ -78,6 +80,8 @@ our @EXPORT_OK = (
 	'&distance',
 	'&direction',
 	'&make_object',
+	'&make_item',
+	'&make_nws',
 	'&make_timestamp',
 	'&make_position',
 	'&mice_mbits_to_message',
@@ -87,7 +91,7 @@ our @EXPORT_OK = (
 ##	
 ##);
 
-our $VERSION = '1.21';
+our $VERSION = '1.22';
 
 
 # Preloaded methods go here.
@@ -188,42 +192,39 @@ as the values of the hash.
 =back
 =cut
 
-sub result_messages()
-{
+sub result_messages() {
 	return \%result_messages;
 }
 
 # these functions are used to report warnings and parser errors
 # from the module
 
-sub _a_err($$;$)
-{
+sub _a_err($$;$) {
 	my ($rethash, $errcode, $val) = @_;
-	
+
 	$rethash->{'resultcode'} = $errcode;
 	$rethash->{'resultmsg'}
 		= defined $result_messages{$errcode}
 		? $result_messages{$errcode} : $errcode;
 	
 	$rethash->{'resultmsg'} .= ': ' . $val if (defined $val);
-	
+
 	if ($debug > 0) {
 		warn "Ham::APRS::FAP ERROR $errcode: " . $rethash->{'resultmsg'} . "\n";
 	}
 }
 
-sub _a_warn($$;$)
-{
+sub _a_warn($$;$) {
 	my ($rethash, $errcode, $val) = @_;
 	
 	push @{ $rethash->{'warncodes'} }, $errcode;
 	
 	if ($debug > 0) {
 		warn "Ham::APRS::FAP WARNING $errcode: "
-		    . (defined $result_messages{$errcode}
-		      ? $result_messages{$errcode} : $errcode)
-		    . (defined $val ? ": $val" : '')
-		    . "\n";
+			. (defined $result_messages{$errcode}
+			  ? $result_messages{$errcode} : $errcode)
+			. (defined $val ? ": $val" : '')
+			. "\n";
 	}
 }
 
@@ -358,8 +359,7 @@ hash reference.
 =back
 =cut
 
-sub debug($)
-{
+sub debug($) {
 	my $dval = shift @_;
 	if ($dval) {
 		$debug = 1;
@@ -686,8 +686,7 @@ sub _parse_timestamp($$) {
 
 # clean up a comment string - remove control codes
 # but stay UTF-8 clean
-sub _cleanup_comment($)
-{
+sub _cleanup_comment($) {
 	$_[0] =~ tr/[\x20-\x7e\x80-\xfe]//cd;
 	$_[0] =~ s/^\s+//;
 	$_[0] =~ s/\s+$//;
@@ -700,8 +699,7 @@ sub _cleanup_comment($)
 # i.e. -1 for 10 minute resolution and -2 for 1 degree resolution.
 # Calculation is based on latitude so it is worst case
 # (resolution in longitude gets better as you get closer to the poles).
-sub _get_posresolution($)
-{
+sub _get_posresolution($) {
 	return $knot_to_kmh * ($_[0] <= -2 ? 600 : 1000) * 10 ** (-1 * $_[0]);
 }
 
@@ -711,8 +709,7 @@ sub _get_posresolution($)
 # 2nd is the north/south or east/west indicator
 # returns undef on error. The returned value
 # is decimal degrees, north and east positive.
-sub _nmea_getlatlon($$$)
-{
+sub _nmea_getlatlon($$$) {
 	my ($value, $sign, $rh) = @_;
 	
 	# upcase the sign for compatibility
@@ -781,8 +778,8 @@ sub _get_symbol_fromdst($) {
 			if ($type eq 'C' || $type eq 'E') {
 				my $numberid = substr($leftoverstring, 1, 2);
 				if ($numberid =~ /^(\d{2})$/o &&
-				    $numberid > 0 &&
-				    $numberid < 95) {
+					$numberid > 0 &&
+					$numberid < 95) {
 					$code = chr($1 + 32);
 					if ($type eq 'C') {
 						$table = '/';
@@ -800,11 +797,11 @@ sub _get_symbol_fromdst($) {
 				my $dsttype = substr($leftoverstring, 0, 2);
 				my $overlay = substr($leftoverstring, 2, 1);
 				if (($type eq 'O' ||
-				    $type eq 'A' ||
-				    $type eq 'N' ||
-				    $type eq 'D' ||
-				    $type eq 'S' ||
-				    $type eq 'Q') && $overlay =~ /^[A-Z0-9]$/o) {
+					$type eq 'A' ||
+					$type eq 'N' ||
+					$type eq 'D' ||
+					$type eq 'S' ||
+					$type eq 'Q') && $overlay =~ /^[A-Z0-9]$/o) {
 					if (defined($dstsymbol{$dsttype})) {
 						$code = substr($dstsymbol{$dsttype}, 1, 1);
 						return ($overlay, $code);
@@ -1024,7 +1021,7 @@ sub _nmea_to_decimal($$$$$) {
 
 		# altitude, only meters are accepted
 		if ($nmeafields[10] eq 'M' &&
-		    $nmeafields[9] =~ /^(-?\d+(|\.\d+))$/o) {
+			$nmeafields[9] =~ /^(-?\d+(|\.\d+))$/o) {
 			# force numeric interpretation
 			$rethash->{'altitude'} = $1 + 0;
 		}
@@ -1100,8 +1097,8 @@ sub _comments_to_decimal($$$) {
 			my $course = $1;
 			my $speed = $2;
 			if ($course =~ /^\d{3}$/o &&
-			    $course <= 360 &&
-			    $course >= 1) {
+				$course <= 360 &&
+				$course >= 1) {
 				# force numeric interpretation
 				$course += 0;
 				$rethash->{'course'} = $course;
@@ -1346,8 +1343,7 @@ sub _message_parse($$$) {
 }
 
 #
-sub _comment_telemetry($$)
-{
+sub _comment_telemetry($$) {
 	my($rethash, $rest) = @_;
 	 
 	if ($rest =~ /^(.*)\|([!-{]{2})([!-{]{2})([!-{]{2}|)([!-{]{2}|)([!-{]{2}|)([!-{]{2}|)([!-{]{2}|)\|(.*)$/) {
@@ -1607,7 +1603,7 @@ sub _mice_to_decimal($$$$$) {
 		# replaces the single space with two spaces, so that the rest
 		# of the code can still parse the position data.
 		if (($options->{'accept_broken_mice'})
-		    && $packet =~ s/^([\x26-\x7f][\x26-\x61][\x1c-\x7f]{2})\x20([\x21-\x7b\x7d][\/\\A-Z0-9])(.*)/$1\x20\x20$2$3/o) {
+			&& $packet =~ s/^([\x26-\x7f][\x26-\x61][\x1c-\x7f]{2})\x20([\x21-\x7b\x7d][\/\\A-Z0-9])(.*)/$1\x20\x20$2$3/o) {
 			$mice_fixed = 1;
 			# Now the symbol table identifier is again in the correct spot...
 			$symboltable = substr($packet, 7, 1);
@@ -1803,18 +1799,18 @@ sub _mice_to_decimal($$$$$) {
 			$rest = $1 . $5;
 		}
 
-                # Check for new-style base-91 comment telemetry
-                $rest = _comment_telemetry($rethash, $rest);
-                
-                # Check for !DAO!, take the last occurrence (per recommendation)
-                if ($rest =~ /^(.*)\!([\x21-\x7b][\x20-\x7b]{2})\!(.*?)$/o) {
-                        my $daofound = _dao_parse($2, $srccallsign, $rethash);
-                        if ($daofound == 1) {
-                                $rest = $1 . $3;
-                        }
-                }
-                
-                # If anything is left, store it as a comment
+		# Check for new-style base-91 comment telemetry
+		$rest = _comment_telemetry($rethash, $rest);
+		
+		# Check for !DAO!, take the last occurrence (per recommendation)
+		if ($rest =~ /^(.*)\!([\x21-\x7b][\x20-\x7b]{2})\!(.*?)$/o) {
+			my $daofound = _dao_parse($2, $srccallsign, $rethash);
+			if ($daofound == 1) {
+				$rest = $1 . $3;
+			}
+		}
+		
+		# If anything is left, store it as a comment
 		# after removing non-printable ASCII
 		# characters
 		if (length($rest) > 0) {
@@ -1831,8 +1827,7 @@ sub _mice_to_decimal($$$$$) {
 }
 
 # convert a compressed position to decimal degrees
-sub _compressed_to_decimal($$$)
-{
+sub _compressed_to_decimal($$$) {
 	my ($packet, $srccallsign, $rethash) = @_;
 
 	# A compressed position is always 13 characters long.
@@ -1876,10 +1871,10 @@ sub _compressed_to_decimal($$$)
 		$long2 * 91 ** 2 +
 		$long3 * 91 +
 		$long4) / 190463);
-        # save best-case position resolution in meters
-        # 1852 meters * 60 minutes in a degree * 180 degrees
-        # / 91 ** 4
-        $rethash->{'posresolution'} = 0.291;
+		# save best-case position resolution in meters
+		# 1852 meters * 60 minutes in a degree * 180 degrees
+		# / 91 ** 4
+		$rethash->{'posresolution'} = 0.291;
 
 	# GPS fix status, only if csT is used
 	if ($c1 != -1) {
@@ -1928,8 +1923,7 @@ sub _compressed_to_decimal($$$)
 # detected in the test subject (and stored in $rethash), 0 if not.
 # Only the "DAO" should be passed as the candidate parameter,
 # not the delimiting exclamation marks.
-sub _dao_parse($$$)
-{
+sub _dao_parse($$$) {
 	my ($daocandidate, $srccallsign, $rethash) = @_;
 
 	# datum character is the first character and also
@@ -2013,8 +2007,7 @@ sub check_ax25_call($) {
 # dxcall (DX callsign) and dxinfo (info string).
 #
 
-sub _dx_parse($$$)
-{
+sub _dx_parse($$$) {
 	my ($sourcecall, $info, $rh) = @_;
 	
 	if (!defined check_ax25_call($sourcecall)) {
@@ -2043,13 +2036,11 @@ sub _dx_parse($$$)
 # Parses a normal uncompressed weather report packet.
 #
 
-sub _fahrenheit_to_celsius($)
-{
+sub _fahrenheit_to_celsius($) {
 	return ($_[0] - 32) / 1.8;
 }
 
-sub _wx_parse($$)
-{
+sub _wx_parse($$) {
 	my ($s, $rh) = @_;
 	
 	#my $initial = $s;
@@ -2060,7 +2051,7 @@ sub _wx_parse($$)
 	my %w;
 	my ($wind_dir, $wind_speed, $temp, $wind_gust) = ('', '', '', '');
 	if ($s =~ s/^_{0,1}([\d \.\-]{3})\/([\d \.]{3})g([\d \.]+)t(-{0,1}[\d \.]+)//
-	    || $s =~ s/^_{0,1}c([\d \.\-]{3})s([\d \.]{3})g([\d \.]+)t(-{0,1}[\d \.]+)//) {
+		|| $s =~ s/^_{0,1}c([\d \.\-]{3})s([\d \.]{3})g([\d \.]+)t(-{0,1}[\d \.]+)//) {
 		#warn "wind $1 / $2 gust $3 temp $4\n";
 		($wind_dir, $wind_speed, $wind_gust, $temp) = ($1, $2, $3, $4);
 	} elsif ($s =~ s/^_{0,1}([\d \.\-]{3})\/([\d \.]{3})t(-{0,1}[\d \.]+)//) {
@@ -2135,11 +2126,11 @@ sub _wx_parse($$)
 	}
 	
 	if (defined $w{'temp'}
-	    || (defined $w{'wind_speed'} && defined $w{'wind_direction'})
-	    	) {
-	    		#warn "ok: $initial\n$s\n";
-	    		$rh->{'wx'} = \%w;
-	    		return 1;
+		|| (defined $w{'wind_speed'} && defined $w{'wind_direction'})
+			) {
+				#warn "ok: $initial\n$s\n";
+				$rh->{'wx'} = \%w;
+				return 1;
 	}
 	
 	return 0;
@@ -2150,8 +2141,7 @@ sub _wx_parse($$)
 # Parses a Peet bros Ultimeter weather packet ($ULTW header).
 #
 
-sub _wx_parse_peet_packet($$$)
-{
+sub _wx_parse_peet_packet($$$) {
 	my ($s, $sourcecall, $rh) = @_;
 	
 	#warn "\$ULTW: $s\n";
@@ -2200,12 +2190,12 @@ sub _wx_parse_peet_packet($$$)
 	$w{'wind_speed'} = sprintf('%.1f', $t * $kmh_to_ms / 10) if (defined $t);
 	
 	if (defined $w{'temp'}
-	    || (defined $w{'wind_speed'} && defined $w{'wind_direction'})
-	    || (defined $w{'pressure'})
-	    || (defined $w{'humidity'})
-	    	) {
-	    		$rh->{'wx'} = \%w;
-	    		return 1;
+		|| (defined $w{'wind_speed'} && defined $w{'wind_direction'})
+		|| (defined $w{'pressure'})
+		|| (defined $w{'humidity'})
+			) {
+				$rh->{'wx'} = \%w;
+				return 1;
 	}
 	
 	return 0;
@@ -2216,8 +2206,7 @@ sub _wx_parse_peet_packet($$$)
 # Parses a Peet bros Ultimeter weather logging frame (!! header).
 #
 
-sub _wx_parse_peet_logging($$$)
-{
+sub _wx_parse_peet_logging($$$) {
 	my ($s, $sourcecall, $rh) = @_;
 	
 	#warn "\!!: $s\n";
@@ -2274,12 +2263,12 @@ sub _wx_parse_peet_logging($$$)
 	$w{'humidity'} = $w{'humidity_in'} if (defined $w{'humidity_in'} && !defined $w{'humidity'});
 	
 	if (defined $w{'temp'}
-	    || (defined $w{'wind_speed'} && defined $w{'wind_direction'})
-	    || (defined $w{'pressure'})
-	    || (defined $w{'humidity'})
-	    	) {
-	    		$rh->{'wx'} = \%w;
-	    		return 1;
+		|| (defined $w{'wind_speed'} && defined $w{'wind_direction'})
+		|| (defined $w{'pressure'})
+		|| (defined $w{'humidity'})
+			) {
+				$rh->{'wx'} = \%w;
+				return 1;
 	}
 	
 	return 0;
@@ -2290,8 +2279,7 @@ sub _wx_parse_peet_logging($$$)
 # Parses a telemetry packet.
 #
 
-sub _telemetry_parse($$)
-{
+sub _telemetry_parse($$) {
 	my ($s, $rh) = @_;
 	
 	my $initial = $s;
@@ -2408,11 +2396,11 @@ sub parseaprs($$;%) {
 		if ($isax25 == 0) {
 			$srccallsign = $1;
 		} else {
-		        $srccallsign = check_ax25_call(uc($1));
-		        if (not(defined($srccallsign))) {
-		        	_a_err($rethash, 'srccall_noax25');
-		        	return 0;
-                        }
+				$srccallsign = check_ax25_call(uc($1));
+				if (not(defined($srccallsign))) {
+					_a_err($rethash, 'srccall_noax25');
+					return 0;
+						}
 		}
 	} else {
 		# can't be a valid amateur radio callsign, even
@@ -2560,7 +2548,7 @@ sub parseaprs($$;%) {
 					}
 				}
 			} elsif ($poschar == 47 || $poschar == 92
-			    || ($poschar >= 65 && $poschar <= 90) || ($poschar >= 97 && $poschar <= 106) ) {
+				|| ($poschar >= 65 && $poschar <= 90) || ($poschar >= 97 && $poschar <= 106) ) {
 				# $poschar =~ /^[\/\\A-Za-j]$/o
 				# compressed position
 				if (length($body) >= 13) {
@@ -2710,8 +2698,7 @@ sub parseaprs($$;%) {
 # Checks a callsign for validity and strips
 # trailing spaces out and returns the string.
 # Returns undef on invalid callsign
-sub _kiss_checkcallsign($)
-{
+sub _kiss_checkcallsign($) {
 	if ($_[0] =~ /^([A-Z0-9]+)\s*(|-\d+)$/o) {
 		if (length($2) > 0) {
 			# check the SSID if given
@@ -2785,7 +2772,7 @@ sub kiss_to_tnc2($) {
 			# (0-bit is one)
 			if ($charri & 1) {
 				if ($addresscount < 14 ||
-				    ($addresscount % 7) != 0) {
+					($addresscount % 7) != 0) {
 					# addresses ended too soon or in the
 					# wrong place
 					if ($debug > 0) {
@@ -3060,8 +3047,7 @@ possible trailing spaces to improve detection
 =back
 =cut
 
-sub aprs_duplicate_parts($)
-{
+sub aprs_duplicate_parts($) {
 	my ($packet) = @_;
 
 	# If this is a third party packet format,
@@ -3093,6 +3079,33 @@ sub aprs_duplicate_parts($)
 	}
 
 	return undef;
+}
+
+sub make_message($$$) {
+	my $dest = shift @_;
+	my $msg = shift @_;
+	my $msg_id = shift @_;
+
+	my $packetbody = ":";
+
+	# Name.
+	if ($dest =~ /^([\x20-\x7e]{1,9})$/o) {
+		# also pad with whitespace
+		$packetbody .= $1 . " " x (9 - length($1));
+	} else {
+		return undef;
+	}
+
+	# Add msg.
+	$packetbody .= ':';
+	$packetbody .= $msg;
+
+	# Add msg id if defined.
+	if (defined $msg_id) {
+		$packetbody .= "{$msg_id}";
+	}
+
+	return $packetbody;
 }
 
 =over
@@ -3174,6 +3187,79 @@ sub make_object($$$$$$$$$$$$) {
 	return $packetbody;
 }
 
+sub make_item($$$$$$$$$$$) {
+# FIXME: course/speed/altitude/compression not implemented
+	my $name = shift @_;
+	my $lat = shift @_;
+	my $lon = shift @_;
+	my $symbols = shift @_;
+	my $speed = shift @_;
+	my $course = shift @_;
+	my $altitude = shift @_;
+	my $alive = shift @_;
+	my $usecompression = shift @_;
+	my $posambiguity = shift @_;
+	my $comment = shift @_;
+
+	my $packetbody = ")";
+
+	# name
+	if ($name =~ /^([\x20-\x7e]{1,9})$/o) {
+		# also pad with whitespace
+		$packetbody .= $1 . " " x (9 - length($1));
+	} else {
+		return undef;
+	}
+
+	# dead/alive
+	if ($alive == 1) {
+		$packetbody .= "*";
+	} elsif ($alive == 0) {
+		$packetbody .= "_";
+	} else {
+		return undef;
+	}
+
+	# actual position
+	my $posstring = make_position($lat, $lon, $speed, $course, $altitude, $symbols, $usecompression, $posambiguity);
+	if (not(defined($posstring))) {
+		return undef;
+	} else {
+		$packetbody .= $posstring;
+	}
+
+	# add comments to the end
+	$packetbody .= $comment;
+
+	return $packetbody;
+}
+
+sub make_nws($$$$$$$$$$$$) {
+# FIXME: course/speed/altitude/compression not implemented
+	my $name = shift @_;
+	my $alert_type = shift @_;
+	my $region = shift @_;
+	#my $reference = shift @_;
+	my $reference;
+
+	my $packetbody = ":NWS-";
+
+	# name
+	if ($name =~ /^([\x20-\x7e]{1,9})$/o) {
+		# also pad with whitespace
+		$packetbody .= $1 . " " x (5 - length($1));
+	} else {
+		return undef;
+	}
+
+	$packetbody .= ":";
+
+	# add data
+	$packetbody .= "$alert_type,$region,$reference";
+
+	return $packetbody;
+}
+
 =over
 =item make_timestamp($timestamp, $format)
 Create an APRS (UTC) six digit (DHM or HMS) timestamp from a unix timestamp.
@@ -3230,10 +3316,9 @@ parameters should be changed to hash with named parameters.
 =back
 =cut
 
-sub make_position($$$$$$;$)
-{
+sub make_position($$$$$$;$) {
 # FIXME: course/speed/altitude are not supported yet,
-#        neither is compressed format or position ambiguity
+#		neither is compressed format or position ambiguity
 	my($lat, $lon, $speed, $course, $altitude, $symbol, $options) = @_;
 	
 	if (!$options) {
@@ -3246,9 +3331,9 @@ sub make_position($$$$$$;$)
 	}
 
 	if ($lat < -89.99999 ||
-	    $lat > 89.99999 ||
-	    $lon < -179.99999 ||
-	    $lon > 179.99999) {
+		$lat > 89.99999 ||
+		$lon < -179.99999 ||
+		$lon > 179.99999) {
 		# invalid location
 		return undef;
 	}
@@ -3404,10 +3489,7 @@ sub make_position($$$$$$;$)
 				# TODO: could use DHM timestamp here
 			}
 		} else {
-# Section modified by Juan Carlos KM4NNO:
-			#$retstring = '!'; # Line commented.
-			$retstring = ''; # Line added. Fix for uncompressed and objects.
-# End of modification
+			$retstring = '!'; # Line commented.
 		}
 		$retstring .= $latstring . $symboltable . $lonstring . $symbolcode;
 		
@@ -3466,8 +3548,6 @@ Copyright 2005-2012 by Tapio Sokura
 Copyright 2007-2012 by Heikki Hannikainen
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself.
-
-File modified by Juan Carlos Perez De Castro (Wodie) KM4NNO/XE1F.
 
 
 =cut

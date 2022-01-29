@@ -52,6 +52,9 @@ You will access it by pointing your browser to:
 
 # Version History:
 
+## v2.34-0 January 29, 2022.
+- Bug Fixed: FAP bug found.
+
 ## v2.33-6 September 16, 2021.
 - Bug Fixed: MMDVM Dynamic connection.
 - Bug Fixed: MMDVM dis-connect TG when new TG is requested.
