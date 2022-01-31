@@ -3489,7 +3489,8 @@ sub make_position($$$$$$;$) {
 				# TODO: could use DHM timestamp here
 			}
 		} else {
-			$retstring = '!'; # Line commented.
+			#$retstring = '!'; # Line commented.
+			$retstring = ''; # Line created by Juan Caros KM4NNO.
 		}
 		$retstring .= $latstring . $symboltable . $lonstring . $symbolcode;
 		

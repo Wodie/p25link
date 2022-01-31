@@ -40,11 +40,11 @@ my $StartTime = time();
 my $AppName = 'P25Link';
 use constant VersionInfo => 2;
 use constant MinorVersionInfo => 34;
-use constant RevisionInfo => 0;
+use constant RevisionInfo => 1;
 my $Version = VersionInfo . '.' . MinorVersionInfo . '-' . RevisionInfo;
 print "\n##################################################################\n";
 print "	*** $AppName v$Version ***\n";
-print "	Released: January 29, 2022. Created October 17, 2019.\n";
+print "	Released: January 31, 2022. Created October 17, 2019.\n";
 print "	Created by:\n";
 print "	Juan Carlos Pérez De Castro (Wodie) KM4NNO / XE1F\n";
 print "	Bryan Fields W9CR.\n";
@@ -838,8 +838,8 @@ sub RDAC_Tx {
 # APRS-IS ########################################################
 ##################################################################
 sub APRS_connect {
-	my $ret = $APRS_IS->connect('retryuntil' => 2);
-	if (!$ret) {
+	my $Ret = $APRS_IS->connect('retryuntil' => 2);
+	if (!$Ret) {
 		warn color('red'), "Failed to connect APRS-IS server: " . $APRS_IS->{'error'} . "\n", color('reset');
 		return;
 	}
@@ -885,7 +885,7 @@ sub APRS_Make_Pos {
 		$Speed, # speed
 		$Course, # course
 		$Altitude, # altitude
-		$Symbol, # symbol
+		(defined $Symbol) ? $Symbol : '/[', # symbol
 		{
 		#'compression' => 1,
 		#'ambiguity' => 1, # still can not make it work.
@@ -894,11 +894,12 @@ sub APRS_Make_Pos {
 		#'dao' => 1
 	});
 	if ($APRS_Verbose > 1) {print color('green'), "  APRS Position is: $APRS_position\n", color('reset');}
-	my $Packet = sprintf('%s>APTR01:%s', $Call, $APRS_position);
+	my $Packet = sprintf('%s>APTR01:%s', $Call, $APRS_position . $Comment);
+	print color('blue'), "  $Packet\n", color('reset');
 	if ($APRS_Verbose > 2) {print "  APRS Packet is: $Packet\n";}
-	my $ok = $APRS_IS->sendline($Packet);
-	if (!$ok) {
-		warn color('red'), "Error sending APRS-IS Pos packet $ok\n", color('reset');
+	my $Res = $APRS_IS->sendline($Packet);
+	if (!$Res) {
+		warn color('red'), "Error sending APRS-IS Pos packet $Res\n", color('reset');
 		$APRS_IS->disconnect();
 		return;
 	}
@@ -920,6 +921,7 @@ sub APRS_Make_Obj {
 		warn color('red'), "APRS-IS can not connect.\n", color('reset'); 
 		return;
 	}
+	
 	my $APRS_object = Ham::APRS::FAP::make_object(
 		$Name, # Name
 		$TimeStamp,
@@ -932,13 +934,14 @@ sub APRS_Make_Obj {
 		$Alive,
 		$UseCompression,
 		$PosAmbiguity,
-		$Comment);
-	if ($APRS_Verbose > 1) {print "  APRS object is: $APRS_object\n";}
+		$Comment
+	);
+	if ($APRS_Verbose > 0) {print "  APRS object is: $APRS_object\n";}
 	my $Packet = sprintf('%s>APTR01:%s', $APRS_Callsign, $APRS_object);
-	if ($APRS_Verbose > 2) {print "  APRS Packet is: $Packet\n";}
-	my $ok = $APRS_IS->sendline($Packet);
-	if (!$ok) {
-		warn color('red'), "*** Error *** sending APRS-IS Obj $Name packet $ok\n", color('reset');
+	print color('blue'), "  $Packet\n", color('reset');
+	my $Res = $APRS_IS->sendline($Packet);
+	if (!$Res) {
+		warn color('red'), "*** Error *** sending APRS-IS Obj $Name packet $Res\n", color('reset');
 		$APRS_IS->disconnect();
 		return;
 	}
