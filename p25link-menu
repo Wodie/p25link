@@ -21,7 +21,7 @@ INTERACTIVE=True
 ASK_TO_REBOOT=0
 #CONFIG=/opt/p25link/config.txt
 
-PACKAGE_VER=p25link_2.33-3
+PACKAGE_VER=p25link_2.34-1
 DEPLOY_DIR=/opt/deploy/$PACKAGE_VER
 
 
@@ -330,6 +330,7 @@ do_install_cpan() {
 	cpan install IO::Socket::Multicast &&
 	cpan install Term::ReadKey &&
 	cpan install Ham::APRS::IS &&
+	cpan install LWP::Simple &&
 
 	# For RadioID database:
 	cpan install JSON &&

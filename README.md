@@ -52,6 +52,9 @@ You will access it by pointing your browser to:
 
 # Version History:
 
+## v2.34-1 February 03, 2022.
+- Bug Fixed: FAP bug found.
+
 ## v2.34-0 January 29, 2022.
 - Bug Fixed: FAP bug found.
 
