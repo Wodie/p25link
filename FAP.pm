@@ -3213,7 +3213,7 @@ sub make_item($$$$$$$$$$$) {
 
 	# dead/alive
 	if ($alive == 1) {
-		$packetbody .= "*";
+		$packetbody .= "!";
 	} elsif ($alive == 0) {
 		$packetbody .= "_";
 	} else {

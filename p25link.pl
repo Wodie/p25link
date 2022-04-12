@@ -40,11 +40,11 @@ my $StartTime = time();
 my $AppName = 'P25Link';
 use constant VersionInfo => 2;
 use constant MinorVersionInfo => 34;
-use constant RevisionInfo => 1;
+use constant RevisionInfo => 2;
 my $Version = VersionInfo . '.' . MinorVersionInfo . '-' . RevisionInfo;
 print "\n##################################################################\n";
 print "	*** $AppName v$Version ***\n";
-print "	Released: February 03, 2022. Created October 17, 2019.\n";
+print "	Released: April 11, 2022. Created October 17, 2019.\n";
 print "	Created by:\n";
 print "	Juan Carlos Pérez De Castro (Wodie) KM4NNO / XE1F\n";
 print "	Bryan Fields W9CR.\n";
@@ -619,7 +619,7 @@ my $STUN_ClientIP;
 my $STUN_fh;
 
 $STUN_ServerSocket = IO::Socket::INET->new (
-#	LocalHost => '172.31.7.162',
+	#LocalHost => '172.31.7.162',
 	LocalPort => $STUN_Port,
 	Proto => 'tcp',
 	Listen => SOMAXCONN,
@@ -906,7 +906,7 @@ sub APRS_Make_Pos {
 	print color('grey12'),"  APRS_Make_Pos done for $APRS_Callsign\n", color('reset');
 }
 
-sub APRS_Make_Obj {
+sub APRS_Make_Object {
 	my ($Name, $TimeStamp, $Latitude, $Longitude, $Symbol, $Speed, 
 		$Course, $Altitude, $Alive, $UseCompression, $PosAmbiguity, $Comment) = @_;
 	if (!$APRS_IS) {
@@ -936,21 +936,62 @@ sub APRS_Make_Obj {
 		$PosAmbiguity,
 		$Comment
 	);
-	if ($APRS_Verbose > 0) {print "  APRS object is: $APRS_object\n";}
+	if ($APRS_Verbose > 0) {print "  APRS Object is: $APRS_object\n";}
 	my $Packet = sprintf('%s>APTR01:%s', $APRS_Callsign, $APRS_object);
 	print color('blue'), "  $Packet\n", color('reset');
 	my $Res = $APRS_IS->sendline($Packet);
 	if (!$Res) {
-		warn color('red'), "*** Error *** sending APRS-IS Obj $Name packet $Res\n", color('reset');
+		warn color('red'), "*** Error *** sending APRS-IS Object $Name packet $Res\n", color('reset');
 		$APRS_IS->disconnect();
 		return;
 	}
-	if ($APRS_Verbose) { print color('grey12'), "  APRS_Make_Obj $Name sent.\n", color('reset'); }
+	if ($APRS_Verbose) { print color('grey12'), "  APRS_Make_Object $Name sent.\n", color('reset'); }
+}
+
+sub APRS_Make_Item {
+	my ($Name, $Latitude, $Longitude, $Symbol, $Speed, 
+		$Course, $Altitude, $Alive, $UseCompression, $PosAmbiguity, $Comment) = @_;
+	if (!$APRS_IS) {
+		warn color('red'), "  APRS-IS does not exist.\n", color('reset');
+		return;
+	}
+	if (!$APRS_IS->connected()) {
+		warn color('red'), "  APRS-IS not connected, trying to reconnect.\n", color('reset'); 
+		APRS_connect();
+	}
+	if (!$APRS_IS->connected()) {
+		warn color('red'), "APRS-IS can not connect.\n", color('reset'); 
+		return;
+	}
+	
+	my $APRS_item = Ham::APRS::FAP::make_item(
+		$Name, # Name
+		$Latitude,
+		$Longitude,
+		$Symbol, # symbol
+		$Speed, # speed
+		$Course,
+		$Altitude, # altitude
+		$Alive,
+		$UseCompression,
+		$PosAmbiguity,
+		$Comment
+	);
+	if ($APRS_Verbose > 0) {print "  APRS Item is: $APRS_item\n";}
+	my $Packet = sprintf('%s>APTR01:%s', $APRS_Callsign, $APRS_item);
+	print color('blue'), "  $Packet\n", color('reset');
+	my $Res = $APRS_IS->sendline($Packet);
+	if (!$Res) {
+		warn color('red'), "*** Error *** sending APRS-IS Item $Name packet $Res\n", color('reset');
+		$APRS_IS->disconnect();
+		return;
+	}
+	if ($APRS_Verbose) { print color('grey12'), "  APRS_Make_Item $Name sent.\n", color('reset'); }
 }
 
 sub APRS_Update_TG {
 	my ($TG) = @_;
-	APRS_Make_Obj($Callsign . '/' . $APRS_Suffix, 0, $My_Latitude, $My_Longitude, $My_Symbol, -1, -1, undef,
+	APRS_Make_Item($Callsign . '/' . $APRS_Suffix, $My_Latitude, $My_Longitude, $My_Symbol, -1, -1, undef,
 		1, 0, 0, $My_Freq . 'MHz ' . $My_Tone . ' ' . $My_Offset . ' NAC-' . $My_NAC . ' ' .
 		' TG=' . $TG . ' ' . $My_Comment . ' alt ' . $My_Altitude . 'm');
 }
@@ -959,11 +1000,22 @@ sub APRS_Update {
 	my ($TG) = @_;
 	# Station position as Object
 	if ($APRS_Verbose) { print color('green'), "APRS-IS Update:\n", color('reset'); }
-	APRS_Make_Obj($Callsign . '/' . $APRS_Suffix, 0, $My_Latitude, $My_Longitude, $My_Symbol, -1, -1, undef,
-		1, 0, 0, $My_Freq . 'MHz ' . $My_Tone . ' ' . $My_Offset . ' NAC-' . $My_NAC . ' ' .
+	APRS_Make_Object(
+		$Callsign . '/' . $APRS_Suffix,
+		0,
+		$My_Latitude,
+		$My_Longitude,
+		$My_Symbol,
+		-1,
+		-1,
+		undef,
+		1,
+		0,
+		0,
+		$My_Freq . 'MHz ' . $My_Tone . ' ' . $My_Offset . ' NAC-' . $My_NAC . ' ' .
 		' TG=' . $TG . ' ' . $My_Comment . ' alt ' . $My_Altitude . 'm');
 
-	# Objects refresh list loading file.
+	# Objects and Items refresh list loading file.
 	my $fh;
 	if ($APRS_Verbose) { print color('grey12'), "  Loading APRS File...\n", color('reset'); }
 	if (!open($fh, "<", $APRS_File)) {
@@ -979,44 +1031,68 @@ sub APRS_Update {
 			my @Line = split(/\t+/, $Line);
 			my $Index = $Line[0];
 			$APRS{$Index}{'Name'} = $Line[0];
-			$APRS{$Index}{'Lat'} = $Line[1];
-			$APRS{$Index}{'Long'} = $Line[2];
-			$APRS{$Index}{'Speed'} = $Line[3];
-			$APRS{$Index}{'Course'} = $Line[4];
-			if ($Line[5] == -1) {
-				$APRS{$Index}{'Altitude'} = undef;
+			$APRS{$Index}{'Type'} = $Line[1];
+			$APRS{$Index}{'Lat'} = $Line[2];
+			$APRS{$Index}{'Long'} = $Line[3];
+			$APRS{$Index}{'Speed'} = $Line[4];
+			$APRS{$Index}{'Course'} = $Line[5];
+			if ($Line[6] >= 0) {
+				$APRS{$Index}{'Altitude'} = $Line[6];
 			} else {
-				$APRS{$Index}{'Altitude'} = $Line[5];
+				$APRS{$Index}{'Altitude'} = -1;
 			}
-			$APRS{$Index}{'Alive'} = $Line[6];
-			$APRS{$Index}{'Symbol'} = $Line[7];
-			$APRS{$Index}{'Comment'} = $Line[8];
+			$APRS{$Index}{'Alive'} = $Line[7];
+			$APRS{$Index}{'Symbol'} = $Line[8];
+			$APRS{$Index}{'Comment'} = $Line[9];
 			if ($APRS_Verbose > 1) {
-				print "  APRS Index $Index";
-				print ", Name $APRS{$Index}{'Name'}";
-				print ", Lat $APRS{$Index}{'Lat'}";
-				print ", Long $APRS{$Index}{'Long'}";
-				print ", Speed $APRS{$Index}{'Speed'}";
-				print ", Course $APRS{$Index}{'Course'}";
-				print ", Altitude $APRS{$Index}{'Altitude'}";
-				print ", Alive $APRS{$Index}{'Alive'}";
-				print ", Symbol $APRS{$Index}{'Symbol'}";
-				print ", Comment $APRS{$Index}{'Comment'}";
+				print "  APRS Index = $Index";
+				print ", Name = $APRS{$Index}{'Name'}";
+				print ", Type = $APRS{$Index}{'Type'}";
+				print ", Lat = $APRS{$Index}{'Lat'}";
+				print ", Long = $APRS{$Index}{'Long'}";
+				print ", Speed = $APRS{$Index}{'Speed'}";
+				print ", Course = $APRS{$Index}{'Course'}";
+				print ", Altitude = $APRS{$Index}{'Altitude'}";
+				print ", Alive = $APRS{$Index}{'Alive'}";
+				print ", Symbol = $APRS{$Index}{'Symbol'}";
+				print ", Comment = $APRS{$Index}{'Comment'}";
 				print "\n";
 			}
-			APRS_Make_Obj(
-				$APRS{$Index}{'Name'},
-				0, # Timestamp
-				$APRS{$Index}{'Lat'},
-				$APRS{$Index}{'Long'},
-				$APRS{$Index}{'Symbol'},
-				$APRS{$Index}{'Speed'},
-				$APRS{$Index}{'Course'},
-				$APRS{$Index}{'Altitude'},
-				$APRS{$Index}{'Alive'},
-				0, 0, #Compressed, PosAmbiguity
-				$APRS{$Index}{'Comment'},
-			);
+			if ($APRS{$Index}{'Type'} eq 'O') {
+				APRS_Make_Object(
+					$APRS{$Index}{'Name'},
+					0, # Timestamp
+					$APRS{$Index}{'Lat'},
+					$APRS{$Index}{'Long'},
+					$APRS{$Index}{'Symbol'},
+					$APRS{$Index}{'Speed'},
+					$APRS{$Index}{'Course'},
+					$APRS{$Index}{'Altitude'},
+					$APRS{$Index}{'Alive'},
+					0, # Compression 
+					0, # Position Ambiguity
+					$APRS{$Index}{'Comment'},
+				);
+			}
+			if ($APRS{$Index}{'Type'} eq 'I') {
+				APRS_Make_Item(
+					$APRS{$Index}{'Name'},
+					$APRS{$Index}{'Lat'},
+					$APRS{$Index}{'Long'},
+					$APRS{$Index}{'Symbol'},
+					$APRS{$Index}{'Speed'},
+					$APRS{$Index}{'Course'},
+					$APRS{$Index}{'Altitude'},
+					$APRS{$Index}{'Alive'},
+					0, # Compression 
+					0, # Position Ambiguity
+					$APRS{$Index}{'Comment'},
+				);
+			}
+
+
+
+
 		}
 		close $fh;
 		if ($APRS_Verbose > 2) {
@@ -1051,7 +1127,7 @@ sub Read_Serial { # Read the serial port, look for 0x7E characters and extract d
 					HDLC_Rx($HDLC_Buffer, 0); # Process a full data stream.
 					print "Serial Str Data Rx len() = " . length($HDLC_Buffer) . "\n";
 				}
-				print "Read_Serial len = ", length($HDLC_Buffer), "\n";
+				print "Read_Serial len = " . length($HDLC_Buffer) . "\n";
 				$HDLC_Buffer = ""; # Clear Rx buffer.
 			} else {
 				# Add Bytes until the end of data stream (0x7E):
@@ -1140,7 +1216,7 @@ sub HDLC_Rx {
 			return;
 		}
 	} else {
-		$Message = $Buffer,
+		$Message = $Buffer;
 	}
 
 	if ($HDLC_Verbose >= 3) {
@@ -1890,7 +1966,7 @@ sub HDLC_Rx {
 			$HDLC_Handshake = 1;
 			$RR_TimerEnabled = 1;
 			if ($HDLC_Verbose) {print color('yellow'), "  0x0B calling HDLC_Tx_RR\n", color('reset');}
-			HDLC_Tx_RR();
+#			HDLC_Tx_RR();
 		}
 	}
 	if ($HDLC_Verbose) {
@@ -1903,15 +1979,15 @@ sub RR_Timer { # HDLC Receive Ready keep alive.
 	(my $sec, my $min, my $hour, my $mday, my $mon, my $year, my $wday, my $yday, my $isdst) = localtime();
 	if (time() >= $RR_NextTimer) {
 		print color('green'), "RR_Timer event\n", color('reset');
-		#print "RR_TimerEnabled $RR_TimerEnabled RR_Timeout $RR_Timeout HDLC_Handshake $HDLC_Handshake\n";
 		if (($RR_TimerEnabled == 1) and $HDLC_Handshake) {
-			if ($HDLC_Verbose) { print "$hour:$min:$sec Send RR by timer.\n"; } 
 			#print "  RR Timed out @{[int time - $^T]}\n";
-			if ((($Mode == 1) and $STUN_Connected and ($HDLC_TxTraffic == 0))
-				or (($Mode == 0) and ($HDLC_TxTraffic == 0))) {
+			if (($Mode == 0) or (($Mode == 1) and $STUN_Connected)) {
+				if ($HDLC_Verbose) {
+					print "$hour:$min:$sec Send RR by timer.\n";
+					print "Mode = $Mode, STUN_Connected = $STUN_Connected, and HDLC_TxTraffic = $HDLC_TxTraffic\n";
+				}
 				HDLC_Tx_RR();
 				if ($HDLC_Verbose) {
-					print "Mode = $Mode, STUN_Connected = $STUN_Connected, and HDLC_TxTraffic = $HDLC_TxTraffic\n";
 					print "----------------------------------------------------------------------\n";
 				}
 			}
@@ -2279,13 +2355,13 @@ sub WritePoll {
 	for (my $x = length($Data); $x < 11; $x++) {
 		$Data .= $Filler;
 	}
+
 	$TG{$TalkGroup}{'Sock'}->send($Data);
 	if ($MMDVM_Verbose) {
 		print "WritePoll IP $TalkGroup IP $TG{$TalkGroup}{'MMDVM_URL'}" .
 			" Port $TG{$TalkGroup}{'MMDVM_Port'}\n";
 	}
-		$TG{$TalkGroup}{'MMDVM_Connected'} = 1;
-
+	$TG{$TalkGroup}{'MMDVM_Connected'} = 1;
 }
 
 sub WriteUnlink {
@@ -2589,7 +2665,7 @@ sub HDLC_to_MMDVM {
 	}
 }
 
-sub HDLC_to_P25Link{
+sub HDLC_to_P25Link {
 	my ($Buffer) = @_;
 	my $Stun_Header = chr(0x08) . chr(0x31) . chr(0x00) . chr(0x00) . chr(0x00) .
 		chr(2 + length($Buffer)) . chr($STUN_ID); #STUN Header.
@@ -2598,7 +2674,7 @@ sub HDLC_to_P25Link{
 	P25Link_Tx($Buffer);
 }
 
-sub HDLC_to_P25NX{
+sub HDLC_to_P25NX {
 	my ($Buffer) = @_;
 	my $Stun_Header = chr(0x08) . chr(0x31) . chr(0x00) . chr(0x00) . chr(0x00) .
 		chr(2 + length($Buffer)) . chr($STUN_ID); #STUN Header.
@@ -2607,7 +2683,7 @@ sub HDLC_to_P25NX{
 	P25NX_Tx($Buffer);
 }
 
-sub MMDVM_to_HDLC{
+sub MMDVM_to_HDLC {
 	my ($Buffer) = @_;
 	if ( ($HDLC_Handshake == 0) or (length($Buffer) < 1) ) { return; }
 		if ($LocalActive == 1) {
@@ -2863,7 +2939,8 @@ sub RemoveLinkTG {
 	}
 	print color('magenta'), "RemoveLinkTG $TalkGroup\n", color('reset');
 	# Disconnect from current network.
-	if ($TG{$TalkGroup}{'MMDVM_Connected'}) { WriteUnlink($MMDVM_TG); 
+	if ($TG{$TalkGroup}{'MMDVM_Connected'}) {
+		WriteUnlink($MMDVM_TG); 
 		$MMDVM_TG = 0;
 	}
 	if ($TG{$TalkGroup}{'MMDVM_Connected'}) { WriteUnlink($TalkGroup); }

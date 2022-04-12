@@ -52,6 +52,9 @@ You will access it by pointing your browser to:
 
 # Version History:
 
+## v2.34-2 April 11, 2022.
+- Bug Fixed: HDLC RR flag bug fixed.
+
 ## v2.34-1 February 03, 2022.
 - Bug Fixed: FAP bug found.
 
