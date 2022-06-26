@@ -1,8 +1,8 @@
 #!/bin/bash
 # P25LINK-MENU
 ##################################################################
-#	*** P25Link v2.33-3 ***
-#	Released: Mar 29, 2021. Created September 04, 2019.
+#	*** P25Link v2.34-3 ***
+#	Released: April 20, 2022. Created September 04, 2019.
 #	Created by: Juan Carlos Pérez De Castro (Wodie) KM4NNO, XE1F.
 #	www.wodielite.com
 #	wodielite at mac.com
@@ -21,7 +21,7 @@ INTERACTIVE=True
 ASK_TO_REBOOT=0
 #CONFIG=/opt/p25link/config.txt
 
-PACKAGE_VER=p25link_2.34-1
+PACKAGE_VER=p25link_2.34-3
 DEPLOY_DIR=/opt/deploy/$PACKAGE_VER
 
 
@@ -363,6 +363,7 @@ do_build_app() {
 }
 
 do_build_deb() {
+	chmod +x $CONFIGS/p25link.pl &&
 	# Make app
 	pp -o /opt/p25link/p25link   $CONFIGS/p25link.pl
 	mkdir /opt/deploy
