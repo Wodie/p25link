@@ -1,6 +1,6 @@
 # hosts.txt
 #
-# Last update Sept 16, 2021.
+# Last update April 06, 2021.
 #
 # The format of this file is:
 # 1 Number of the Talk Group,
@@ -64,7 +64,7 @@
 # 994 The Online Radio Club (Bridged to XLX994)
 994		MMDVM	misc.openreflector.com			41000		0
 
-# 2050 KM4NNO PTTLink (Bridged to the P25Link Network).
+# 2050 KM4NNO AllStarLink (Bridged to the P25Link Network).
 2050	P25Link	reflector.p25.link				41009		0
 
 # 2140 P25 Reflector BM DMR+ Multi 
@@ -107,10 +107,16 @@
 3345	P25Link	reflector.p25.link				41008		0
 
 # 4095 KM4NNO Wave (Bridged to the P25Link Network).
-4095	P25Link	reflector.p25.link				41010		0
+4095	P25Link	reflector.p25.link				41010		10
 
 # 5057 VK7 TAS
 5057	MMDVM	45.248.50.37					41000		0
+
+# VA3JWO 5500 Reflector Barrie, Ontario
+5500	MMDVM	99.233.34.135					41000		0
+
+# VA3JWO 5550 French Reflector Barrie, Ontario
+5550	MMDVM	99.233.34.135					41001		0
 
 # 6935 Indiana Digital Ham Radio P25 Reflector
 6395	MMDVM	p25ref.nf9k.net					41000		0
@@ -147,10 +153,10 @@
 10120	MMDVM	81.150.10.62					41000		0
 
 # 10200 North America (Bridged to the P25NX Network).
-10200	P25NX	dvswitch.org					41000		0
-
+10200	P25Link	dis_dvswitch.org					41000		0
+pa
 # 10201 North America TAC 1 (Bridged to the P25NX Network).
-10201	P25NX	dvswitch.org					41010		0
+10201	P25Link	dvswitch.org					41010		0
 
 # 10202 North America TAC 2 (Bridged to the P25Link Network).
 10202	P25Link	reflector.p25.link				41003		0
@@ -307,10 +313,10 @@
 31062	MMDVM	p25.mw-dmr.net					41000		0
 
 # 31077 PAPA Chat http://papasys.com
-31077	MMDVM	216.240.173.55					41007		0
+31077	p25Link	216.240.173.55					41007		0
 
 # 31078 PAPA Bridge to analog (formerly 7272) http://papasys.com
-31078	MMDVM	216.240.173.55					41000		0
+31078	P25Link	216.240.173.55					41000		0
 
 # 31079 ALERT Radio / Multimode P25/DMR
 31079	MMDVM	927.org							41001		0
