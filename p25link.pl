@@ -62,7 +62,6 @@ use MMDVM;
 use P25Link;
 use P25NX;
 use RDAC;
-use DMR;
 use Packets;
 #use RS;
 #use Golay2087;
@@ -104,7 +103,7 @@ print "	License:\n";
 print "	This software is licenced under the GPL v3.\n";
 print "	If you are using it, please let me know, I will be glad to know it.\n\n";
 print "	This project is based on the work and information from:\n";
-print "	Juan Carlos PŽrez KM4NNO / XE1F\n";
+print "	Juan Carlos PÅ½rez KM4NNO / XE1F\n";
 print "	Byan Fields W9CR\n";
 print "	P25-MMDVM creator Jonathan Naylor G4KLX\n";
 print "	P25NX creatorDavid Kraus NX4Y\n";
@@ -250,8 +249,6 @@ RDAC::Init($ConfigFile, VersionInfo, MinorVersionInfo, RevisionInfo);
 
 MMDVM::Init($ConfigFile);
 
-DMR::Init($ConfigFile);
-
 P25Link::Init($ConfigFile);
 
 P25NX::Init($ConfigFile);
@@ -374,7 +371,6 @@ if ($Packets::Mode == 0) { # Close Serial Port:
 APRS_IS::Disconnect();
 Packets::Disconnect();
 #P25Link::DisconnectIPv6();
-DMR::Close(1);
 
 print "Good bye cruel World.\n";
 print "----------------------------------------------------------------------\n\n";
@@ -391,7 +387,7 @@ sub PrintMenu {
 	print "  A = APRS verbose                 a = APRS file reload and Tx\n";
 	print "  B =                              b = Voice Announce file reload\n";
 	print "  C = Cisco STUN verbose           c = \n";
-	print "  D =                              d = DMR show/hide verbose\n";
+	print "  D =                              d =  show/hide verbose\n";
 	print "  E = Emergency Page/Alarm         e = Play Alarm\n";
 	print "  F = Serach user test                 \n";
 	print "  G =                              g = \n";
@@ -788,7 +784,6 @@ sub HotKeys {
 				case ord('c') { # 'c'
 				}
 				case ord('D') { # 'D'
-					DMR::Verbose($VerboseValue);
 				}
 				case ord('d') { # 'd'
 				}
@@ -882,7 +877,6 @@ sub HotKeys {
 				case ord('Z') { # 'Z'
 					APRS_IS::Verbose(0);
 					CiscoSTUN::Verbose(0);
-					DMR::Verbose(0);
 					MMDVM::Verbose(0);
 					P25Link::Verbose(0);
 					P25NX::Verbose(0);
@@ -962,8 +956,6 @@ sub MainLoop {
 			# Cisco STUN TCP Receiver.
 			CiscoSTUN::Events();
 		}
-
-		DMR::Events();
 
 		# MMDVM WritePoll beacon.
 		MMDVM::TimeoutTimer();
