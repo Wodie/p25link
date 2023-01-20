@@ -1,12 +1,14 @@
 # P25Link Software
 
+Warning: v2.40-5 is a work in progress, if you want to run a stable version use .deb file or p25link_v2.34.4.pl
+
 P25Link is a program that let you connect your Quantar repeater or Astro DIU 3000 to multiple HAM networks as P25Link, P25NX, and P25-MMDVM.
 It use the v.24 port on Quantar/DIU 3000, a Cisco router 28xx and a Raspberry Pi. It use the same router setup as P25NX.
 
 # Current version features:
 - Local voice talk groups 1 to 10.
 - P25Link network Voice talk groups 11 to 65534 (each TG is network selectable).
-- P25NX network Voice talk groups 10100 to 10599 (each TG is network selectable).
+- P25NX network Voice talk groups 10100 to 10599 (each TG is network selectable) Will be deprecated as it is abandoned by its creator.
 - P25-MMDVM network Voice talk groups 11 to 65534 (each TG is network selectable).
 - TMS (text messages) implemented if repeaters are on P25Link network and radios on linked TG.
 - Page functionality implemented if repeaters are on P25Link network and radios on linked TG.
@@ -15,6 +17,7 @@ It use the v.24 port on Quantar/DIU 3000, a Cisco router 28xx and a Raspberry Pi
 - RDAC for P25Link and P25NX.
 
 # Setup
+- Enable RTRT on your repeater.
 - To setup the P25Link software for yor Quantar or Astro DIU 3000, you will need to install a fresh Raspbian image on your Raspberry Pi.
 - Next, log to it using SSH.
 - Run the following commands:
@@ -43,14 +46,30 @@ sudo /opt/p25link/p25link
 ```
 - Remember to modify the hosts.txt file with the Talk Groups you want lo add to the scan list by setting the last field to a highest take precedence >= 1, 0 = No scan.
 
-Local Dashboard is a beta feature, so displayed info is limited (still under development).
+Local Dashboard is feature that do not work, (still under development).
 
-You will access it by pointing your browser to:
-```
-<Your_R-Pi_IP/p25link
-```
 
 # Version History:
+
+## v2.40-5 Jan 20, 2023.
+- Added: Code is now spread in multiple files.
+- Fixed: Performance improved.
+- Added: RDAC shows station type.
+- Bug Fixed: Double courtesy tone.
+- Added: SuperFrame is a work in progress feature, not working.
+- Bug: Please ignore DMR code and features, they are useless.
+
+## v2.40-0 Dec 17, 2022.
+- Added: DMR Linking test harness.
+
+## v2.34-5 Dec 17, 2022.
+- Added: Minor development debugging lines for MMDVM added, Frames counter/order checker.
+
+## v2.34-4 May 02, 2022.
+- Added: Minor development debugging lines added and syntax fixes.
+
+## v2.34-3 April 20, 2022.
+- Bug Fixed: Missing library on package installer .deb.
 
 ## v2.34-2 April 11, 2022.
 - Bug Fixed: HDLC RR flag bug fixed.
