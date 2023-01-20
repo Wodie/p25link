@@ -87,6 +87,9 @@ sub Load_Settings {
 	print "  Site Name = $SiteName\n";
 	print "  Site Info = $SiteInfo\n";
 	print "  Verbose = $Verbose\n";
+	if ($SiteName eq "Default" or $SiteInfo eq "Default") {
+		die("Please review all fields on your config file, you can not use Default as a value.");
+	}
 	print "----------------------------------------------------------------------\n";
 
 	# TalkGroups:
