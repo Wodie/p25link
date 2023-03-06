@@ -51,6 +51,11 @@ Local Dashboard is feature that do not work, (still under development).
 
 # Version History:
 
+## v2.40-6 Jan 06, 2023.
+- Added: Support for Atro TAC connection.
+- Fixed: A lot of bugs caused due to code split into multiple files for easier code management.
+- Bug: Please ignore DMR code and features, they are useless.
+
 ## v2.40-5 Jan 20, 2023.
 - Added: Code is now spread in multiple files.
 - Fixed: Performance improved.

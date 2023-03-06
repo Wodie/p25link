@@ -131,7 +131,7 @@ sub Refresh_Timer { # APRS-IS
 				}
 				if ( $APRS_IS->connected() ) {
 					if ($Verbose) {print color('green'), "APRS-IS Refresh_Timer.\n", color('reset');}
-					Update(Packets::GetLinkedTalkGroup());
+					Update_All(Packets::GetLinkedTalkGroup());
 				}
 			}
 		}
@@ -278,18 +278,27 @@ sub Make_Item {
 
 sub Update_TG {
 	my ($TG) = @_;
-	Make_Item($Callsign . '/' . $APRS{'Suffix'}, $My_Latitude, $My_Longitude, $My_Symbol, -1, -1, undef,
-		1, 0, 0, $My_Freq . 'MHz ' . $My_Tone . ' ' . $My_Offset . ' NAC-' . $My_NAC . ' ' .
+	Make_Item(
+		$Callsign . '/' . $APRS{'Suffix'},
+		$My_Latitude,
+		$My_Longitude,
+		$My_Symbol,
+		-1,
+		-1,
+		undef,
+		1,
+		0,
+		0,
+		$My_Freq . 'MHz ' . $My_Tone . ' ' . $My_Offset . ' NAC-' . $My_NAC . ' ' .
 		' TG=' . $TG . ' ' . $My_Comment . ' alt ' . $My_Altitude . 'm');
 }
 
-sub Update {
+sub Update_All {
 	my ($TG) = @_;
 	# Station position as Object
 	if ($Verbose) { print color('green'), "APRS-IS Update:\n", color('reset'); }
-	Make_Object(
+	Make_Item(
 		$Callsign . '/' . $APRS{'Suffix'},
-		0,
 		$My_Latitude,
 		$My_Longitude,
 		$My_Symbol,
@@ -306,7 +315,7 @@ sub Update {
 	my $fh;
 	if ($Verbose) { print color('grey12'), "  Loading APRS File...\n", color('reset'); }
 	if (!open($fh, "<", $APRS{'File'})) {
-		warn color('red'), "  *** Error ***   $APRS{'File'} File not found.\n", color('reset');
+		print color('red'), "  *** Error ***   $APRS{'File'} File not found.\n", color('reset');
 	} else {
 		if ($Verbose) { print color('grey12'), "  File Ok.\n", color('reset'); }
 		my %result;

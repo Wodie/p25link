@@ -1,8 +1,8 @@
 #!/bin/bash
 # first-time
 ##################################################################
-#	*** P25Link v2.30-4 ***
-#	Released: March 06, 2021. Created September 04, 2019.
+#	*** P25Link v2.33-3 ***
+#	Released: March 21, 2021. Created September 04, 2019.
 #	Created by: Juan Carlos Pérez De Castro (Wodie) KM4NNO, XE1F.
 #	www.wodielite.com
 #	wodielite at mac.com
@@ -82,10 +82,10 @@ do_config() {
 	PRIORITYTG=$(whiptail --inputbox "Current Priority TG is $PRIORITYTG enter new Priority TG." 8 78 "$PRIORITYTG" --title "Priority TG" 3>&1 1>&2 2>&3)
 
 	MUTETGTIMEOUT=$(grep '^MuteTGTimeout =' /$CONFIGS/config.ini | awk -F'= ' '{print $2}')
-	MUTETGTIMEOUT=$(whiptail --inputbox "Current MuteTGTimeout is $MUTETGTIMEOUT seconds, enter new MuteTGTimeout." 8 78 "$MUTETGTIMEOUT" --title "MuteTGTimeout" 3>&1 1>&2 2>&3)
+	MUTETGTIMEOUT=$(whiptail --inputbox "Current MuteTGTimeout is $MUTETGTIMEOUT seconds, enter new MuteTGTimeout. This is the time Repeater Scan List TGs will be muted (halt), except for the TG in use by a local user." 8 78 "$MUTETGTIMEOUT" --title "MuteTGTimeout" 3>&1 1>&2 2>&3)
 
 	HANGTIME=$(grep '^Hangtime =' /$CONFIGS/config.ini | awk -F'= ' '{print $2}')
-	HANGTIME=$(whiptail --inputbox "Current Hangtime is $HANGTIME seconds, enter new Hangtime." 8 78 "$HANGTIME" --title "Hangtime" 3>&1 1>&2 2>&3)
+	HANGTIME=$(whiptail --inputbox "Current Hangtime is $HANGTIME seconds, enter new Hangtime. This is the time a dynamic TG will remain connected after the last local PTT (Default Revert timer)." 8 78 "$HANGTIME" --title "Hangtime" 3>&1 1>&2 2>&3)
 
 	USEVOICEPROMPTS=$(grep '^UseVoicePrompts =' /$CONFIGS/config.ini | awk -F'= ' '{print $2}')
 	USEVOICEPROMPTS=$(whiptail --inputbox "Current Use Voice Prompts mode is $USEVOICEPROMPTS, enter new UseVoicePrompts mode.\n

@@ -27,7 +27,7 @@ my $IPV6Addr;
 my $MMDVM_Enabled;
 my $Callsign;
 my $RadioID;
-our $Version1 = 1;
+our $Version2 = 0;
 my $Verbose;
 my $MMDVM_LocalPort = 41020; # Local Port.
 my $MMDVM_RemoteHost;
@@ -53,12 +53,12 @@ sub Init {
 	$MMDVM_Enabled = $cfg->val('MMDVM', 'MMDVM_Enabled');
 	$Callsign = $cfg->val('MMDVM', 'Callsign');
 	$RadioID = $cfg->val('MMDVM', 'RadioID');
-	$Version1 = $cfg->val('MMDVM', 'Version1');
+	$Version2 = $cfg->val('MMDVM', 'Version2');
 	$Verbose = $cfg->val('MMDVM', 'Verbose');
 	print "  Enabled = $MMDVM_Enabled\n";
 	print "  Callsign = $Callsign\n";
 	print "  RadioID = $RadioID\n";
-	print "  Version1 = $Version1\n";
+	print "  Version2 = $Version2\n";
 	print "  Verbose = $Verbose\n";
 
 	$MMDVM{'TimeoutTimer'}{'Interval'} = 5; # sec.

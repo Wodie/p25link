@@ -69,6 +69,7 @@ use constant C_SystemCallTG => 0xFFFF;
 
 
 our $HDLC_RTRT_Enabled;
+our $HDLC_ATAC_Enabled;
 my $Verbose;
 my %Quant;
 use constant C_Implicit_MFID => 0;
@@ -84,6 +85,7 @@ my $HDLC_TxTraffic = 0;
 my $LocalRx_Time;
 
 my $NewTG  = 0;
+my $RptEnabled = 1;
 
 
 
@@ -95,8 +97,10 @@ sub Init {
 	print color('green'), "Init HDLC.\n", color('reset');
 	my $cfg = Config::IniFiles->new( -file => $ConfigFile);
 	$HDLC_RTRT_Enabled = $cfg->val('HDLC', 'RTRT_Enabled');
+	$HDLC_ATAC_Enabled = $cfg->val('HDLC', 'ATAC_Enabled');
 	$Verbose =$cfg->val('HDLC', 'Verbose');
 	print "  RT/RT Enabled = $HDLC_RTRT_Enabled\n";
+	print "  ATAC Enabled = $HDLC_ATAC_Enabled\n";
 	print "  Verbose = $Verbose\n";
 
 	$Quant{'FrameType'} = 0;
@@ -210,19 +214,6 @@ sub HDLC_Rx {
 		case 0x01 { # RR Receive Ready.
 			if ($Address == 0xFD) { # 253
 				Start_Connection_WD_Timer(); # Reset HDLC connection timer.
-				if ((($Packets::Mode == 1) and CiscoSTUN::GetSTUN_Connected() and ($HDLC_TxTraffic == 0))
-					or (($Packets::Mode == 0) and ($HDLC_TxTraffic == 0))) {
-					#if (!$CiscoDebug) {
-					#	if ($Verbose) { print "  0x01 calling HDLC_Tx_RR\n"; }
-					#	HDLC_Tx_RR(); # Commented for Cisco debug
-					#}
-
-#					if (!CiscoSTUN::GetSTUN_Connected()) {
-#						HDLC_Tx_SABM($Address);
-#					}
-				}
-				#$HDLC{'RR_Timer'}{'NextTime'} = P25Link::GetTickCount() + $HDLC{'RR_Timer'}{'Interval'};
-
 			} else {
 				print color('red'), "*** Warning ***   HDLC_Rx RR Address 0xFD (253) != $Address\n",
 					color('reset');
@@ -279,6 +270,7 @@ sub HDLC_Rx {
 								print "  HDLC ICW Terminate";
 							}
 							$Quant{'LocalRx'} = 0;
+							$Quant{'LocalTx'} = 0;
 							if ($Quant{'Tail'} == 1) {
 								$Packets::Pending_CourtesyTone = 1;
 								$Quant{'Tail'} = 0;
@@ -298,8 +290,6 @@ sub HDLC_Rx {
 							if ($Verbose) { print ", Analog Voice\n"; }
 							$Quant{'IsDigitalVoice'} = 0;
 							$Quant{'IsPage'} = 0;
-							RDAC::Tx(0, $Quant{'LocalRx'}, $Quant{'LocalTx'}, $Quant{'IsDigitalVoice'},
-								$Quant{'IsPage'}, $StationType);
 						}
 						case 0x06 { # TMS Data Payload
 							if ($Verbose) {
@@ -308,16 +298,12 @@ sub HDLC_Rx {
 							}
 							print "----------------------------------------------------------------------\n";
 							Packets::Tx_to_Network($Message);
-							#RDAC::Tx(0, $Quant{'LocalRx'}, $Quant{'LocalTx'}, $Quant{'IsDigitalVoice'},
-							#	$Quant{'IsPage'}, $StationType);
 						}
 						case 0x0B { # DVoice
 							if ($Verbose) { print ", Digital Voice\n"; }
 							$Quant{'IsDigitalVoice'} = 1;
 							$Quant{'IsPage'} = 0;
 							Packets::Tx_to_Network($Message);
-							RDAC::Tx(Packets::GetLinkedTalkGroup(), $Quant{'LocalRx'}, $Quant{'LocalTx'},
-								$Quant{'IsDigitalVoice'}, $Quant{'IsPage'}, $StationType);
 						}
 						case 0x0C { # TMS
 							if ($Verbose) {
@@ -326,8 +312,6 @@ sub HDLC_Rx {
 							}
 							print "----------------------------------------------------------------------\n";
 							Packets::Tx_to_Network($Message);
-							#RDAC::Tx(0, $Quant{'LocalRx'}, $Quant{'LocalTx'}, $Quant{'IsDigitalVoice'},
-							#	$Quant{'IsPage'}, $StationType);
 						}
 						case 0x0D { # From Comparator Start
 							if ($Verbose) {
@@ -337,8 +321,6 @@ sub HDLC_Rx {
 							print "----------------------------------------------------------------------\n";
 							#AddToSuperFrame(0x0D, $Message);
 							#Packets::Tx_to_Network($Message);
-							#RDAC::Tx(0, $Quant{'LocalRx'}, $Quant{'LocalTx'}, $Quant{'IsDigitalVoice'},
-							#	$Quant{'IsPage'}, $StationType);
 						}
 						case 0x0E { # From Comprator Stop
 							if ($Verbose) {
@@ -348,20 +330,18 @@ sub HDLC_Rx {
 							print "----------------------------------------------------------------------\n";
 							#AddToSuperFrame(0x0E, $Message);
 							#Packets::Tx_to_Network($Message);
-							#RDAC::Tx(0, $Quant{'LocalRx'}, $Quant{'LocalTx'}, $Quant{'IsDigitalVoice'},
-							#	$Quant{'IsPage'}, $StationType);
 						}
 						case 0x0F { # Page
 							if ($Verbose) { print ", Page\n"; }
 							$Quant{'IsPage'} = 1;
 							Packets::Tx_to_Network($Message);
-							RDAC::Tx(Packets::GetLinkedTalkGroup(), $Quant{'LocalRx'}, $Quant{'LocalTx'},
-								$Quant{'IsDigitalVoice'}, $Quant{'IsPage'}, $StationType);
 						}
 					}
 					if ($Verbose) {
 						print "\n";
 					}
+					RDAC::Tx(Packets::GetLinkedTalkGroup(), $Quant{'LocalRx'}, $Quant{'LocalTx'},
+						$Quant{'IsDigitalVoice'}, $Quant{'IsPage'}, $StationType);
 				}
 				case 0x01 {
 					warn color('yellow'), "UI 0x01 Undefined.\n", color('reset');
@@ -404,7 +384,7 @@ sub HDLC_Rx {
 					$StationType = $SiteID; # Informative for RDAC.
 					switch ($SiteID) {
 						case C_DIU3000 { # DIU3000
-							if ($Verbose) { print ", Source: DIU 3000"; }
+							if ($Verbose) { print ", Source: DIU 3000 or ATAC"; }
 						}
 						case C_Quantar { # Quantar
 							if ($Verbose) { print ", Source: Quantar"; }
@@ -482,7 +462,7 @@ sub HDLC_Rx {
 					$StationType = $SiteID; # Informative for RDAC.
 					switch ($SiteID) {
 						case C_DIU3000 { # DIU3000
-							if ($Verbose) { print ", SiteID: DIU 3000"; }
+							if ($Verbose) { print ", SiteID: DIU 3000 or ATAC"; }
 						}
 						case C_Quantar { # Quantar
 							if ($Verbose) { print ", SiteID: Quantar"; }
@@ -538,93 +518,7 @@ sub HDLC_Rx {
 						$Quant{'Explicit'} = 1;
 					}
 					$Quant{'IsTGData'} = 0;
-					switch (ord(substr($Message, 3, 1)) & 0x0F) {
-						case 0x00 { # Group voice channel user.
-							$Quant{'IsTGData'} = 1;
-							$Quant{'IndividualCall'} = 0;
-						}
-						case 0x02 { # Group voice channel update.
-							$Quant{'IndividualCall'} = 0;
-						}
-						case 0x03 { # Unit to unit voice channel user.
-							$Quant{'IndividualCall'} = 1;
-						}
-						case 0x04 { # Group voice channel update - explicit.
-							$Quant{'IndividualCall'} = 1;
-						}
-						case 0x05 { # Unit to unit answer request.
-							$Quant{'IndividualCall'} = 1;
-						}
-						case 0x06 { # Telephone interconnect voice channel user.
-							print "Misterious packet.";
-						}
-						case 0x07 { # Telephone interconnect answer request.
-							print "Telephone interconnect answer request.\n";
-						}
-						case 0x0F { # Call termination/cancellation.
-							print "Call termination/cancellation.\n";
-						}
-						case 0x10 {
-							print "Group Affiliation Query\n";
-						}
-						case 0x11 {
-							print "Unit Registration Command\n";
-						}
-						case 0x12 {
-							print "Unit Authentication Command\n";
-						}
-						case 0x13 {
-							print "Status Query\n";
-						}
-						case 0x14{ 
-							print "Status Update\n";
-						}
-						case 0x15 {
-							print "Message Update\n";
-						}
-						case 0x16 {
-							print "Call Alert\n";
-						}
-						case 0x17 {
-							print "Extended Function Command\n";
-						}
-						case 0x18 {
-							print "Channel Identifier Update\n";
-						}
-						case 0x19 {
-							print "Channel Identifier Update ñ Explicit (LCCIUX)\n";
-						}
-						case 0x20 {
-							print "System Service Broadcast\n";
-						}
-						case 0x21 {
-							print "Secondary Control Channel Broadcast\n";
-						}
-						case 0x22 {
-							print "Adjacent Site Status Broadcast\n";
-						}
-						case 0x23 {
-							print "RFSS Status Broadcast\n";
-						}
-						case 0x24 {
-							print "Network Status Broadcast\n";
-						}
-						case 0x25 {
-							print "Protection Parameter Broadcast\n";
-						}
-						case 0x26 {
-							print "Secondary Control Channel Broadcast - Explicit (LCSCBX)\n";
-						}
-						case 0x27 {
-							print "Adjacent Site Status Broadcast ñ Explicit (LCASBX)\n";
-						}
-						case 0x28 {
-							print "RFSS Status Broadcast ñ Explicit (LCRSBX)\n";
-						}
-						case 0x29 {
-							print "Network Status Broadcast ñ Explicit (LCNSBX)\n";
-						}
-					}
+					CallType(ord(substr($Message, 3, 1)));
 					$Quant{'ManufacturerID'} = ord(substr($Message, 4, 1));
 					ManufacturerName ($Quant{'ManufacturerID'});
 					if (ord(substr($Message, 5, 1)) and 0x80) {
@@ -818,7 +712,7 @@ sub HDLC_Rx {
 					$StationType = $SiteID; # Informative for RDAC.
 					switch ($SiteID) {
 						case C_DIU3000 { # DIU3000
-							if ($Verbose) { print ", SiteID: DIU 3000"; }
+							if ($Verbose) { print ", SiteID: DIU 3000 or ATAC"; }
 						}
 						case C_Quantar { # Quantar
 							if ($Verbose) { print ", SiteID: Quantar"; }
@@ -1101,7 +995,7 @@ sub HDLC_Rx {
 				if ($Verbose > 1) { print "  Station type = Quantar.\n"; }
 			}
 			if ($StationType == C_DIU3000) {
-				if ($Verbose > 1) { print "  Station type = DIU3000.\n"; }
+				if ($Verbose > 1) { print "  Station type = DIU3000 or ATAC.\n"; }
 			}
 			if ($Verbose) { print color('yellow'), "  0x0B calling HDLC_Tx_XID\n", color('reset'); }
 			HDLC_Tx_XID(0x0B);
@@ -1312,6 +1206,97 @@ sub TMS_Tx {
 }
 
 
+
+sub CallType {
+	my ($CallType) =@_;
+	switch ($CallType) {
+		case 0x00 { # Group voice channel user.
+			$Quant{'IsTGData'} = 1;
+			$Quant{'IndividualCall'} = 0;
+		}
+		case 0x02 { # Group voice channel update.
+			$Quant{'IndividualCall'} = 0;
+		}
+		case 0x03 { # Unit to unit voice channel user.
+			$Quant{'IndividualCall'} = 1;
+		}
+		case 0x04 { # Group voice channel update - explicit.
+			$Quant{'IndividualCall'} = 1;
+		}
+		case 0x05 { # Unit to unit answer request.
+			$Quant{'IndividualCall'} = 1;
+		}
+		case 0x06 { # Telephone interconnect voice channel user.
+			print "Misterious packet.";
+		}
+		case 0x07 { # Telephone interconnect answer request.
+			print "Telephone interconnect answer request.\n";
+		}
+		case 0x0F { # Call termination/cancellation.
+			print "Call termination/cancellation.\n";
+		}
+		case 0x10 {
+			print "Group Affiliation Query\n";
+		}
+		case 0x11 {
+			print "Unit Registration Command\n";
+		}
+		case 0x12 {
+			print "Unit Authentication Command\n";
+		}
+		case 0x13 {
+			print "Status Query\n";
+		}
+		case 0x14{ 
+			print "Status Update\n";
+		}
+		case 0x15 {
+			print "Message Update\n";
+		}
+		case 0x16 {
+			print "Call Alert\n";
+		}
+		case 0x17 {
+			print "Extended Function Command\n";
+		}
+		case 0x18 {
+			print "Channel Identifier Update\n";
+		}
+		case 0x19 {
+			print "Channel Identifier Update ñ Explicit (LCCIUX)\n";
+		}
+		case 0x20 {
+			print "System Service Broadcast\n";
+		}
+		case 0x21 {
+			print "Secondary Control Channel Broadcast\n";
+		}
+		case 0x22 {
+			print "Adjacent Site Status Broadcast\n";
+		}
+		case 0x23 {
+			print "RFSS Status Broadcast\n";
+		}
+		case 0x24 {
+			print "Network Status Broadcast\n";
+		}
+		case 0x25 {
+			print "Protection Parameter Broadcast\n";
+		}
+		case 0x26 {
+			print "Secondary Control Channel Broadcast - Explicit (LCSCBX)\n";
+		}
+		case 0x27 {
+			print "Adjacent Site Status Broadcast ñ Explicit (LCASBX)\n";
+		}
+		case 0x28 {
+			print "RFSS Status Broadcast ñ Explicit (LCRSBX)\n";
+		}
+		case 0x29 {
+			print "Network Status Broadcast ñ Explicit (LCNSBX)\n";
+		}
+	}
+}
 
 sub ManufacturerName {
 	my ($ManID) = @_;
@@ -1526,66 +1511,6 @@ sub GetHDLC_Handshake() {
 sub SetHDLC_TxTraffic {
 	my ($Value) = @_;
 	$HDLC_TxTraffic = $Value;
-}
-
-sub GetRaw {
-	my ($Index) = @_;
-	switch ($Index) {
-		case[0x62] {
-			return($Quant{'Raw0x62'});
-		}
-		case[0x63] {
-			return($Quant{'Raw0x63'});
-		}
-		case[0x64] {
-			return($Quant{'Raw0x64'});
-		}
-		case[0x65] {
-			return($Quant{'Raw0x65'});
-		}
-		case[0x66] {
-			return($Quant{'Raw0x66'});
-		}
-		case[0x67] {
-			return($Quant{'Raw0x67'});
-		}
-		case[0x68] {
-			return($Quant{'Raw0x68'});
-		}
-		case[0x69] {
-			return($Quant{'Raw0x69'});
-		}
-		case[0x6A] {
-			return($Quant{'Raw0x6A'});
-		}
-		case[0x6B] {
-			return($Quant{'Raw0x6B'});
-		}
-		case[0x6C] {
-			return($Quant{'Raw0x6C'});
-		}
-		case[0x6D] {
-			return($Quant{'Raw0x6D'});
-		}
-		case[0x6E] {
-			return($Quant{'Raw0x6E'});
-		}
-		case[0x6F] {
-			return($Quant{'Raw0x6F'});
-		}
-		case[0x70] {
-			return($Quant{'Raw0x70'});
-		}
-		case[0x71] {
-			return($Quant{'Raw0x71'});
-		}
-		case[0x72] {
-			return($Quant{'Raw0x72'});
-		}
-		case[0x73] {
-			return($Quant{'Raw0x73'});
-		}
-	}
 }
 
 

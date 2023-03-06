@@ -33,6 +33,7 @@ my $SiteName;
 my $SiteInfo;
 my $Verbose;
 
+our $SuperFrame;
 my $TalkGroupsFile;
 our %TG;
 our $Scan = 0;
@@ -76,6 +77,7 @@ sub Load_Settings {
 	$SiteName = $cfg->val('Settings', 'SiteName');
 	$SiteInfo = $cfg->val('Settings', 'SiteInfo');
 	$Verbose = $cfg->val('Settings', 'Verbose');
+	$SuperFrame = $cfg->val('P25Link', 'SuperFrame');
 	print "  Mode = $Mode\n";
 	print "  HotKeys = $Packets::HotKeys\n";
 	print "  LocalHost = $LocalHost    ntoa($LocalHostIP)\n";
@@ -87,6 +89,7 @@ sub Load_Settings {
 	print "  Site Name = $SiteName\n";
 	print "  Site Info = $SiteInfo\n";
 	print "  Verbose = $Verbose\n";
+	print "  SuperFrame = $SuperFrame\n";
 	if ($SiteName eq "Default" or $SiteInfo eq "Default") {
 		die("Please review all fields on your config file, you can not use Default as a value.");
 	}
@@ -201,6 +204,18 @@ sub Tx_to_Network {
 	if ($Verbose) {print color('grey12'), "Tx_to_Network " . $TG{$LinkedTalkGroup}{'Mode'} . 
 		" TalkGroup " . $LinkedTalkGroup . "\n", color('reset'); }
 
+	# Fix Astro TAC RT/RT
+	if ($Quantar::HDLC_ATAC_Enabled) {
+		if ( (substr($Buffer, 0 , 1) eq chr(0x60)) or (substr($Buffer, 0 , 1) eq chr(0x62)) or
+				(substr($Buffer, 0 , 1) eq chr(0x6B)) or (substr($Buffer, 0 , 1) eq chr(0xA1)) ) {
+			#print ("Hey\n");
+			#Bytes_2_HexString($Buffer);
+			$Buffer = substr($Buffer, 0, 2) . chr(0x02) . substr($Buffer, 3, length($Buffer) - 3);
+			#print ("New\n");
+			#Bytes_2_HexString($Buffer);
+		}
+	}
+	
 	if ( P25Link::GetEnabled() and ($TG{$LinkedTalkGroup}{'Mode'} eq 'P25Link') and 
 		($LinkedTalkGroup > 10) and ($LinkedTalkGroup < 65535) ) { # Case P25Link.
 		HDLC_to_P25Link($Buffer);
@@ -225,14 +240,14 @@ sub HDLC_to_MMDVM {
 			switch (ord(substr($Buffer, 5, 1))) {
 				case 0x0C {
 					if ($Verbose) {print color('yellow'), "HDLC_to_MMDVM A output:\n", color('reset');}
-					if ($MMDVM::Version1) {
+					if ($MMDVM::Version2 == 0) {
 						MMDVM::Tx($TalkGroup, chr(0x72) . chr(0x7B) . 
 							chr(0x3D) . chr(0x9E) . chr(0x44) . chr(0x00) );
 					}
 				}
 				case 0x25 {
 					if ($Verbose) {print "HDLC_to_MMDVM ICW Terminate output:\n";}
-					if ($MMDVM::Version1) {
+					if ($MMDVM::Version2 == 0) {
 						MMDVM::Tx($TalkGroup, chr(0x80) . chr(0x00). chr(0x00) .
 							chr(0x00) . chr(0x00) . chr(0x00) . chr(0x00) .
 							chr(0x00) . chr(0x00) . chr(0x00) . chr(0x00) .
@@ -246,25 +261,20 @@ sub HDLC_to_MMDVM {
 			$Buffer = substr($Buffer, 2, length($Buffer)); # Here we remove first 2 Quantar Bytes.
 			if ($Verbose) {print "HDLC_to_MMDVM Header output:\n";}
 			if ($Verbose >= 2) {P25Link::Bytes_2_HexString($Buffer);}
-			if ($MMDVM::Version1) {
-				MMDVM::Tx($TalkGroup, $Buffer);
-				SuperFrame::AddVoiceFrame($TalkGroup, $Buffer);
+			if ($MMDVM::Version2) {
+				SuperFrame::UpdateSuperFrame($TalkGroup, $Buffer);
 			} else {
-				SuperFrame::AddVoiceFrame($TalkGroup, $Buffer);
+				MMDVM::Tx($TalkGroup, $Buffer);
 			}
 		}
 		case [0x62..0x73] {
 			$Buffer = substr($Buffer, 2, length($Buffer)); # Here we remove first 2 Quantar Bytes.
 			if ($Verbose) {print "HDLC_to_MMDVM Voice output:\n";}
 			if ($Verbose >= 2) {P25Link::Bytes_2_HexString($Buffer);}
-			if ($MMDVM::Version1) {
-				MMDVM::Tx($TalkGroup, $Buffer);
-				SuperFrame::AddVoiceFrame($TalkGroup, $Buffer);
+			if ($MMDVM::Version2) {
+				SuperFrame::UpdateSuperFrame($TalkGroup, $Buffer);
 			} else {
-				SuperFrame::AddVoiceFrame($TalkGroup, $Buffer);
-				if ($OpCode == 0x73) {
-#					MMDVM::Tx($TalkGroup, $SuperFrame::SuperFrame);
-				}
+				MMDVM::Tx($TalkGroup, $Buffer);
 			}
 		}
 		else {
@@ -281,7 +291,11 @@ sub HDLC_to_P25Link {
 		chr(2 + length($Buffer)) . chr(CiscoSTUN::GetSTUN_ID()); #STUN Header.
 	$Buffer = $Stun_Header . $Buffer;
 	#print "HDLC_to_P25Link.\n";
-	P25Link::Tx($LinkedTalkGroup, $Buffer);
+	if ($SuperFrame) {
+		SuperFrame::UpdateSuperFrame($LinkedTalkGroup, $Buffer);
+	} else {
+		P25Link::Tx($LinkedTalkGroup, $Buffer);
+	}
 }
 
 sub HDLC_to_P25NX {

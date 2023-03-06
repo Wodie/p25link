@@ -133,6 +133,12 @@ sub Rx {
 		#print "Rx HexData = " . StrToHex($Buffer) . "\n";
 	#}
 	#MMDVM_Tx(substr($Buffer, 9, length($Buffer)));
+
+	if ($Packets::SuperFrame) {
+		SuperFrame::To_HDLC($Buffer);
+		return;
+	}
+
 	P25Link_to_HDLC($Buffer);
 
 	my $OpCode = ord(substr($Buffer, 9, 1));
@@ -199,6 +205,8 @@ sub P25Link_to_HDLC { # P25Link packet contains Cisco STUN and Quantar packet.
 # Add a 1s timer to Quantar::SetHDLC_TxTraffic(0);
 ;
 }
+
+
 
 sub Events {
 	if (!$Enabled) { return; }

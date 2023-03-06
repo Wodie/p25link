@@ -62,6 +62,7 @@ use MMDVM;
 use P25Link;
 use P25NX;
 use RDAC;
+use DMR;
 use Packets;
 #use RS;
 #use Golay2087;
@@ -84,14 +85,14 @@ use Packets;
 my $AppName = 'P25Link';
 use constant VersionInfo => 2;
 use constant MinorVersionInfo => 40;
-use constant RevisionInfo => 5;
+use constant RevisionInfo => 6;
 my $Version = VersionInfo . '.' . MinorVersionInfo . '-' . RevisionInfo;
 (my $sec, my $min, my $hour, my $mday, my $mon, my $year, my $wday, my $yday, my $isdst) = localtime();
 my $StartTime = "$hour:$min:$sec";
 print "Started at $StartTime\n";
 print "\n##################################################################\n";
 print "	*** $AppName v$Version ***\n";
-print "	Released: Jan 20, 2023. Created October 17, 2019.\n";
+print "	Released: Mar 06, 2023. Created October 17, 2019.\n";
 print "	Created by:\n";
 print "	Juan Carlos Perez De Castro (Wodie) KM4NNO / XE1F\n";
 print "	Bryan Fields W9CR.\n";
@@ -103,7 +104,7 @@ print "	License:\n";
 print "	This software is licenced under the GPL v3.\n";
 print "	If you are using it, please let me know, I will be glad to know it.\n\n";
 print "	This project is based on the work and information from:\n";
-print "	Juan Carlos PÅ½rez KM4NNO / XE1F\n";
+print "	Juan Carlos PŽrez KM4NNO / XE1F\n";
 print "	Byan Fields W9CR\n";
 print "	P25-MMDVM creator Jonathan Naylor G4KLX\n";
 print "	P25NX creatorDavid Kraus NX4Y\n";
@@ -249,6 +250,8 @@ RDAC::Init($ConfigFile, VersionInfo, MinorVersionInfo, RevisionInfo);
 
 MMDVM::Init($ConfigFile);
 
+DMR::Init($ConfigFile);
+
 P25Link::Init($ConfigFile);
 
 P25NX::Init($ConfigFile);
@@ -350,7 +353,6 @@ if ($Packets::Mode == 0) { # If Serial (Mode 0) is selected:
 } elsif ($Packets::Mode == 1) { # If Cisco STUN (Mode 1) is selected:
 	if ($Verbose) {print "Cisco STUN listen for connections:\n";}
 	while ($Run) {
-#	while (!CiscoSTUN::Open()) {
 		if (CiscoSTUN::Open()) {
 			print "P25Link Loop running.\n";
 			MainLoop();
@@ -371,8 +373,9 @@ if ($Packets::Mode == 0) { # Close Serial Port:
 APRS_IS::Disconnect();
 Packets::Disconnect();
 #P25Link::DisconnectIPv6();
+DMR::Close(1);
 
-print "Good bye cruel World.\n";
+print "Good bye cruel World.\n\a";
 print "----------------------------------------------------------------------\n\n";
 exit;
 
@@ -387,7 +390,7 @@ sub PrintMenu {
 	print "  A = APRS verbose                 a = APRS file reload and Tx\n";
 	print "  B =                              b = Voice Announce file reload\n";
 	print "  C = Cisco STUN verbose           c = \n";
-	print "  D =                              d =  show/hide verbose\n";
+	print "  D =                              d = DMR show/hide verbose\n";
 	print "  E = Emergency Page/Alarm         e = Play Alarm\n";
 	print "  F = Serach user test                 \n";
 	print "  G =                              g = \n";
@@ -770,7 +773,7 @@ sub HotKeys {
 					APRS_IS::Verbose($VerboseValue);
 				}
 				case ord('a') { # 'a'
-					APRS_IS::Update();
+					APRS_IS::Update_All(Packets::GetLinkedTalkGroup());
 					APRS_IS::Start_Refresh_Timer();
 				}
 				case ord('B') { # 'B'
@@ -784,8 +787,10 @@ sub HotKeys {
 				case ord('c') { # 'c'
 				}
 				case ord('D') { # 'D'
+					DMR::Verbose($VerboseValue);
 				}
 				case ord('d') { # 'd'
+					print "\a";
 				}
 				case ord('E') {
 					# Emergency packet from radio 1 to TG 65535:
@@ -864,6 +869,9 @@ sub HotKeys {
 					$TestBuffer = "";
 					$TestValue = 0x00;
 				}
+				case ord('t') {
+					SuperFrame::Test();
+				}
 				case ord('v') { # 'v'
 					$VA_Test = 0xFFFF11;
 					$Packets::VA_Message = $VA_Test;
@@ -877,6 +885,7 @@ sub HotKeys {
 				case ord('Z') { # 'Z'
 					APRS_IS::Verbose(0);
 					CiscoSTUN::Verbose(0);
+					DMR::Verbose(0);
 					MMDVM::Verbose(0);
 					P25Link::Verbose(0);
 					P25NX::Verbose(0);
@@ -956,6 +965,8 @@ sub MainLoop {
 			# Cisco STUN TCP Receiver.
 			CiscoSTUN::Events();
 		}
+
+		DMR::Events();
 
 		# MMDVM WritePoll beacon.
 		MMDVM::TimeoutTimer();

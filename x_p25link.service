@@ -1,0 +1,22 @@
+[Unit]
+Description=P25LINK Service
+# Description=Place this file in /lib/systemd/system
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+ExecStart=/opt/p25link/p25link
+StandardOutput=syslog
+StandardError=syslog
+SyslogIdentifier=P25LINK
+User=pnx
+WorkingDirectory=/opt/p25link
+
+# safe_asterisk emulation
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
+Alias=p25link.service
+

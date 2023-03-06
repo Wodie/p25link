@@ -21,7 +21,7 @@ INTERACTIVE=True
 ASK_TO_REBOOT=0
 #CONFIG=/opt/p25link/config.txt
 
-PACKAGE_VER=p25link_2.34-3
+PACKAGE_VER=p25link_2.40-6
 DEPLOY_DIR=/opt/deploy/$PACKAGE_VER
 
 
@@ -93,7 +93,7 @@ do_run_firsttime() {
 
 	if (whiptail --title "Do you want to set a different user from $NEWUSER to run p25link app?" --yesno --defaultno "Change Yes or No" 8 78) then
 		P25LINKUSER=$(whiptail --inputbox "Current P25Link user is $P25LINKUSER enter new user name." 8 78 "$P25LINKUSER" --title "P25Link User" 3>&1 1>&2 2>&3)
-		sed -i 's/User.*/User='$P25LINKUSER'/' $CONFIGS/p25link.service
+		sed -i 's/User.*/User='$P25LINKUSER'/' $CONFIGS/x_p25link.service
 		chown $P25LINKUSER /opt/p25link
 	fi
 
@@ -106,11 +106,11 @@ do_run_firsttime() {
 
 do_start() {
 	echo "do_start" >> $logfile
-	SCRIPTUSER=$(grep '^User=' /$CONFIGS/p25link.service | awk -F'=' '{print $2}' | sed 's/|\i//' | sed -e 's/^\(.\{9\}\).*/\1/'|sed 's/ //g')
+	SCRIPTUSER=$(grep '^User=' /$CONFIGS/x_p25link.service | awk -F'=' '{print $2}' | sed 's/|\i//' | sed -e 's/^\(.\{9\}\).*/\1/'|sed 's/ //g')
 	SCRIPTUSER=$(whiptail --inputbox "Current P25Link user is $SCRIPTUSER enter new user name." 8 78 "$SCRIPTUSER" --title "Script User" 3>&1 1>&2 2>&3)
-	sed -i 's/User.*/User='$SCRIPTUSER'/' $CONFIGS/p25link.service
+	sed -i 's/User.*/User='$SCRIPTUSER'/' $CONFIGS/x_p25link.service
 
-	cp $CONFIGS/p25link.service /lib/systemd/system/p25link.service &&
+	cp $CONFIGS/x_p25link.service   /lib/systemd/system/p25link.service &&
 	chmod 644 /lib/systemd/system/p25link.service &&
 	systemctl enable p25link &&
 	systemctl start p25link &&
@@ -327,6 +327,7 @@ do_install_cpan() {
 	cpan install Digest::CRC &&
 	cpan install Device::SerialPort &&
 	cpan install IO::Socket::Timeout &&
+	cpan install IO::Socket::IP &&
 	cpan install IO::Socket::Multicast &&
 	cpan install Term::ReadKey &&
 	cpan install Ham::APRS::IS &&
@@ -364,36 +365,43 @@ do_build_app() {
 
 do_build_deb() {
 	chmod +x $CONFIGS/p25link.pl &&
+	chmod 755 $CONFIGS -R
+	chmod 755 $CONFIGS/DEBIAN -R
 	# Make app
 	pp -o /opt/p25link/p25link   $CONFIGS/p25link.pl
 	mkdir /opt/deploy
 	cd /opt/deploy
+	rm $DEPLOY_DIR -r
 	mkdir $DEPLOY_DIR
 	mkdir $DEPLOY_DIR/opt
 	mkdir $DEPLOY_DIR/opt/p25link
-	mkdir $DEPLOY_DIR/var
-	mkdir $DEPLOY_DIR/var/www
-	mkdir $DEPLOY_DIR/var/www/html
-	mkdir $DEPLOY_DIR/var/www/html/p25link
 	# Copy files
-	cp -r $CONFIGS/xaprs.txt   $DEPLOY_DIR/opt/p25link/aprs.txt
-	cp -r $CONFIGS/xconfig.ini   $DEPLOY_DIR/opt/p25link/config.ini
+	cp -r $CONFIGS/APRS_IS.pm   $DEPLOY_DIR/opt/p25link/APRS_IS.pm
+	cp -r $CONFIGS/x_aprs.txt   $DEPLOY_DIR/opt/p25link/aprs.txt
+	cp -r $CONFIGS/CiscoSTUN.pm   $DEPLOY_DIR/opt/p25link/CiscoSTUN.pm
+	cp -r $CONFIGS/x_config.ini   $DEPLOY_DIR/opt/p25link/config.ini
+	cp -r $CONFIGS/DMR.pm   $DEPLOY_DIR/opt/p25link/DMR.pm
 	cp -r $CONFIGS/FAP.pm   $DEPLOY_DIR/opt/p25link/FAP.pm
 	cp -r $CONFIGS/first-time   $DEPLOY_DIR/opt/p25link/first-time
-	cp -r $CONFIGS/xhosts.txt   $DEPLOY_DIR/opt/p25link/hosts.txt
+	cp -r $CONFIGS/x_hosts.txt   $DEPLOY_DIR/opt/p25link/hosts.txt
 	cp -r $CONFIGS/LICENSE.txt   $DEPLOY_DIR/opt/p25link/LICENSE.txt
+	cp -r $CONFIGS/MMDVM.pm   $DEPLOY_DIR/opt/p25link/MMDVM.pm
 	cp -r $CONFIGS/net-setup   $DEPLOY_DIR/opt/p25link/net-setup
 	cp -r $CONFIGS/p25link   $DEPLOY_DIR/opt/p25link/p25link
 	cp -r $CONFIGS/p25link-menu   $DEPLOY_DIR/opt/p25link/p25link-menu
 	cp -r $CONFIGS/p25link.pl   $DEPLOY_DIR/opt/p25link/p25link.pl
-	cp -r $CONFIGS/p25link.service   $DEPLOY_DIR/opt/p25link/p25link.service
+	cp -r $CONFIGS/P25Link.pm   $DEPLOY_DIR/opt/p25link/P25Link.pm
+	cp -r $CONFIGS/P25NX.pm   $DEPLOY_DIR/opt/p25link/P25NX.pm
+	cp -r $CONFIGS/x_p25link.service   $DEPLOY_DIR/opt/p25link/x_p25link.service
+	cp -r $CONFIGS/Packets.pm   $DEPLOY_DIR/opt/p25link/Packets.pm
+	cp -r $CONFIGS/Quantar.pm   $DEPLOY_DIR/opt/p25link/Quantar.pm
+	cp -r $CONFIGS/RDAC.pm   $DEPLOY_DIR/opt/p25link/RDAC.pm
 	cp -r $CONFIGS/README.md   $DEPLOY_DIR/opt/p25link/README.md
+	cp -r $CONFIGS/Recorder.pm   $DEPLOY_DIR/opt/p25link/Recorder.pm
+	cp -r $CONFIGS/Serial.pm   $DEPLOY_DIR/opt/p25link/Serial.pm
 	cp -r $CONFIGS/speech.ini   $DEPLOY_DIR/opt/p25link/speech.ini
+	cp -r $CONFIGS/SuperFrame.pm   $DEPLOY_DIR/opt/p25link/SuperFrame.pm
 	cp -r $CONFIGS/DEBIAN   $DEPLOY_DIR/
-	cp -r $CONFIGS/web/index.html   $DEPLOY_DIR/var/www/html/p25link/index.html
-	cp -r $CONFIGS/web/P25Link_Logo_Small_Blue.jpg   $DEPLOY_DIR/var/www/html/p25link/P25Link_Logo_Small_Blue.jpg
-	cp -r $CONFIGS/web/state.php   $DEPLOY_DIR/var/www/html/p25link/state.php
-	cp -r $CONFIGS/web/style.css   $DEPLOY_DIR/var/www/html/p25link/style.css
 
 
 
@@ -573,7 +581,7 @@ do_extras_menu() {
 		"A " "APRS Direwolf Install" \
 		"B " "APRS Direwolf first time configuration" \
 		"C " "Edit direwolf.conf file with advanced settings" \
-		"1 " "Auto-start Direwolf software on boot" \
+		"D " "Auto-start Direwolf software on boot" \
 		"R " "Restart Direwolf software only" \
 		"S " "Disable Auto-start Direwolf software on boot" \
 		3>&1 1>&2 2>&3)
@@ -585,7 +593,7 @@ do_extras_menu() {
 			A\ *) do_direwolf_install ;;
 			B\ *) do_run_direwolf_firsttime ;;
 			C\ *) nano /root/direwolf.conf ;;
-			1\ *) do_direwold_start ;;
+			D\ *) do_direwold_start ;;
 			R\ *) do_direwolf_restart ;;
 			S\ *) do_direwolf_stop ;;
 			*) whiptail --msgbox "Programmer error: unrecognized option" 20 60 1 ;;
@@ -627,18 +635,18 @@ do_utilities_menu() {
 
 do_developer_menu() {
 	FUN=$(whiptail --title "P25Link Developer menu" --menu "Developer" $WT_HEIGHT $WT_WIDTH $WT_MENU_HEIGHT --cancel-button Back --ok-button Select \
-		"U1 " "Install Perl CPAN modules" \
-		"U2 " "Build p25link" \
-		"U3 " "Build p25link.deb" \
+		"A " "Install Perl CPAN modules" \
+		"B " "Build p25link" \
+		"C " "Build p25link.deb" \
 		3>&1 1>&2 2>&3)
 	RET=$?
 	if [ $RET -eq 1 ]; then
 		return 0
 	elif [ $RET -eq 0 ]; then
 		case "$FUN" in
-			U1\ *) do_install_cpan ;;
-			U2\ *) do_build_app ;;
-			U3\ *) do_build_deb ;;
+			A\ *) do_install_cpan ;;
+			B\ *) do_build_app ;;
+			C\ *) do_build_deb ;;
 			*) whiptail --msgbox "Programmer error: unrecognized option" 20 60 1 ;;
 		esac || whiptail --msgbox "There was an error running option $FUN" 20 60 1
 	fi
@@ -646,20 +654,20 @@ do_developer_menu() {
 
 do_network_menu() {
 	FUN=$(whiptail --title "P25Link Network menu" --menu "Network" $WT_HEIGHT $WT_WIDTH $WT_MENU_HEIGHT --cancel-button Back --ok-button Select \
-		"N1 " "Set the Hostname for this Pi on a network" \
-		"N2 " "Network configuration" \
-		"N3 " "Enable/Disable remote access using SSH" \
-		"N4 " "Change SSH port number used" \
+		"A " "Set the Hostname for this Pi on a network" \
+		"B " "Network configuration" \
+		"C " "Enable/Disable remote access using SSH" \
+		"D " "Change SSH port number used" \
 		3>&1 1>&2 2>&3)
 	RET=$?
 	if [ $RET -eq 1 ]; then
 		return 0
 	elif [ $RET -eq 0 ]; then
 		case "$FUN" in
-			N1\ *) do_hostname ;;
-			N2\ *) do_net_setup ;;
-			N3\ *) do_ssh ;;
-			N4\ *) do_ssh_port ;;
+			A\ *) do_hostname ;;
+			B\ *) do_net_setup ;;
+			C\ *) do_ssh ;;
+			D\ *) do_ssh_port ;;
 			*) whiptail --msgbox "Programmer error: unrecognized option" 20 60 1 ;;
 		esac || whiptail --msgbox "There was an error running option $FUN" 20 60 1
 	fi
@@ -681,9 +689,9 @@ RET=0
 				"G config.ini" "Edit config.ini file with advanced settings" \
 				"H hosts.txt" "Edit hosts.txt file with your custom hosts" \
 				"I aprs.txt" "Edit aprs.txt file with your own objects" \
-				"J Auto Start App" "Auto-start P25Link software on boot" \
+				"P Stop Auto Start" "Disable Auto-start P25Link software on boot" \
 				"R Restart App" "Restart P25Link software only" \
-				"S Stop Auto Start" "Disable Auto-start P25Link software on boot" \
+				"S Auto Start App" "Auto-start P25Link software on boot" \
 				3>&1 1>&2 2>&3)
 			RET=$?
 			if [ $RET -eq 1 ]; then
@@ -699,9 +707,9 @@ RET=0
 					G\ *) nano $CONFIGS/config.ini ;;
 					H\ *) nano $CONFIGS/hosts.txt ;;
 					I\ *) nano $CONFIGS/aprs.txt ;;
-					J\ *) do_start ;;
+					P\ *) do_stop ;;
 					R\ *) do_restart ;;
-					S\ *) do_stop ;;
+					S\ *) do_start ;;
 					*) whiptail --msgbox "Programmer error: unrecognized option" 20 60 1 ;;
 				esac || whiptail --msgbox "There was an error running option $FUN" 20 60 1
 			else
