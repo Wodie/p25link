@@ -954,7 +954,7 @@ sub HDLC_Rx {
 							print color('yellow'), "  Individual Page Ack 13.\n", color('reset');
 						}
 					}
-					AddToSuperFrame(0xA1, $Message);
+#					AddToSuperFrame(0xA1, $Message);
 					Packets::Tx_to_Network($Message);
 
 				} else {

@@ -85,14 +85,14 @@ use Packets;
 my $AppName = 'P25Link';
 use constant VersionInfo => 2;
 use constant MinorVersionInfo => 40;
-use constant RevisionInfo => 6;
+use constant RevisionInfo => 7;
 my $Version = VersionInfo . '.' . MinorVersionInfo . '-' . RevisionInfo;
 (my $sec, my $min, my $hour, my $mday, my $mon, my $year, my $wday, my $yday, my $isdst) = localtime();
 my $StartTime = "$hour:$min:$sec";
 print "Started at $StartTime\n";
 print "\n##################################################################\n";
 print "	*** $AppName v$Version ***\n";
-print "	Released: Mar 06, 2023. Created October 17, 2019.\n";
+print "	Released: Jan 05, 2024. Created October 17, 2019.\n";
 print "	Created by:\n";
 print "	Juan Carlos Perez De Castro (Wodie) KM4NNO / XE1F\n";
 print "	Bryan Fields W9CR.\n";
@@ -198,6 +198,8 @@ my @Speech_FSG_2050;
 my @Speech_Wave_4095;
 
 my @Speech_TestPattern;
+my @Speech_RxFrame;
+my @Speech_TxFrame;
 
 my $VA_Test;
 print "----------------------------------------------------------------------\n";
@@ -477,6 +479,9 @@ sub Load_VoiceAnnounce {
 
 	@Speech_TestPattern = $SpeechIni->val('TestPattern', 'byte');
 
+	@Speech_RxFrame = $SpeechIni->val('RxFrame', 'byte');
+	@Speech_TxFrame = $SpeechIni->val('TxFrame', 'byte');
+
 	$VA_Test = 0xFFFF;
 	print "  Done.\n";
 	print "----------------------------------------------------------------------\n";
@@ -530,6 +535,21 @@ sub SaySomething {
 			print "9 Speech_Nine";
 			@Speech = @Speech_Nine;
 		}
+		
+		
+		
+		case 0x0a {
+			print "RxFrame";
+			@Speech = @Speech_RxFrame;
+		}
+		
+		case 0x0b {
+			print "TxFrame";
+			@Speech = @Speech_TxFrame;
+		}
+		
+		
+		
 		case 2050 {
 			print "2050 Speech_FSG_2050";
 			@Speech = @Speech_FSG_2050;
@@ -873,7 +893,8 @@ sub HotKeys {
 					SuperFrame::Test();
 				}
 				case ord('v') { # 'v'
-					$VA_Test = 0xFFFF11;
+#					$VA_Test = 0xFFFF11;
+					$VA_Test = 0x0a;
 					$Packets::VA_Message = $VA_Test;
 					$Packets::Pending_VA = 1;
 				}

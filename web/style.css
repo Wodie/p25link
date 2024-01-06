@@ -1,0 +1,54 @@
+
+body {
+	font-family: verdana, arial, helvetica, sans-serif;
+	font-size: 14px;
+	background-color: #1B2F43;
+}
+
+
+.grey { color: #666; }
+.bold { font-weight: bold; }
+
+div.title {
+	color: #d0d0d0;
+	margin-top: 5px;
+	margin-bottom: 5px;
+	font-weight: bold;
+}
+
+div.radios {
+	color: #d0d0d0;
+	margin-top: 12px;
+}
+
+div.table {
+	color: #000;
+	background-color: #5080C0;
+	margin-top: 12px;
+}
+
+div.unshown {
+	color: #666;
+	margin-top: 12px;
+}
+
+div.footer {
+	margin-top: 20px;
+	color: #d0d0d0;
+	font-size: 14px;
+}
+
+tr.here td {
+	background-color: #b0ffb0;
+	color: #444;
+	padding: 2px 3px 2px 3px;
+}
+
+tr.separator td {
+}
+
+tr.away td {
+	background-color: #ffebeb;
+	color: #444;
+	padding: 2px 3px 2px 3px;
+}
