@@ -20,7 +20,7 @@ my $Recfh;
 #################################################################################
 sub Init {
 	my ($ConfigFile) = @_;
-	print color('green'), "Init data recorder...\n", color('reset');
+	print color('green'), "Init data (voice) recorder...\n", color('reset');
 	my $cfg = Config::IniFiles->new( -file => $ConfigFile);
 	$Record_Enabled = $cfg->val('Settings', 'RecordEnable');
 	$RecordFile = $cfg->val('Settings', 'RecordFile');

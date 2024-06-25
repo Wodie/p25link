@@ -20,6 +20,8 @@ use Quantar;
 
 my $OS;
 my $SerialPort_Configuration;
+my $Apple_Port;
+my $Linux_Port;
 my $Verbose;
 my $SerialPort;
 my $Serial_Data = "";
@@ -38,20 +40,24 @@ sub Init {
 	print color('green'), "Init Serial Port.\n", color('reset');
 	my $cfg = Config::IniFiles->new( -file => $ConfigFile);
 	$SerialPort_Configuration = "SerialConfig.cnf";
+	$Apple_Port =$cfg->val('Serial', 'Apple_Port');
+	$Linux_Port =$cfg->val('Serial', 'Linux_Port');
 	$Verbose =$cfg->val('Serial', 'Verbose');
 	print "  Serial Verbose = $Verbose\n";
 
 	# For Mac:
 	if ($OS eq "darwin") {
-		$SerialPort = Device::SerialPort->new('/dev/tty.usbserial') ||
-			die "Cannot Init Serial Port : $!\n";
+		$SerialPort = Device::SerialPort->new($Apple_Port) ||
+			die color('red'), "Cannot Init Serial Port $Apple_Port : $!\n", color('reset');
 	}
 	# For Linux:
 	if ($OS eq "linux") {
-		$SerialPort = Device::SerialPort->new('/dev/ttyUSB0') ||
-			die "Cannot Init Serial Port : $!\n";
+		#$SerialPort = Device::SerialPort->new('/dev/ttyUSB0') ||
+		$SerialPort = Device::SerialPort->new($Linux_Port) ||
+			die color('red'), "Cannot Init Serial Port $Linux_Port : $!\n", color('reset');
 	}
-	$SerialPort->baudrate(19200);
+	#$SerialPort->baudrate(19200); # For KM4NNO HDLC Board
+	$SerialPort->baudrate(115200); # For DVM-V24
 	$SerialPort->databits(8);
 	$SerialPort->parity('none');
 	$SerialPort->stopbits(1);
@@ -65,8 +71,9 @@ sub Init {
 	#$FutureTickCount = $TickCount + 5000;
 	#print "  TickCount = $TickCount\n\n";
 	print color('yellow'),
-		"To use Raspberry Pi UART you need to disable Bluetooth by editing: /boot/config.txt\n" .
-		"Add line: dtoverlay=pi3-disable-bt-overlay\n", color('reset'),;
+		"  To use Raspberry Pi UART you need to disable Bluetooth by editing:\n" . 
+		"  nano /boot/config.txt\n" .
+		"  Add line: dtoverlay=pi3-disable-bt-overlay\n", color('reset'),;
 	print "----------------------------------------------------------------------\n";
 }
 
@@ -77,30 +84,58 @@ sub Close {
 sub Read { # Read the serial port, look for 0x7E characters and extract data between them.
 	my ($NumChars, $Buffer) = $SerialPort->read(255);
 	if ($NumChars >= 1 ){ #Perl data Arrival test.
+
+		print "Serial Str Data Rx len() = " . length($Buffer) . "\n";
+		#P25Link::Bytes_2_HexString(substr($Buffer, 0, length($Buffer)));
+		#print "Byte = " . ord(substr($Buffer, 2, 1)) . "\n";
+		
+		my $DVM_FRAME_START = ord(substr($Buffer, 0, 1));
+		my $DVM_FRAME_LENGTH = ord(substr($Buffer, 1, 1));
+		my $DVM_FRAME_CMD = ord(substr($Buffer, 2, 1));
+		my $DVM_FRAME_SPARE = ord(substr($Buffer, 3, 1));
+
+		if ($DVM_FRAME_LENGTH != length($Buffer)) {
+			print color('red'), "*** Warning ***   Serial::Read DVM_FRAME_LENGTH $DVM_FRAME_LENGTH != " . length$Buffer . "\n",
+				color('reset');
+			return;
+		}
+
+		if ($DVM_FRAME_START != 0xFE) {
+			print color('red'), "*** Warning ***   Serial::Read DVM_FRAME_START $DVM_FRAME_START != 0xFE\n",
+				color('reset');
+			return;
+		}
+
+		if ($DVM_FRAME_CMD == 0x31) {
+			$Buffer = chr(0xFD) . chr(0x03) . substr($Buffer, 4, length($Buffer) - 4);
+			#P25Link::Bytes_2_HexString(substr($Buffer, 0, length($Buffer)));
+			Quantar::HDLC_Rx($Buffer); # Process a full data stream.
+		}
+
 		#P25Link::Bytes_2_HexString($Buffer);
-		for (my $x = 0; $x <= $NumChars; $x++) {
-			if (ord(substr($Buffer, $x, 1)) == 0x7E) {
-				if (length($Serial_Data) > 0) {
+#		for (my $x = 0; $x <= $NumChars; $x++) {
+#			if (ord(substr($Buffer, $x, 1)) == 0x7E) {
+#				if (length($Serial_Data) > 0) {
 					#Printer($Serial_Data);
-					print  color('cyan');
-					P25Link::Bytes_2_HexString(Decode_HDLC($Serial_Data));
-					print  color('reset');
-					Quantar::HDLC_Rx(Decode_HDLC($Serial_Data)); # Process a full data stream.
+#					print  color('cyan');
+#					P25Link::Bytes_2_HexString(Decode_HDLC($Serial_Data));
+#					print  color('reset');
+#					Quantar::HDLC_Rx(Decode_HDLC($Serial_Data)); # Process a full data stream.
 					#print "Serial Str Data Rx len() = " . length($Serial_Buffer) . "\n";
 #if (length$Serial_Buffer >10) {
 #	print "Serial Str Data Rx len() = " . length($Serial_Buffer) . "\n";
 #	P25Link::Bytes_2_HexString(substr($Serial_Buffer, 0, length($SerialBuffer)));
 #}
-					$Serial_Data = ""; # Clear Rx buffer.
+#					$Serial_Data = ""; # Clear Rx buffer.
 					#$Buffer = substr($Buffer, $x, length($Buffer) - $x);
 					#$x = 0;
-				}
-				$Serial_Data = ""; # Clear Rx buffer.
-			} else {
+#				}
+#				$Serial_Data = ""; # Clear Rx buffer.
+#			} else {
 				# Add Bytes until the end of data stream (0x7E):
-				$Serial_Data .= substr($Buffer, $x, 1);
-			}
-		}
+#				$Serial_Data .= substr($Buffer, $x, 1);
+#			}
+#		}
 	}
 	return "";
 }
@@ -117,8 +152,17 @@ sub Printer {
 
 sub Tx {
 	my ($Data) = @_;
-	$Data = Encode_HDLC($Data);
-	$SerialPort->write($Data . chr(0x7E));
+	#$Data = Encode_HDLC($Data);
+	#$SerialPort->write($Data . chr(0x7E));
+	#P25Link::Bytes_2_HexString($Data);
+	#print color('blue'),"Serial Tx len() = " . length($Data) . "\n";
+	$Data = substr($Data, 2, length($Data) - 2); # Remove first 2 Bytes for DVM.
+	$Data = chr(0xFE) . chr(length($Data) + 4) . chr(0x31) . chr(0x00) . $Data; # Add DVM Header.
+	#print color('blue'),"Serial Tx len(+2) = " . length($Data) . "\n";
+	#P25Link::Bytes_2_HexString($Data);
+
+	$SerialPort->write($Data);
+
 	my $SerialWait = (8.0 / 9600.0) * (length($Data) + 2); # Frame length delay.
 	nanosleep($SerialWait * 1000000000.0);
 	#if ($Verbose = 2) { print "  nanosleep = $SerialWait\n"; }

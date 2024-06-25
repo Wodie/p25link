@@ -1,9 +1,9 @@
 # P25Link Software
 
-Warning: v2.40-5 is a work in progress, if you want to run a stable version use .deb file or p25link_v2.34.4.pl
+Warning: v2.40.8 is a work in progress, if you want to run a stable version use .deb file or p25link_v2.34.4.pl
 
 P25Link is a program that let you connect your Quantar repeater or Astro DIU 3000 to multiple HAM networks as P25Link, P25NX, and P25-MMDVM.
-It use the v.24 port on Quantar/DIU 3000, a Cisco router 28xx and a Raspberry Pi. It use the same router setup as P25NX.
+It use the v.24 port on Quantar/DIU 3000, a Cisco router 28xx or DVM-V24 board and a Raspberry Pi. For P25Link it use the same router setup as P25NX.
 
 # Current version features:
 - Local voice talk groups 1 to 10.
@@ -18,6 +18,7 @@ It use the v.24 port on Quantar/DIU 3000, a Cisco router 28xx and a Raspberry Pi
 
 # Setup
 - Enable RTRT on your repeater.
+- Set Clock as External.
 - To setup the P25Link software for yor Quantar or Astro DIU 3000, you will need to install a fresh Raspbian image on your Raspberry Pi.
 - Next, log to it using SSH.
 - Run the following commands:
@@ -50,6 +51,10 @@ Local Dashboard is feature that do not work, (still under development).
 
 
 # Version History:
+
+## v2.40.8 June 14, 2024.
+- Added: Compatibility with DVM-V24 board.
+- Fixed: Minor code cleanup.
 
 ## v2.40-6 Jan 06, 2023.
 - Added: Support for Atro TAC connection.

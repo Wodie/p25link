@@ -254,7 +254,7 @@ sub Test {
 	P25Link::Bytes_2_HexString($Buffer);
 	UpdateSuperFrame(1, $Buffer);
 
-	my $Buffer = chr(0xFD) . chr(0x03) . chr(0x63);
+	$Buffer = chr(0xFD) . chr(0x03) . chr(0x63);
 	for (my $x = 3;$x < Frame_0x63_Size; $x++) {
 		$Buffer .= chr($x + 1);
 	}

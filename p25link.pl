@@ -85,14 +85,14 @@ use Packets;
 my $AppName = 'P25Link';
 use constant VersionInfo => 2;
 use constant MinorVersionInfo => 40;
-use constant RevisionInfo => 7;
+use constant RevisionInfo => 8;
 my $Version = VersionInfo . '.' . MinorVersionInfo . '-' . RevisionInfo;
 (my $sec, my $min, my $hour, my $mday, my $mon, my $year, my $wday, my $yday, my $isdst) = localtime();
 my $StartTime = "$hour:$min:$sec";
 print "Started at $StartTime\n";
 print "\n##################################################################\n";
 print "	*** $AppName v$Version ***\n";
-print "	Released: Jan 05, 2024. Created October 17, 2019.\n";
+print "	Released: June 14, 2024. Created October 17, 2019.\n";
 print "	Created by:\n";
 print "	Juan Carlos Perez De Castro (Wodie) KM4NNO / XE1F\n";
 print "	Bryan Fields W9CR.\n";
@@ -104,7 +104,7 @@ print "	License:\n";
 print "	This software is licenced under the GPL v3.\n";
 print "	If you are using it, please let me know, I will be glad to know it.\n\n";
 print "	This project is based on the work and information from:\n";
-print "	Juan Carlos PŽrez KM4NNO / XE1F\n";
+print "	Juan Carlos Perez De Castro KM4NNO / XE1F\n";
 print "	Byan Fields W9CR\n";
 print "	P25-MMDVM creator Jonathan Naylor G4KLX\n";
 print "	P25NX creatorDavid Kraus NX4Y\n";
@@ -119,17 +119,17 @@ print color('green'), "System Info:\n", color('reset');
 my $OS = $^O;
 print "  Current OS: $OS\n";
 print "  Perl version: $]\n";
-print "  AppName: $0\n";
+print "  AppName: $0\n\n";
 my $ConfigFile;
 my $UserNum = 0;
 ($ConfigFile = "/opt/p25link/config.ini", $UserNum = 0) = @ARGV;
-print "  Arguments: $ConfigFile\n";
-#print "ARGV @ARGV\n";
-
 if ($ConfigFile eq "" or $ConfigFile eq undef) {
 	$ConfigFile = "/opt/p25link/config.ini";
 	print "Config File = $ConfigFile\n";
+} else {
+	print "  Arguments: $ConfigFile\n";
 }
+#print "ARGV @ARGV\n";
 print "----------------------------------------------------------------------\n";
 
 Packets::Load_Settings($ConfigFile);
@@ -743,14 +743,14 @@ sub SaySomething {
 			print "Unknown Speech_Zero";
 			@Speech = @Speech_Zero;
 		}
-
 	}
+	print "\n";
 	for (my $x = 0; $x < scalar(@Speech); $x++) {
 		my $Message = P25Link::HexString_2_Bytes($Speech[$x]);
 		Quantar::HDLC_Tx($Message, 1);
 	}
 	Quantar::SetHDLC_TxTraffic(0);
-	if ($Verbose) {print " done.\n";}
+	if ($Verbose) {print "  Done.\n";}
 }
 
 
@@ -855,46 +855,15 @@ sub HotKeys {
 				case ord('R') { # 'R'
 					RDAC::Verbose($VerboseValue);
 				}
-				case ord('r') { # 'r'
-#					Serial::Reset();
-					$TestBuffer = "";
-#					for (my$x = $TestValue; $x < $TestValue + 4; $x++) {
-					for (my$x = 0; $x < 4; $x++) {
-#						$TestBuffer .= chr($x);
-						$TestBuffer = chr(0x00) . chr(0x7D) .chr(0) . chr(0x7E) .chr(0) . chr(0x7D) . chr(0x5E);
-					}
-					if ($TestValue < 0xDF) {
-						$TestValue += 32;
-					} else {
-						$TestValue = 0x00;
-					}
-
-					$TestBuffer = 
-						chr(0x00) . chr(0x7C) .
-						chr(0x00) . chr(0x7D) .
-						chr(0x00) . chr(0x7E) .
-						chr(0x00) . chr(0x7F) .
-						chr(0x00) . chr(0x7D) . chr(0x5D) .
-						chr(0x00) . chr(0x7D) . chr(0x5E) .
-						chr(0x00) . chr(0x7E) .
-						chr(0x00) . chr(0xFD);
-
-					Quantar::HDLC_Tx($TestBuffer, 1);
-				}
 				case ord('S') { # 'S'
 					Serial::Verbose($VerboseValue);
-				}
-				case ord('s') { # 's'
-#					Serial::Reset();
-					$TestBuffer = "";
-					$TestValue = 0x00;
 				}
 				case ord('t') {
 					SuperFrame::Test();
 				}
 				case ord('v') { # 'v'
-#					$VA_Test = 0xFFFF11;
-					$VA_Test = 0x0a;
+					$VA_Test = 0xFFFF11;
+#					$VA_Test = 0x0a;
 					$Packets::VA_Message = $VA_Test;
 					$Packets::Pending_VA = 1;
 				}
@@ -980,10 +949,10 @@ sub MainLoop {
 		Quantar::HDLC_RR_Timer();
 		Quantar::HDLC_Connection_WD_Timer();
 		if ($Packets::Mode == 0) {
-			# Serial Port Receiver when Mode == 0
+			# Serial Port Receiver, Mode == 0
 			Serial::Read();
 		} elsif ($Packets::Mode == 1) {
-			# Cisco STUN TCP Receiver.
+			# Cisco STUN TCP Receiver, Mode == 1
 			CiscoSTUN::Events();
 		}
 

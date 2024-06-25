@@ -178,9 +178,7 @@ sub Make_Pos {
 	});
 	if ($Verbose > 1) {print color('green'), "  APRS Position is: $APRS_position\n", color('reset');}
 	my $Packet = sprintf('%s>APTR01:%s', $Call, $APRS_position . $Comment);
-	print color('blue'), "  $Packet\n", color('reset');
-	if ($Verbose > 2) {print "  APRS Packet is: $Packet\n";}
-
+	if ($Verbose > 2) {print color('blue'), "  $Packet\n", color('reset');}
 
 
 
@@ -223,9 +221,9 @@ sub Make_Object {
 		$PosAmbiguity,
 		$Comment
 	);
-	if ($Verbose > 0) {print "  APRS Object is: $APRS_object\n";}
+	if ($Verbose > 1) {print "  APRS Object is: $APRS_object\n";}
 	my $Packet = sprintf('%s>APTR01:%s', $APRS{'CallsignAndSuffix'}, $APRS_object);
-	print color('blue'), "  $Packet\n", color('reset');
+	if ($Verbose > 2) {print color('blue'), "  $Packet\n", color('reset');}
 	my $Res = $APRS_IS->sendline($Packet);
 	if (!$Res) {
 		warn color('red'), "*** Error *** sending APRS-IS Object $Name packet $Res\n", color('reset');
@@ -264,9 +262,9 @@ sub Make_Item {
 		$PosAmbiguity,
 		$Comment
 	);
-	if ($Verbose > 0) {print "  APRS Item is: $APRS_item\n";}
+	if ($Verbose > 1) {print "  APRS Item is: $APRS_item\n";}
 	my $Packet = sprintf('%s>APTR01:%s', $APRS{'CallsignAndSuffix'}, $APRS_item);
-	print color('blue'), "  $Packet\n", color('reset');
+	if ($Verbose > 2) {print color('blue'), "  $Packet\n", color('reset');}
 	my $Res = $APRS_IS->sendline($Packet);
 	if (!$Res) {
 		warn color('red'), "*** Error *** sending APRS-IS Item $Name packet $Res\n", color('reset');

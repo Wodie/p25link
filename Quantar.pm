@@ -166,8 +166,6 @@ sub Init {
 	$Quant{'Tail'} = 0;
 	$Quant{'PrevFrame'} = "";
 
-	$Quant{'Prev_UI'} = "";
-
 	$HDLC{'RR_Timer'}{'Enabled'} = 0;
 	$HDLC{'RR_Timer'}{'Interval'} = 4; # Seconds.
 	$HDLC{'RR_Timer'}{'NextTime'} = 0;
@@ -220,7 +218,7 @@ sub HDLC_Rx {
 			}
 			return;
 		}
-		case 0x03 { # User Information.
+		case 0x03 { #0x03 { # User Information.
 			#print "Case 0x03 UI.", substr($Message, 2, 1), "\n";
 			#P25Link::Bytes_2_HexString($Message);
 			$Quant{'LocalRx'} = 1;
@@ -411,11 +409,7 @@ sub HDLC_Rx {
 				case 0x61 {
 					if ($Verbose) {
 						print "UI 0x61 Voice Header part 2.\n";
-						if ($Quant{'Prev_UI'} != 0x60) {
-							print color('red'), "HDLC Rx UI 0x60 Voice Header missing.\n", color('reset');
-						}
 					}
-					$Quant{'Prev_UI'} = ord(substr($Message, 2, 1));
 					
 					if ($Verbose >= 2) {P25Link::Bytes_2_HexString($Message); }
 					#my $TGID = 256 * ord(substr($Message, 4, 1)) + ord(substr($Message, 3, 1));;
@@ -429,12 +423,7 @@ sub HDLC_Rx {
 				case 0x62 { # dBm, RSSI, BER.
 					if ($Verbose) {
 						print "UI 0x62 IMBE Voice part 1.\n";
-						if ($Quant{'Prev_UI'} != 0x61 or $Quant{'Prev_UI'} != 0x73) {
-							print color('red'), "HDLC Rx UI 0x61 or 0x73 Voice Header missing.\n",
-								color('reset');
-						}
 					}
-					$Quant{'Prev_UI'} = ord(substr($Message, 2, 1));
 
 					switch (ord(substr($Message, 4, 1))) {
 						case 0x02 { # RT/RT Enable
@@ -490,11 +479,7 @@ sub HDLC_Rx {
 				case 0x63 {
 					if ($Verbose) {
 						print "UI 0x63 IMBE Voice part 2.\n";
-						if ($Quant{'Prev_UI'} != 0x62) {
-							print color('red'), "HDLC Rx UI 0x62 Voice Header missing.\n", color('reset');
-						}
 					}
-					$Quant{'Prev_UI'} = ord(substr($Message, 2, 1));
 
 					$Quant{'Speech'} = ord(substr($Message, 3, 11));
 					$Quant{'Raw0x63'} = $Message;
@@ -505,11 +490,7 @@ sub HDLC_Rx {
 				case 0x64 { # Group/Direct Call, Clear/Private.
 					if ($Verbose) {
 						print "UI 0x64 IMBE Voice part 3 + link control.\n";
-						if ($Quant{'Prev_UI'} != 0x63) {
-							print color('red'), "HDLC Rx UI 0x63 Voice Header missing.\n", color('reset');
-						}
 					}
-					$Quant{'Prev_UI'} = ord(substr($Message, 2, 1));
 
 					if (ord(substr($Message, 3, 1)) & 0x80) {
 						$Quant{'Encrypted'} = 1;
@@ -558,11 +539,7 @@ sub HDLC_Rx {
 				case 0x65 { # Talk Group.
 					if ($Verbose) {
 						print "UI 0x65 IMBE Voice part 4 + link control.\n";
-						if ($Quant{'Prev_UI'} != 0x64) {
-							print color('red'), "HDLC Rx UI 0x64 Voice Header missing.\n", color('reset');
-						}
 					}
-					$Quant{'Prev_UI'} = ord(substr($Message, 2, 1));
 
 					#P25Link::Bytes_2_HexString($Message);
 					if ($Quant{'IsTGData'} == 1) {
@@ -592,11 +569,7 @@ sub HDLC_Rx {
 				case 0x66 { # Source ID.
 					if ($Verbose) {
 						print "UI 0x66 IMBE Voice part 5. + link control.\n";
-						if ($Quant{'Prev_UI'} != 0x65) {
-							print color('red'), "HDLC Rx UI 0x65 Voice Header missing.\n", color('reset');
-						}
 					}
-					$Quant{'Prev_UI'} = ord(substr($Message, 2, 1));
 
 					# Get Called ID.
 					if ($Quant{'IsTGData'}) {
@@ -621,11 +594,7 @@ sub HDLC_Rx {
 				case 0x67 { # TBD
 					if ($Verbose) {
 						print "UI 0x67 IMBE Voice part 6 + link control.\n";
-						if ($Quant{'Prev_UI'} != 0x66) {
-							print color('red'), "HDLC Rx UI 0x66 Voice Header missing.\n", color('reset');
-						}
 					}
-					$Quant{'Prev_UI'} = ord(substr($Message, 2, 1));
 
 					$Quant{'Speech'} = ord(substr($Message, 7, 11));
 					$Quant{'Raw0x67'} = $Message;
@@ -635,11 +604,7 @@ sub HDLC_Rx {
 				case 0x68 {
 					if ($Verbose) {
 						print "UI 0x68 IMBE Voice part 7 + link control.\n";
-						if ($Quant{'Prev_UI'} != 0x67) {
-							print color('red'), "HDLC Rx UI 0x67 Voice Header missing.\n", color('reset');
-						}
 					}
-					$Quant{'Prev_UI'} = ord(substr($Message, 2, 1));
 
 					$Quant{'Speech'} = ord(substr($Message, 7, 11));
 					$Quant{'Raw0x68'} = $Message;
@@ -649,11 +614,7 @@ sub HDLC_Rx {
 				case 0x69 {
 					if ($Verbose) {
 						print "UI 0x69 IMBE Voice part 8 + link control.\n";
-						if ($Quant{'Prev_UI'} != 0x68) {
-							print color('red'), "HDLC Rx UI 0x68 Voice Header missing.\n", color('reset');
-						}
 					}
-					$Quant{'Prev_UI'} = ord(substr($Message, 2, 1));
 
 					$Quant{'Speech'} = ord(substr($Message, 7, 11));
 					$Quant{'Raw0x69'} = $Message;
@@ -663,11 +624,7 @@ sub HDLC_Rx {
 				case 0x6A { # Low speed data Byte 1.
 					if ($Verbose) {
 						print "UI 0x6A IMBE Voice part 9 + low speed data 1.\n";
-						if ($Quant{'Prev_UI'} != 0x69) {
-							print color('red'), "HDLC Rx UI 0x69 Voice Header missing.\n", color('reset');
-						}
 					}
-					$Quant{'Prev_UI'} = ord(substr($Message, 2, 1));
 
 					$Quant{'LSD0'} = ord(substr($Message, 4, 1));
 					$Quant{'LSD1'} = ord(substr($Message, 5, 1));
@@ -680,11 +637,7 @@ sub HDLC_Rx {
 				case 0x6B { # dBm, RSSI, BER.
 					if ($Verbose) {
 						print "UI 0x6B IMBE Voice part 10.\n";
-						if ($Quant{'Prev_UI'} != 0x6A) {
-							print color('red'), "HDLC Rx UI 0x6A Voice Header missing.\n", color('reset');
-						}
 					}
-					$Quant{'Prev_UI'} = ord(substr($Message, 2, 1));
 
 					switch (ord(substr($Message, 4, 1))) {
 						case 0x02 { # RT/RT Enable
@@ -740,12 +693,8 @@ sub HDLC_Rx {
 				case 0x6C {
 					if ($Verbose) {
 						print "UI 0x6C IMBE Voice part 11.\n";
-						if ($Quant{'Prev_UI'} != 0x6B) {
-							print color('red'), "HDLC Rx UI 0x6B Voice Header missing.\n", color('reset');
-						}
 					}
-					$Quant{'Prev_UI'} = ord(substr($Message, 2, 1));
-
+					
 					$Quant{'Speech'} = ord(substr($Message, 3, 11));
 					$Quant{'Raw0x6C'} = $Message;
 					$Quant{'IMBEFrame'} .= $Quant{'Speech'};
@@ -754,11 +703,7 @@ sub HDLC_Rx {
 				case 0x6D {
 					if ($Verbose) {
 						print "UI 0x6D IMBE Voice part 12 + encryption sync.\n";
-						if ($Quant{'Prev_UI'} != 0x6C) {
-							print color('red'), "HDLC Rx UI 0x6C Voice Header missing.\n", color('reset');
-						}
 					}
-					$Quant{'Prev_UI'} = ord(substr($Message, 2, 1));
 
 					$Quant{'EncryptionI'} = ord(substr($Message, 3, 4));
 					$Quant{'Speech'} = ord(substr($Message, 7, 11));
@@ -769,11 +714,7 @@ sub HDLC_Rx {
 				case 0x6E {
 					if ($Verbose) {
 						print "UI 0x6E IMBE Voice part 13 + encryption sync.\n";
-						if ($Quant{'Prev_UI'} != 0x6D) {
-							print color('red'), "HDLC Rx UI 0x6D Voice Header missing.\n", color('reset');
-						}
 					}
-					$Quant{'Prev_UI'} = ord(substr($Message, 2, 1));
 
 					$Quant{'EncryptionII'} = ord(substr($Message, 3,4));
 					$Quant{'Speech'} = ord(substr($Message, 7, 11));
@@ -784,11 +725,7 @@ sub HDLC_Rx {
 				case 0x6F {
 					if ($Verbose) {
 						print "UI 0x6F IMBE Voice part 14 + encryption sync.\n";
-						if ($Quant{'Prev_UI'} != 0x6E) {
-							print color('red'), "HDLC Rx UI 0x6E Voice Header missing.\n", color('reset');
-						}
 					}
-					$Quant{'Prev_UI'} = ord(substr($Message, 2, 1));
 
 					$Quant{'EncryptionIII'} = ord(substr($Message, 3,4));
 					$Quant{'Speech'} = ord(substr($Message, 7, 11));
@@ -799,11 +736,7 @@ sub HDLC_Rx {
 				case 0x70 { # Algorithm.
 					if ($Verbose) {
 						print "UI 0x70 IMBE Voice part 15 + encryption sync.\n";
-						if ($Quant{'Prev_UI'} != 0x6F) {
-							print color('red'), "HDLC Rx UI 0x6F Voice Header missing.\n", color('reset');
-						}
 					}
-					$Quant{'Prev_UI'} = ord(substr($Message, 2, 1));
 
 					$Quant{'Algorythm'} = ord(substr($Message, 3,1));
 					AlgoName ($Quant{'Algorythm'});
@@ -816,11 +749,7 @@ sub HDLC_Rx {
 				case 0x71 {
 					if ($Verbose) {
 						print "UI 0x71 IMBE Voice part 16 + encryption sync.\n";
-						if ($Quant{'Prev_UI'} != 0x70) {
-							print color('red'), "HDLC Rx UI 0x70 Voice Header missing.\n", color('reset');
-						}
 					}
-					$Quant{'Prev_UI'} = ord(substr($Message, 2, 1));
 
 					$Quant{'Speech'} = ord(substr($Message, 7, 11));
 					$Quant{'Raw0x71'} = $Message;
@@ -830,11 +759,7 @@ sub HDLC_Rx {
 				case 0x72 {
 					if ($Verbose) {
 						print "UI 0x72 IMBE Voice part 17 + encryption sync.\n";
-						if ($Quant{'Prev_UI'} != 0x71) {
-							print color('red'), "HDLC Rx UI 0x71 Voice Header missing.\n", color('reset');
-						}
 					}
-					$Quant{'Prev_UI'} = ord(substr($Message, 2, 1));
 
 					$Quant{'Speech'} = ord(substr($Message, 7, 11));
 					$Quant{'Raw0x72'} = $Message;
@@ -844,11 +769,7 @@ sub HDLC_Rx {
 				case 0x73 { # Low speed data Byte 2.
 					if ($Verbose) {
 						print "UI 0x73 IMBE Voice part 18 + low speed data 2.\n";
-						if ($Quant{'Prev_UI'} != 0x72) {
-							print color('red'), "HDLC Rx UI 0x72 Voice Header missing.\n", color('reset');
-						}
 					}
-					$Quant{'Prev_UI'} = ord(substr($Message, 2, 1));
 
 					$Quant{'LSD2'} = ord(substr($Message, 4, 1));
 					$Quant{'LSD3'} = ord(substr($Message, 5, 1));
@@ -1069,18 +990,22 @@ sub Start_Connection_WD_Timer {
 
 sub HDLC_SABM_Timer { # HDLC SABM Tx to init connection.
 	if ($HDLC{'SABM_Timer'}{'Enabled'}) {
-		if (P25Link::GetTickCount() >= $HDLC{'SABM_Timer'}{'NextTime'}) {
-			if ($Verbose) { print color('green'), "HDLC_SABM_Timer event\n", color('reset'); }
-			if (!$HDLC_Handshake) {
-				#print "  SABM Timed out @{[int time - $^T]}\n";
-				if (($Packets::Mode == 0) or (($Packets::Mode == 1) and !CiscoSTUN::GetSTUN_Connected())) {
-					HDLC_Tx_SABM();
-					if ($Verbose) {
-						print "----------------------------------------------------------------------\n";
+		if ($Packets::Mode == 0) {
+			$HDLC_Handshake = 1;
+		} else {
+			if (P25Link::GetTickCount() >= $HDLC{'SABM_Timer'}{'NextTime'}) {
+				if ($Verbose) { print color('green'), "HDLC_SABM_Timer event\n", color('reset'); }
+				if (!$HDLC_Handshake) {
+					#print "  SABM Timed out @{[int time - $^T]}\n";
+					if (($Packets::Mode == 0) or (($Packets::Mode == 1) and !CiscoSTUN::GetSTUN_Connected())) {
+						HDLC_Tx_SABM();
+						if ($Verbose) {
+							print "----------------------------------------------------------------------\n";
+						}
 					}
 				}
+				$HDLC{'SABM_Timer'}{'NextTime'} = P25Link::GetTickCount() + $HDLC{'SABM_Timer'}{'Interval'};
 			}
-			$HDLC{'SABM_Timer'}{'NextTime'} = P25Link::GetTickCount() + $HDLC{'SABM_Timer'}{'Interval'};
 		}
 	}
 }
@@ -1092,7 +1017,7 @@ sub HDLC_Tx {
 	my $LSB;
 	if ($Restart_RR_Timer) { Start_RR_Timer(); }
 	#$Data = chr(0xFD) . chr(0x3F);
-#	if ($Verbose) { print color('green'), "HDLC_Tx\n"; }
+	if ($Verbose) { print color('green'), "HDLC_Tx\n"; }
 	if ($Packets::Mode == 0) { # Mode = 0 Serial
 		Serial::Tx($Data);
 	} elsif ($Packets::Mode == 1) { # Mode = 1 STUN
@@ -1100,7 +1025,7 @@ sub HDLC_Tx {
 	} elsif ($Packets::Mode == 2) { # Mode = 2 Quantar Bridge
 		Bridge::Tx($Data);
 	}
-#	if ($Verbose) { print "  Tx Done.\n"; }
+	if ($Verbose) { print "  Tx Done.\n"; }
 }
 
 sub HDLC_Tx_SABM {

@@ -408,7 +408,7 @@ sub RPTK_Tx {
 	} else {
 		$Data .= $HexKey;
 	}
-#	if ($Verbose) { print "RPTK_Tx len(Data) = " . length($Data) . ", Data = $Data\n"; }
+	#if ($Verbose) { print "RPTK_Tx len(Data) = " . length($Data) . ", Data = $Data\n"; }
 	$DMR{'Sock'}->send($Data);
 	if ($Verbose) { print color('green'), "DMR RPTK_Tx Sent.\n", color('reset'); }
 }
