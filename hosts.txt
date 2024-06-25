@@ -1,6 +1,6 @@
 # hosts.txt
 #
-# Last update January 11, 2023.
+# Last update June 14, 2024.
 #
 # The format of this file is:
 # 1 Number of the Talk Group,
@@ -25,14 +25,23 @@
 # 38 Thailand P25 Link XLX Nexus
 38		MMDVM	p2538.freeddns.org				41002		0
 
+# 116 UK TGIF
+116		MMDVM	p25116.freestar.network			41003		0
+
 # XLX137 Module A Link to YSF79655
 137		MMDVM	p25a.mywire.org					41000		0
 
 # 138 P25 PKT THAILAND
 138		MMDVM	p25138.freeddns.org				41001		0
 
+# P25 Link XLX148 Modules X
+148		MMDVM	p148.hs3tdi.com					41000		0
+
 # 149 P25 Link To XLX149 Nexus
 149		MMDVM	p25.pwk.ac.th					41000		0
+
+# 164 K4FSG Reflector
+164		MMDVM	reflector.k4fsg.net				41000		0
 
 # HELLAS Zone P25 TG202
 202		MMDVM	hellaszone.com					41000		0
@@ -46,8 +55,17 @@
 # 226 Romania YO P25 Network
 226		MMDVM	p25.dstar-yo.ro					41000		0
 
+# 228 Switzerland - https://project25.ch
+228		MMDVM	project25.ch					41000		0
+
+# 235 DVSPH UK Wide
+235		MMDVM	p25.dvsph.net					41000		0
+
 # HBLink Poland P25 TG260
 260		MMDVM	p25.hblink.pl					41000		0
+
+# 304 W8ARA P25
+304		MMDVM	ara.selfip.net					41000		0
 
 # 334 Mexico Analog Multimode (Bridged to the P25Link Network).
 334		MMDVM	reflector.p25.link				41007		0
@@ -56,7 +74,7 @@
 357		MMDVM	3.215.215.169					41010		0
 
 # 419 Toledo Amateur Digital Association
-419 	MMDVM	tada-p25.ddns.net 				41000		0
+419		MMDVM	tada-p25.ddns.net				41000		0
 
 # 420 Super Freq
 420		MMDVM	hb.superfreqdigital.com			41000		0
@@ -65,13 +83,19 @@
 445		MMDVM	p25.Supermag.fishersaudio.com.au	41000	0
 
 # 456 Apco25 Ruhrgebiet/NRW Germany
-456 	MMDVM	456.ham-p25.de					41000		0
+456		MMDVM	456.ham-p25.de					41000		0
 
 # 530 NZ
 530		MMDVM	zldigitalreflectors.hopto.org	41000		0
 
 # 556 ARFCOM AR15.com
 556		MMDVM	reflector.site					41000		0
+
+# 621 HRCC LINK
+621		MMDVM	urf.hrcc.link					41000		0
+
+# 665 KK6RQ TAC-2
+665		MMDVM	area52.zapto.org				41001		0
 
 # 666 Brazil PY1IP P25 Reflector - http://tg666.p25.py1ip.com
 666		MMDVM	p25.py1ip.com					41000		0
@@ -94,6 +118,12 @@
 # 841 Team Wave
 841		MMDVM	p25.mx0wvv.org					41000		0
 
+# 847 Chandler Hams
+847		MMDVM	xlx847.kk7mnz.com				41000		0
+
+# 848 Chandler Hams
+848		MMDVM	xlx848.kk7mnz.com				41000		0
+
 # 858 San Diego, CA
 858		MMDVM	nz6d.dx40.com					41000		0
 
@@ -103,11 +133,26 @@
 # 891 WNY DMR Network
 891		MMDVM	p25.wnydmr.network				41000		0
 
+# 900 New England 900 MHz P25 Network
+900 stn4571.ip.irlp.net 41000
+
+# 909 Volunteer Radio Association, Thailand P25 Network
+909 xlx.vra.or.th 41000
+
 # 910 Washington,DC - Virginia - Maryland
 910		MMDVM	p25.freeddns.org				41000		0
 
+# 925 MotoChat 
+925		MMDVM	p25.motochat.eu					41009		0
+
+# 926 HamFurs/LoFAR MultiMode Bridge
+926		MMDVM	urf.kf3rry.org					41000		0
+
 # 927 Southern California
 927		MMDVM	927.org							41000		0
+
+# 946 FlagTorchSociety
+946		MMDVM	xlx.flagandtorchsociety.com		41000		0
 
 # 994 The Online Radio Club (Bridged to XLX994)
 994		MMDVM	misc.openreflector.com			41000		0
@@ -115,11 +160,17 @@
 # 1007 The Harley-Hangout "TGIF TG-1007 Multi-Function Bridge"
 1007	MMDVM	43773.kb5rir.com				41003		0
 
+# 1402 DuckFar Repeater Group, Chicago
+1402	MMDVM	duckfarw9bmk.gotdns.com			43000		0
+
 # 1701 Sector 001
 1701	MMDVMhamsomniac.mooo.com				41001		0
 
 # 1928 Motorola Nerd Network
 1928	MMDVM	216.128.134.7					41000		0
+
+# 2044 P25 The Netherlands Main Reflector
+2044	MMDVM	51.83.46.75						41000		0
 
 # 2050 KM4NNO AllStarLink (Bridged to the P25Link Network).
 2050	P25Link	reflector.p25.link				41009		0
@@ -142,11 +193,17 @@
 # 2265 Baia Mare YO5 P25 Network
 2265	MMDVM	p25.dstar-yo.ro					41005		0
 
+# 2284 Basel Switzerland - https://p25.network
+2284	MMDVM	p25.network						41000		0
+
+# 2350 UK ChatterBOX
+2350	MMDVM	p252350.freestar.network		41001		0
+
 # 2345 CQ-North UK
 2345	MMDVM	p25.cqnorth.org.uk				41000		0
 
-# RU DMR TG2503
-2503	MMDVM	p25.r1ik.ru						41000		0
+# 2350 UK ChatterBOX
+2350	MMDVM	p252350.freestar.network		41001		0
 
 # RU DMR TG2503
 2503	MMDVM	p25.r1ik.ru						41000		0
@@ -159,6 +216,12 @@
 
 # 3026 Alberta
 3026	MMDVM	3026.hamshack.info				41000		0
+
+# 3120 LKDVM P25
+3120	MMDVM	lkdvm.xreflector.es				41000		0
+
+# 3122 Louisiana Statewide
+3122	MMDVM	statewide.swlalink.com			41000		0
 
 # 3142 Pennsylvania
 3142	MMDVM	3.215.215.169					41002		0
@@ -175,6 +238,24 @@
 # 3300 PRadise
 3300	MMDVM	3300p25.from-pr.com				41000		0
 
+# 3340 Mexico Multimode/Multiplatform.
+3340	MMDVM	reflector.p25.link				41007		0
+
+# 3345 Mexico Multimode (Bridged to the P25Link Network).
+3345	MMDVM	reflector.p25.link				41008		0
+
+# 3400 3400 Digital Group (NJ Multimode Reflector)
+3400	MMDVM	3400.ddns.net					41000		0
+
+# 4487 448.700 UHF Repeater in Aurora, CO
+4487	MMDVM	N0oba1.asuscomm.cn				41000		0
+
+# 4519 TG P25 VHF Repeater
+4519	MMDVM	N0oba1.asuscomm.cn				41005		0
+
+# 5000 ALL THE COMMS
+5000	MMDVM	p25.p25stuff.com				41000		0
+
 # 4095 KM4NNO Wave (Bridged to the P25Link Network).
 4095	MMDVM	reflector.p25.link				41010		0
 
@@ -184,14 +265,8 @@
 # 5205 CCARCNSW P25 Bridge
 5205	MMDVM	5205.p25dvm.com					41000		0
 
-# VA3JWO 5500 Reflector Barrie, Ontario
-5500	MMDVM	99.233.34.135					41000		0
-
-# VA3JWO 5550 French Reflector Barrie, Ontario
-5550	MMDVM	99.233.34.135					41001		0
-
-# 5621 HamFurs MultiMode Bridge
-5621	MMDVM	ord1.w3fur.radio				41000		0
+# 5658 DuckFar Repeater Group, Chicago
+5658	MMDVM	duckfarw9bmk.gotdns.com			41000		0
 
 # 6935 Indiana Digital Ham Radio P25 Reflector
 6395	MMDVM	p25ref.nf9k.net					41000		0
@@ -199,17 +274,26 @@
 # 6969 JTF_HV Ham P25
 6969	MMDVM	69.118.62.100					41000		0
 
+# 7144 Chiriqui Link Panama
+7144	MMDVM	p25-hp3.dnsup.net				41000		0
+
 # 7160 Peru Digital
 7160	MMDVM	p25.dmr-peru.pe					41000		0
 
 # 7225 MULTIPROTOCOLO ARGENTINA
 7225	MMDVM	ysfarg.ddns.net					41000		0
 
-# 7245 MGBRASIL P25
-7245	MMDVM	mgbrasil.duckdns.org			41000		0
+# 7240 MASTER-SUL Brasil
+7240	MMDVM	p25.freedmr-brasil.qsl.br		41000		0
+
+# 7245 BRASIL Multiprotocolo P25
+7245	MMDVM	pu4ron.dynv6.net				41000		0
 
 # Uruguay Link
 7487	MMDVM	23.234.230.152					41000		0
+
+# 7573 Docksea P25
+7573	MMDVM	p25.docksea.com					41000		0
 
 # 7941 WHITE MOUNTAIN REPEATER ASSOCIATION
 7941	MMDVM	45.63.48.117					41000		0
@@ -217,14 +301,23 @@
 # 8200 Mountain Lakes Regional Amateur Radio Society
 8200	MMDVM	n2yqt.tourge.net				41000		0
 
+# 8207 Houston Area XLX Reflector
+8207	MMDVM	p25.kd5dfb.net					41000		0
+
 # 8208 China P25 Network bridge to P25NX
 8208	MMDVM	47.105.33.47					41000		0
+
+# 8210 Ohio Valley
+8210	MMDVM	reflector.kd8tnv.com			41000		0
 
 # 9050 East Coast Reflector
 9050	MMDVM	45.77.198.235					41000		0
 
 # 9480 ICQ PODCAST
 9480	MMDVM	xlx235.mb6ng.uk					41001		0
+
+# 9517 M17 Project - M17-M17 C Reflector bridge
+9517	MMDVM	112.213.34.65					41002		0
 
 # 9846 P25 Portal to WW8GM YSF network www.gmarc.org
 9846	MMDVM	p25.dudetronics.com				41001		0
@@ -262,6 +355,9 @@ pa
 
 # 10203 North America TAC 3 (Bridged to the P25Link Network).
 10203	P25Link	reflector.p25.link				41004		0
+
+# 10207 Arizona 900 P25
+10207	MMDVM	n6ex.ddns.net					41001		0
 
 # P25 France
 10208	MMDVM	m55.evxonline.net				41000		0
@@ -344,11 +440,11 @@ pa
 # 10409 Beijing City, China,Miyun-HAM-Club P25 Repeater bridged to DMR TG 46001
 10409	MMDVM	43.138.30.198					41000		0
 
+# 10410 Taiwan, TMMARC-P25 Reflector bridged to DMR TG 46621
+10410	MMDVM	reflector.tmmarc.org			41000		0
+
 # 10421 DL-Nordwest (dl-nordwest.com) by 9V1LH/DG1BGS and DK5BS
 10421	MMDVM	dl-nordwest.com					41000		0
-
-# 10444 VK64 P25 Group
-10444	MMDVM	vk64.chiffers.com				41000		0
 
 # 10472 Shenzhen City, China,bridged to DMR TG 46072
 10472	MMDVM	14.116.159.221					41000		0
@@ -369,6 +465,9 @@ pa
 # 10700 Australia NSW Bridge to AU NSW YSF
 10700	MMDVM	p25nsw.gustotech.net			41000		0
 
+# 10750 Australian Secondary P25 Reflector
+10750	MMDVM	clasn-p25.cloudasn.com			41000		0
+
 # 10888 Texas
 10888	MMDVM	29520.asnode.org				41000		0
 
@@ -380,6 +479,12 @@ pa
 
 # 11069 KK6RQs reflector
 11069	MMDVM	area52.zapto.org				41000		0
+
+# 17603 URFM17 Universal Reflector
+17603	MMDVM	urf.m17.link					41000		0
+
+# 20281 GR-KERKYRA-DV
+20281	MMDVM	greece.freedmr.online			41000		0
 
 # 20222 HELLAS-FRN
 20222	MMDVM	p25-frn.ddns.net				41000		0
@@ -393,17 +498,26 @@ pa
 # 22202 IT SARDINIA
 22202	MMDVM	87.106.152.249					41000		0
 
+# 22208 IT - Italy Centro
+22208	MMDVM	famiuse.ddns.net				41000		0
+
 # 22212 IT PIEDMONT GDO
 22212	MMDVM	p25gdo.duckdns.org				41000		0
 
 # 22221 HBLINK IT-DMR REGIONALE LOMBARDIA
 22221	MMDVM	dagobah.hblink.it				41000		0
 
+# 22222 North Carolina NCC-1701
+22222	MMDVM	NCC-1701-P25.ddns.net			41001		0
+
 # 22252 IT MULTIPROTOCOL NETWORK
 22252	MMDVM	46.226.178.80					41000		0
 
 # 22258 D2ALP HBLink Italia
 22258	MMDVM	94.177.173.53					41000		0
+
+# 22625 P25 Romania
+22625 MMDVM	188.26.117.67						41000		0
 
 # 22487 IT - Digital Network Rete Multiprotocollo
 22487	MMDVM	famiuse.ddns.net				41000		0
@@ -420,26 +534,32 @@ pa
 # 23511 LEFARS Multi-Reflector
 23511	MMDVM	xlxlef.gb7hh.co.uk				41000		0
 
+# 23522 GB-PrestonARS-P25
+23522	MMDVM	23522p25ref.dyndns.org			41000		0
+
 # 23551 P25 Scotland
 23551	MMDVM	p25scotland.ddns.net			41000		0
 
-# 23595 OZ-DMR
-23595	MMDVM	p25.oz-dmr.uk					41000		0
+# 23556 DVSPH Multimode
+23556	MMDVM	xlx600.dvsph.net				41000		0
 
-# 25617 Russia Kavkaz
-25617	MMDVM	kavkaz.qrz.ru					41000		0
+# 23595 OZ-DMR
+23595	MMDVM	p25.oz-dmr.network				41000		0
+
+# 24033 2 Meter Crew Anti-Net
+24033	MMDVM	wg5eek.com						41000		0
+
+# 25508 South Eastern MA P25
+25508	MMDVM	k1rfi.net						41000		0
 
 # 25605 Russia Ekaterinburg 
 25605	MMDVM	ysf.386i.ru						41000		0
 
-# 25617 Russia Kavkaz
-25617	MMDVM	kavkaz.qrz.ru					41000		0
-
-# 25641 Russia P25 Net
-25641	MMDVM	194.182.85.217					41000		0
-
 # 26078 Poland HBLink Network
 26078	MMDVM	p25.hblink.kutno.pl				41000		0
+
+# 26230 German Hannover-XLink
+26230	MMDVM	p25.hannover-x.link				41000		0
 
 # 26285 German Oberbayern Region
 26285	MMDVM	xlx850.bm262.de					41285		0
@@ -447,11 +567,23 @@ pa
 # 26444 German Inselfreunde Net
 26444	MMDVM	xlx850.bm262.de					41000		0
 
+# 26447 P25 XLX-OWL
+26447	MMDVM	xlx-owl.de						41000		0
+
 # 26538 DE-NDS-Ost
 26538	MMDVM	116.203.223.233					41000		0
 
 # 27565 KN4KNG Network
 27565	MMDVM	139.144.61.167 					41000		0
+
+# 27566 KN4KNG Network TAC1
+27566	MMDVM	139.144.61.167					41001		0
+
+# 27567 KN4KNG Network TAC2
+27567	MMDVM	139.144.61.167					41002		0
+
+# 27568 KN4KNG Network TAC3
+27568	MMDVM	139.144.61.167					41003		0
 
 # 28299 America-Ragchew
 28299	MMDVM	65.101.7.51						41000		0
@@ -489,11 +621,8 @@ pa
 # 31079 ALERT Radio / Multimode P25/DMR
 31079	MMDVM	927.org							41001		0
 
-# 31088 Colorado HD
-31088	MMDVM	54.191.50.212					41000		0
-
-# 31092 Connecticut Chat
-31092	MMDVM	p25.alecwasserman.com			41000		0
+# 31138 kingsland Ga
+31138	MMDVM	kingsland.cbridge.net			41000		0
 
 # 31177 WESDIG P25 Reflector
 31177	MMDVM	p25.wesdig.com					41000		0
@@ -516,10 +645,13 @@ pa
 # 31207 Sunflower Net
 31207	MMDVM	155.138.244.192					41000		0
 
+# 31217 Central Illinois Skywarn - Linked to Brandmeister TG 311899
+31217	MMDVM	tg31217.kd9koo.com				41000		0
+
 # 31220 Lucas County Ohio ARES
 31220	MMDVM	w8mal-dvbridge.hopto.org		41000		0
 
-# 31226 Worldwide Dx Link System
+# 31226 Worldwide Chat
 31226	MMDVM	192.99.70.1						41000		0
 
 # 31238 Foxhole Radio Bridged Network
@@ -531,14 +663,29 @@ pa
 # 31264 XLX625 The BROniverse www.wa8bro.com
 31264	MMDVM	p25.dudetronics.com				41000		0
 
-# 31266 DGTLCOM Great Lakes Digital Common Interlink (P25/DMR/YSF/NXDN/DSTAR)
-31266	MMDVM	dgtlcom.dyndns.org				41000		0
+# 31267 W8LRK Blue Zone - Livingston County Amateur Radio Klub
+31267	MMDVM	w8lrkp25.dyndns.org				41001		0
+
+# 31291 Southwest Missouri (P25/DMR)
+31291	MMDVM	p25.ddns.me						41001		0
+
+# 31297 Southwest Missouri Skywarn (P25/DMR)
+31297	MMDVM	p25.ddns.me						41003		0
+
+# 31313 America's Kansas City Wide (P25/DMR/YSF)
+31313	MMDVM	p25.ddns.me						41002		0
 
 # 31337 SWLA <-> DMR TG 311995 <-> XLX337
 31337	MMDVM	bridge.kc5jmj.com				41000		0
 
+# 31379 Piedmont Triad Network
+31379	MMDVM	130.51.21.144					41000		0
+
 # 31395 Cleveland Skywarn Backbone
 31395	MMDVM	backbone.ad8g.net				41000		0
+
+# 31399 OhioLink Network Crossmode. http://olnradio.digital
+31399	MMDVM	xlx.kd8grn.net					41000		0
 
 # 31340 Central New Jersey
 31340	MMDVM	cnjham.msmts.com				41000		0
@@ -549,6 +696,9 @@ pa
 # 31403 Oklahoma Link
 31403	MMDVM	3.208.70.29						41000		0
 
+# 31424 SVARC-Shenango Valley Amateur Radio Club- K3WRB
+31424	MMDVM	p25.n1tvi.net					41000		0
+
 # XLX045A P25 <-> DMR/DSTAR/YSF/NXDN <-> BM TG31425 PA Wide Cross Mode
 31425	MMDVM	70.44.20.24						41001		0
 
@@ -557,6 +707,18 @@ pa
 
 # 31444	RI DIGITAL LINK TG#31444
 31444	MMDVM	149.28.54.153					41000		0
+
+# 31490 Link to DMR TG 314900
+31490	MMDVM	utah00.utahdrn.org				41000		0
+
+# 31497 LifeFlight, UT Statewide - Link to DMR TG 31497
+31497	MMDVM	45.79.110.170					41000		0
+
+# 31499 Ivins - UT P25
+31499	MMDVM	ivinsp25utah.ddnsgeek.com		41002		0
+
+# 31500 Aviation Talk - P25
+31500	MMDVM	AviationP25-31500.ddnsgeek.com	41000		0
 
 # 31555 SE Wisconsin Regional Linked to WiDMR 31555
 31555	MMDVM	mmdvm-p25.v24bridge.net			41000		0
@@ -582,9 +744,6 @@ pa
 # 31679 Blind Hams
 31679	MMDVM	xlx.borris.me					41000		0
 
-# 31769 MB6NG P25
-31769	MMDVM	dmr.mb6ng.uk					41000		0
-
 # 31691 US Midwest P25 Reflector
 31691	MMDVM	net.w3axl.com					43169		0
 
@@ -594,6 +753,9 @@ pa
 # 31888 KG4JPL North-Central Florida
 31888	MMDVM	p25.kg4jpl.com					41000		0
 
+# 31947 K0MGS Western Missouri/KC Metro
+31947	MMDVM	p25.ddns.me						41000		0
+
 # 31983 K8JTK Hub Multimode ILS/DVMIS (K8JTK.org)
 31983	MMDVM	P25Reflector31983.K8JTK.org		41000		0
 
@@ -602,6 +764,9 @@ pa
 
 # 33015 KP4CA Digital Network
 33015	MMDVM	kp4ca-p25.ddns.net				41000		0
+
+# 33420 Durango Mexico Digital Network
+33420	MMDVM	p25-mx.ddns.net					41000		0
 
 # 33581 OMISS Group
 33581	MMDVM	omiss.dyndns.org				41000		0
@@ -618,6 +783,9 @@ pa
 # 40721 Fusion Canada Fr
 40721	MMDVM	38.110.97.161					41000		0
 
+# 41120 LONE STAR LINK SYSTEM
+41120	MMDVM	216.128.136.176					41000		0
+
 # 43389 SouthEast Link US
 43389	MMDVM	p25.lmarc.net					41000		0
 
@@ -633,20 +801,29 @@ pa
 # 45000 Korea
 45000	MMDVM	p25.dvham.com					41000		0
 
+# 45001 P25-DS5QDR Korea
+45001	MMDVM	ds5qdr-mst.duckdns.org			41000		0
+
 # 46001 P25 Link TG46001, China
 46001	MMDVM	46001.freedmr.club				41000		0
 
-# 46004 P25 Link TG46004, Zone 4, China
-46004	MMDVM	46004.freedmr.club				41001		0
+# 46005 P25 Link TG46005,China
+46005	MMDVM	47.109.24.90					41000		0
 
 # 46010 P25 Link TG46010, Beijing, China
 46010	MMDVM	46010.freedmr.club				41002		0
 
-# 46055 P25 Link TG46055, Zhejiang, China
-46055	MMDVM	46055.freedmr.club				41003		0
+# 46023 P25 Link to BM TG46023, Chongqing, China
+46023	MMDVM	p25.ioi75.top					41000		0
 
 # 46516 P25 Link TG46516, Xuzhou, China
-46516	MMDVM	46516.freedmr.club				41004		0
+46516	MMDVM	46516.bh1nyr.net				41004		0
+
+# 46551 China ADEC
+46551	MMDVM	60.173.209.129					41000		0
+
+# 46851 TG460851 Guiyang China
+46851	MMDVM	120.76.96.210					41000		0
 
 # 49562 Boredom Breaker
 49562	MMDVM	146.71.77.238					41000		0
@@ -702,20 +879,46 @@ pa
 # 55100 (WWRARN) World Wide Ragchew Amateur Radio Net
 55100	MMDVM	45.63.6.57						41000		0
 
-# 56987 Mother Owl - Multi-mode HUB & Reflector
-56987	MMDVM	server.captsmokey.com			41000		0
+# 55295 (KT0ADS) TOADS Digital Voice
+55295	MMDVM	47.36.253.75					41000		0
 
 # 60100 K8SDR SignalsEverywhere Experimenters Club
 60100	MMDVM	p25.signalseverywhere.com		41000		0
 
-# 62869 W3FUR - Pride Radio Group Multi-mode HUB & Reflector
-62869	MMDVMlax1.w3fur.radio					41000		0
+# 60777 Who Cares ARG (URF239 A) https://whocaresradio.com/reflector
+60777	MMDVM	urf239.whocaresradio.com		41000		0
 
 # 63600 Latvian Digital Voice network
 63600	MMDVM	xlx.ham.lv						41000		0
 
-# 65100 P25 2007DXgroup
+# 64701 Reunion Island
+64701	MMDVM	165.169.31.30					41000		0
+
+# 65100 2007DXgroup
 65100	MMDVM	89.46.75.115					41000		0
 
-# 65101 KM4HJJ repeater Pompano, Florida
+# 65101 KM4HJJ Repeater Pompano, Florida
 65101	MMDVM	km4hjj-p25.dyndns-server.com	41000		0
+
+# 65102 UHDARC Link to DMR 313040 and Echolink Server
+65102	MMDVM	198.74.48.229					41000		0
+
+# 65103 KOYA Kids on the Air
+65103	MMDVM	69.61.129.163					41400		0
+
+# 65104 UHDARC TAC 1
+65104	MMDVM	ivinsYSF.ddnsgeek.com			41001		0
+
+# 65105 UHDARC TAC 2
+65105	MMDVM	UHDARCtac2.mywire.org			41004		0
+
+# 65400 XLX288 Reflector
+65400	MMDVM	xlx288.unusualperson.com		41000		0
+
+# 93415 ECHQ P25 Club
+93415	MMDVM	emfcamp.james.ac				5555		0
+
+# 460851 TG460851 Guiyang China
+460851	MMDVM	120.76.96.210 					41000		0
+
+
