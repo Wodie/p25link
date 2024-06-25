@@ -1,12 +1,12 @@
 Package: p25link
-Version: 2.40-7
+Version: 2.40-8
 Section: base
 Priority: optional
 Architecture: all
 Depends: libswitch-perl, libdigest-crc-perl, libconfig-inifiles-perl, libdevice-serialport-perl, libio-socket-timeout-perl, libio-socket-multicast-perl, libterm-readkey-perl, libjson-perl, libwww-perl, libpar-packer-perl
 Maintainer: P25Link <km4nno@yahoo.com>
 Description: P25Link client for Quantar/DIU 3000 or ATAC
- Released Jan 05, 2024.
+ Released June 14, 2024.
  Software for amateur radio only.
  Provided as is.
  Type "sudo ./p25link-menu" for setup.
