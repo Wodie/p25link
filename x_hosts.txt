@@ -1,6 +1,6 @@
 # hosts.txt
 #
-# Last update June 14, 2024.
+# Last update February 13, 2025.
 #
 # The format of this file is:
 # 1 Number of the Talk Group,
@@ -110,10 +110,10 @@
 730		MMDVM	sdradio.cl						41000		0
 
 # 762 W4PFT Multimode Linked to BM TG 312486-Franklin County, GA
-762		MMDVM	p25.w4pft.com 					41000		0
+762		MMDVM	p25.w4pft.com					41000		0
 
 # 822 TH-ASL-5508
-822 	MMDVM	p25.xlx822.com					41000		0
+822		MMDVM	p25.xlx822.com					41000		0
 
 # 841 Team Wave
 841		MMDVM	p25.mx0wvv.org					41000		0
@@ -134,10 +134,10 @@
 891		MMDVM	p25.wnydmr.network				41000		0
 
 # 900 New England 900 MHz P25 Network
-900 stn4571.ip.irlp.net 41000
+900		MMDVM	stn4571.ip.irlp.net				41000		0
 
 # 909 Volunteer Radio Association, Thailand P25 Network
-909 xlx.vra.or.th 41000
+909		MMDVM	xlx.vra.or.th					41000		0
 
 # 910 Washington,DC - Virginia - Maryland
 910		MMDVM	p25.freeddns.org				41000		0
@@ -330,7 +330,7 @@
 10100	MMDVM	m1geo.com						41000		0
 
 # 10101 World Wide TAC 1 (Bridged to the P25Link Network).
-10101	MDVM	reflector.p25.link				41000		0
+10101	MMDVM	reflector.p25.link				41000		0
 
 # 10102 World Wide TAC 2 (Bridged to the P25Link Network).
 10102	MMDVM	reflector.p25.link				41001		0
@@ -631,7 +631,7 @@ pa
 31121	MMDVM	dvse.dmrnet.net					41000		0
 
 # 31123 Florida Treasure Coast
-31123	MMDVM	p25.kg4orq.com 					41000		0
+31123	MMDVM	p25.kg4orq.com					41000		0
 
 # 31161 Virginia
 31161	MMDVM	24.49.15.69						41000		0
@@ -919,6 +919,6 @@ pa
 93415	MMDVM	emfcamp.james.ac				5555		0
 
 # 460851 TG460851 Guiyang China
-460851	MMDVM	120.76.96.210 					41000		0
+460851	MMDVM	120.76.96.210					41000		0
 
 
