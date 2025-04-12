@@ -219,7 +219,7 @@ print '<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "https://www.w3.
 <div class="table" id="table"></div>
 <div class="unshown" id="unshown"></div>
 
-<div class="footer">P25Link Local Dashboard Service - Created by Juan Carlos Perez KM4NNO / XE1F.</div>
+<div class="footer">P25Link Local Dashboard Service - Created by Juan Carlos Perez.</div>
 
 <script type="text/JavaScript">
 
