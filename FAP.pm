@@ -1,6 +1,6 @@
 package Ham::APRS::FAP;
 
-# File modified by Juan Carlos Perez De Castro (Wodie) KM4NNO/XE1F.
+# File modified by Juan Carlos Perez.
 
 =head1 NAME
 Ham::APRS::FAP - Finnish APRS Parser (Fabulous APRS Parser)
